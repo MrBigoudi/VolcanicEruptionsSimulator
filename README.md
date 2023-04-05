@@ -1,2 +1,2 @@
 # VolcanicEruptionsSimulator
-Improvement of an existing eruption simulator
+An eruption simulator implemented in Unity
