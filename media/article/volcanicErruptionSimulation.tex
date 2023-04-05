@@ -1,0 +1,60 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{cmap}
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{marvosym}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{enumitem}
+
+\title{Volcanic Eruption Simulation}
+
+\author{Guillaume Cordonnier, Yannis Kedadry}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\end{abstract}
+
+\section*{Introduction}
+
+- motivations générales
+
+- rupture (pourquoi les autres méthodes ne sont pas utilisables)
+
+\section*{State of the art}
+
+- description des méthodes: en une ligne + pourquoi elles ne résolvent pas notre pb
+
+\section*{Method}
+
+\subsection*{First approach: Shallow-water}
+
+- sans vitesse voisine horizontale
+
+\begin{align}
+    u = -\frac{g}{k}\nabla{Surface}\\
+    \frac{Dh}{Dt} = -h\nabla.u
+\end{align}
+
+\subsection*{Stokes problem}
+
+\section*{Results}
+
+\section*{Conclusion}
+
+\nocite{*}
+\bibliographystyle{unsrt}
+\bibliography{files/biblio.bib}
+
+\appendix
+
+%\input{files/blind_deconv}
+
+\end{document}
