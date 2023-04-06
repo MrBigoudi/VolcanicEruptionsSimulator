@@ -5,6 +5,7 @@ using UnityEngine;
 public class Cell {
 
     public ArrayList mParticles = new ArrayList();
+
     public int mX;
     public int mY;
     public int mHeight;

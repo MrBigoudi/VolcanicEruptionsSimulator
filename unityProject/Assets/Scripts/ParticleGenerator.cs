@@ -11,14 +11,17 @@ public class ParticleGenerator : MonoBehaviour{
 
     private bool isShooting = false;
 
+    public int maxParticles = 5000;
+
     public void Start(){
-        sph = new ParticleSPH(particle);
-        Grid.InitGrid(100,100);
+        // Debug.Log("Start");
+        Grid.InitGrid();
+        sph = new ParticleSPH(particle, maxParticles);
     }
 
     public void Update(){
-        UpdatePosition();
-        ManageInput();
+        // UpdatePosition();
+        // ManageInput();
         if(CanShoot()) GenerateParticle();
         sph.Update();
     }
@@ -34,7 +37,7 @@ public class ParticleGenerator : MonoBehaviour{
 
     private void GenerateParticle(){
         GameObject circle = sph.GenerateParticle(transform.position);
-        circle.GetComponent<Rigidbody2D>().AddRelativeForce(circle.GetComponent<Particle>().mVelocity);
+        // circle.GetComponent<Rigidbody2D>().AddRelativeForce(circle.GetComponent<Particle>().mVelocity);
     }
 
     private void ManageInput(){
@@ -43,6 +46,7 @@ public class ParticleGenerator : MonoBehaviour{
     }
 
     private bool CanShoot(){
-        return isShooting && sph.CanGenerateParticle();
+        // return isShooting && sph.CanGenerateParticle();
+        return sph.CanGenerateParticle();
     }
 }
