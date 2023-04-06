@@ -6,43 +6,50 @@ using UnityEngine;
 
 public class Particle : MonoBehaviour{
 
-    public Vector2 mPosition = new Vector2(0.0f, 0.0f);
-    public Vector2 mVelocity = new Vector2(0.0f, 0.0f);
+    public Vector3 mPosition = new Vector3();
+    public Vector3 mVelocity = new Vector3();
 
-    public Vector2 mPressureForce = new Vector2(0.0f, 0.0f);
-    public Vector2 mAccelerationForce = new Vector2(0.0f, 0.0f);
+    public Vector3 mPressureForce = new Vector3();
+    public Vector3 mAccelerationForce = new Vector3();
 
-    public float mMass = Constants.MASS;
+    public static float mRadius = 0.2f; 
+    public static float mVolume = (4.0f/3.0f)*Constants.PI*mRadius*mRadius*mRadius;
+    public float mMass = mVolume * Constants.RHO_0; // volume * density
+
     public float mRho = Constants.RHO_0; // density
     public float mPressure = 0.0f; // presssure
 
-    public Cell mCell; // to get the neighbours
+    public Cell mCell = null; // to get the neighbours
+    public ArrayList mNeighbours = new ArrayList(); // to get the neighbours
 
-    public ArrayList GetNeighbours(){
-        return mCell.mParticles;
-    }
-
-    public Vector2 GetAcceleration(){
-        return new Vector2(0.0f, -Constants.G);
+    public Vector3 GetAcceleration(){
+        return new Vector3(0.0f, -Constants.G, 0.0f);
     }
 
     public void AssignGridCell(){
+        // redo this part
         float pX = mPosition[0];
         float pY = mPosition[1];
 
-        int cX = (int)pX;
-        int cY = (int)pY;
+        int cX = (int)((pX+(Grid.mWidth/2.0f))/Grid.mCellWidth);
+        int cY = (int)((pY+(Grid.mHeight/2.0f))/Grid.mCellHeight);
 
+        // Debug.Log("x: " + cX + ", y: " + cY + ", px: " + pX + ", py: " + pY);
+
+        // update old grid
+        if(mCell != null) mCell.mParticles.Remove(this);
+
+        // update new grid
         mCell = Grid.mCells[cY,cX];
+        Grid.mCells[cY,cX].mParticles.Add(this);
     }
 
-    public void UpdatePosition(Vector2 newPos, Vector2 newVel){
+    public void UpdateRigidBody(Vector3 newPos, Vector3 newVel){
         // update internal position
         mPosition = newPos;
         mVelocity = newVel;
 
-        // update position in scene
-        transform.position = mPosition;
+        GetComponent<Rigidbody>().AddForce(mVelocity);
 
         // update cell
         AssignGridCell();
