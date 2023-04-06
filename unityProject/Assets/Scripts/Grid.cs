@@ -12,23 +12,23 @@ public static class Grid {
 
     public static Cell [,] mCells;
 
-    public static void InitGrid(int nbCols, int nbLines){
-        mNbCols = nbCols;
-        mNbLines = nbLines;
-
-        mCells = new Cell[nbLines,nbCols];
-        
+    public static void InitGrid(){
+        mCellWidth = (int)Constants.H * 4;
+        mCellHeight = (int)Constants.H * 4;        
         mWidth = Screen.width;
         mHeight = Screen.height;
-        mCellWidth = mWidth / nbCols;
-        mCellHeight = mHeight / nbLines;
+        mNbCols = mWidth / mCellWidth;
+        mNbLines = mHeight / mCellHeight;
 
-        for(int i=0; i<nbLines; i++){
-            for(int j=0; j<nbLines; j++){
+        mCells = new Cell[mNbLines, mNbCols];
+
+        // init the cells
+        for(int i=0; i<mNbLines; i++){
+            for(int j=0; j<mNbCols; j++){
                 int curX = j*mCellWidth;
                 int curY = i*mCellHeight;
                 mCells[i,j] = new Cell(curX, curY, mCellHeight, mCellWidth);
             }
-        } 
+        }
     }
 }
