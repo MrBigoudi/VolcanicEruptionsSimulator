@@ -6,13 +6,13 @@ using UnityEngine;
 
 public class Particle : MonoBehaviour{
 
-    public Vector3 mPosition = new Vector3();
+    // public Vector3 mPosition = new Vector3();
     public Vector3 mVelocity = new Vector3();
 
     public Vector3 mPressureForce = new Vector3();
     public Vector3 mAccelerationForce = new Vector3();
 
-    public static float mRadius = 0.2f; 
+    public static float mRadius = 0.35f; 
     public static float mVolume = (4.0f/3.0f)*Constants.PI*mRadius*mRadius*mRadius;
     public float mMass = mVolume * Constants.RHO_0; // volume * density
 
@@ -28,8 +28,8 @@ public class Particle : MonoBehaviour{
 
     public void AssignGridCell(){
         // redo this part
-        float pX = mPosition[0];
-        float pY = mPosition[1];
+        float pX = mPosition()[0];
+        float pY = mPosition()[1];
 
         int cX = (int)((pX+(Grid.mWidth/2.0f))/Grid.mCellWidth);
         int cY = (int)((pY+(Grid.mHeight/2.0f))/Grid.mCellHeight);
@@ -44,12 +44,19 @@ public class Particle : MonoBehaviour{
         Grid.mCells[cY,cX].mParticles.Add(this);
     }
 
+    public Vector3 mPosition(){
+        return GetComponent<Rigidbody>().position;
+    }
+
     public void UpdateRigidBody(Vector3 newPos, Vector3 newVel){
         // update internal position
-        mPosition = newPos;
+        // mPosition = newPos;
         mVelocity = newVel;
 
-        GetComponent<Rigidbody>().AddForce(mVelocity);
+        // GetComponent<Rigidbody>().AddForce(mVelocity);
+        GetComponent<Rigidbody>().MovePosition(newPos);
+        // mPosition = GetComponent<Rigidbody>().position;
+        // transform.position = mPosition;
 
         // update cell
         AssignGridCell();

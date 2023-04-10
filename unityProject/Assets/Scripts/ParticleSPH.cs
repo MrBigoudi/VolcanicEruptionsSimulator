@@ -42,15 +42,15 @@ public class ParticleSPH {
     }
 
     public float W_POLY6(Particle p1, Particle p2){
-        float r = Vector2.Distance(p1.mPosition, p2.mPosition) / Constants.H;
+        float r = Vector2.Distance(p1.mPosition(), p2.mPosition()) / Constants.H;
         // Debug.Log(r);
         return Constants.ALPHA_POLY6 * K_POLY6(r);
     }
 
     public Vector3 W_POLY6_Grad(Particle p1, Particle p2){
-        float r = Vector2.Distance(p1.mPosition, p2.mPosition) / Constants.H;
+        float r = Vector2.Distance(p1.mPosition(), p2.mPosition()) / Constants.H;
         // Debug.Log(r);
-        return Constants.ALPHA_POLY6 * K_POLY6_Prime(r) * (p1.mPosition - p2.mPosition);
+        return Constants.ALPHA_POLY6 * K_POLY6_Prime(r) * (p1.mPosition() - p2.mPosition());
     }
 
     public void Update(){
@@ -72,7 +72,7 @@ public class ParticleSPH {
         // add the circle to the list of particles generated
         particlesGenerated.Add(circle);
         Particle p = circle.GetComponent<Particle>();
-        p.mPosition = position;
+        // p.mPosition() = position;
         p.AssignGridCell();
         nbCurParticles++;
         return circle;
@@ -109,7 +109,7 @@ public class ParticleSPH {
             ArrayList neighbours = curParticle.mCell.mParticles;
             // for each neighbours check if it is below the kernel radius
             foreach(Particle pj in neighbours){
-                if(Vector3.Distance(curParticle.mPosition, pj.mPosition) < Constants.H){
+                if(Vector3.Distance(curParticle.mPosition(), pj.mPosition()) < Constants.H){
                     newNeighbours.Add(pj);
                 }
             }
@@ -184,7 +184,14 @@ public class ParticleSPH {
             // get new velocity
             Vector3 newVelocity = curParticle.mVelocity + dt*acceleration;
             // get new position
-            Vector3 newPosition = curParticle.mPosition + dt*newVelocity;
+            Vector3 newPosition = curParticle.mPosition() + dt*newVelocity;
+            // newPosition.y = 0;
+            Assert.IsTrue(curParticle.GetComponent<Rigidbody>().position == curParticle.mPosition());
+            newPosition.y = Terrain.activeTerrain.SampleHeight(curParticle.GetComponent<Rigidbody>().position) + Particle.mRadius;
+            Debug.Log("heigthTerrain: " + Terrain.activeTerrain.SampleHeight(newPosition) + "\n"
+                    + "newPos: " + newPosition.x + ", " + newPosition.y + ", " + newPosition.z + "\n"
+                    + "curPos: " + curParticle.mPosition().x + ", " + curParticle.mPosition().y + ", " + curParticle.mPosition().z + "\n"
+                    );
 
             // update particle
             curParticle.UpdateRigidBody(newPosition, newVelocity);
