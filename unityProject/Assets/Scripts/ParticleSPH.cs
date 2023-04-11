@@ -4,27 +4,70 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Assertions;
 
+/**
+ * A class representing an sph solver
+*/
 public class ParticleSPH {
-
+    /**
+     * The dam's width
+    */
     public const int DAM_WIDTH = 10;
+
+    /**
+     * The dam's height
+    */
     public const int DAM_HEIGHT = 10;
+
+    /**
+     * The dam's x coordinate
+    */
     public const int DAM_X = (DAM_WIDTH>>1);
+
+    /**
+     * The dam's y coordinate
+    */
     public const int DAM_Y = (DAM_HEIGHT>>1);
 
-    private GameObject particle;
-    public ArrayList particlesGenerated = new ArrayList();
+    /**
+     * The game object prefab representing a particle
+    */
+    private GameObject mParticle;
 
-    public int nbMaxParticles = 0;
-    private int nbCurParticles = 0;
+    /**
+     * The list of particles to manage
+    */
+    public ArrayList mParticlesGenerated = new ArrayList();
 
+    /**
+     * The maximum number of particles
+    */
+    public int mNbMaxParticles = 0;
+
+    /**
+     * The current number of particles
+    */
+    private int mNbCurParticles = 0;
+
+
+
+    /**
+     * A basic constructor
+     * @param particle The particle prefab
+     * @param maxParticles The maximum number of particles
+    */
     public ParticleSPH(GameObject particle, int maxParticles){
-        this.particle = particle;
-        nbMaxParticles = maxParticles;
+        mParticle = particle;
+        mNbMaxParticles = maxParticles;
 
         // creating a dam
         // CreateDam();
     }
 
+    /**
+     * Part of the poly6 kernel calculation
+     * @param r The distance between two particles
+     * @return Part of the poly6 kernel calculation
+    */
     public float K_POLY6(float r){
         if(r<Constants.H) {
             float tmp = ((Constants.H*Constants.H)-r*r);
@@ -33,6 +76,11 @@ public class ParticleSPH {
         else return 0.0f;
     }
 
+    /**
+     * Part of the derivated poly6 kernel calculation
+     * @param r The distance between two particles
+     * @return Part of the derivated poly6 kernel calculation
+    */
     public float K_POLY6_Prime(float r){
         if(r<Constants.H) {
             float tmp = ((Constants.H*Constants.H)-r*r);
@@ -41,49 +89,84 @@ public class ParticleSPH {
         else return 0.0f;    
     }
 
+    /**
+     * Poly6 kernel calculation
+     * @param p1 The first particle
+     * @param p2 The second particle
+     * @return The poly6 kernel calculation
+    */
     public float W_POLY6(Particle p1, Particle p2){
-        float r = Vector2.Distance(p1.mPosition(), p2.mPosition()) / Constants.H;
+        float r = Vector2.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
         // Debug.Log(r);
         return Constants.ALPHA_POLY6 * K_POLY6(r);
     }
 
+    /**
+     * Derivated poly6 kernel calculation
+     * @param p1 The first particle
+     * @param p2 The second particle
+     * @return The derivated poly6 kernel calculation
+    */
     public Vector3 W_POLY6_Grad(Particle p1, Particle p2){
-        float r = Vector2.Distance(p1.mPosition(), p2.mPosition()) / Constants.H;
+        float r = Vector2.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
         // Debug.Log(r);
-        return Constants.ALPHA_POLY6 * K_POLY6_Prime(r) * (p1.mPosition() - p2.mPosition());
+        return Constants.ALPHA_POLY6 * K_POLY6_Prime(r) * (p1.GetPosition() - p2.GetPosition());
     }
 
+    /**
+     * Update particles' positions
+    */
     public void Update(){
+        // update particles' neighbours
         ComputeNeighbours();
+        // updpate particles' density
         ComputeDensity();
+        // update particles' pressure
         ComputePressure();
+        // update external forces
         ComputeForces();
+        // integrate and update positions
         TimeIntegration();
     }
 
+    /**
+     * Free memory when quitting the app
+    */
     public void OnApplicationQuit(){
-        foreach(UnityEngine.Object element in particlesGenerated){
+        foreach(UnityEngine.Object element in mParticlesGenerated){
             UnityEngine.Object.Destroy(element);
         }
     }
 
+    /**
+     * Generate a particle
+     * @param position The particle's position
+     * @return The particle as a GameObject
+    */
     public GameObject GenerateParticle(Vector3 position){
-        GameObject circle = GameObject.Instantiate(particle, position, new Quaternion());
+        GameObject circle = GameObject.Instantiate(mParticle, position, new Quaternion());
         // add the circle to the list of particles generated
-        particlesGenerated.Add(circle);
+        mParticlesGenerated.Add(circle);
         Particle p = circle.GetComponent<Particle>();
         // p.mPosition() = position;
         p.AssignGridCell();
-        nbCurParticles++;
+        mNbCurParticles++;
         return circle;
     }
 
+    /**
+     * Check if a particle can be generated
+     * @return True if it can
+    */
     public bool CanGenerateParticle(){
-        return (nbCurParticles <= nbMaxParticles);
+        return (mNbCurParticles <= mNbMaxParticles);
     }
 
+    /**
+     * Create a particle dam
+    */
     private void CreateDam(){
-        float particleSize = particle.GetComponent<Renderer>().bounds.size.x;
+        float particleSize = mParticle.GetComponent<Renderer>().bounds.size.x;
         float particleSizeHalf = particleSize / 2;
 
         for(int i = -DAM_X; i<DAM_X; i++){
@@ -93,15 +176,18 @@ public class ParticleSPH {
                 Vector3 position = new Vector3(x, y, 0.0f);
                 GameObject circle = GenerateParticle(position);
                 Particle p = circle.GetComponent<Particle>();
-                nbCurParticles = 0;
+                mNbCurParticles = 0; // do not count the dam for the max number of particles
                 circle.GetComponent<Rigidbody>().AddRelativeForce(new Vector3(0.0f, -1.0f, 0.0f));
             }
         }
     }
 
+    /**
+     * Update particles' neighbours
+    */
     private void ComputeNeighbours(){
         // for every particles pi
-        foreach(UnityEngine.GameObject pi in particlesGenerated){
+        foreach(UnityEngine.GameObject pi in mParticlesGenerated){
             Particle curParticle = pi.GetComponent<Particle>();
             Assert.IsTrue(curParticle != null);
             ArrayList newNeighbours = new ArrayList();
@@ -109,7 +195,7 @@ public class ParticleSPH {
             ArrayList neighbours = curParticle.mCell.mParticles;
             // for each neighbours check if it is below the kernel radius
             foreach(Particle pj in neighbours){
-                if(Vector3.Distance(curParticle.mPosition(), pj.mPosition()) < Constants.H){
+                if(Vector3.Distance(curParticle.GetPosition(), pj.GetPosition()) < Constants.H){
                     newNeighbours.Add(pj);
                 }
             }
@@ -119,9 +205,12 @@ public class ParticleSPH {
         }
     }
 
+    /**
+     * Update particles' density
+    */
     private void ComputeDensity(){
         // for every particles pi
-        foreach(UnityEngine.GameObject pi in particlesGenerated){
+        foreach(UnityEngine.GameObject pi in mParticlesGenerated){
             Particle curParticle = pi.GetComponent<Particle>();
             Assert.IsTrue(curParticle != null);
             float sum = 0.0f;
@@ -141,9 +230,12 @@ public class ParticleSPH {
         }
     }    
     
+    /**
+     * Update particles' pressure
+    */
     private void ComputePressure(){
         // for every particles pi
-        foreach(UnityEngine.GameObject pi in particlesGenerated){
+        foreach(UnityEngine.GameObject pi in mParticlesGenerated){
             Particle curParticle = pi.GetComponent<Particle>();
             float presssure = Constants.STIFFNESS*(curParticle.mRho - Constants.RHO_0);
             // avoid negative values
@@ -151,9 +243,12 @@ public class ParticleSPH {
         }
     }
 
+    /**
+     * Update forces applied to particles
+    */
     private void ComputeForces(){
         // for every particles pi
-        foreach(UnityEngine.GameObject pi in particlesGenerated){
+        foreach(UnityEngine.GameObject pi in mParticlesGenerated){
             Particle curParticle = pi.GetComponent<Particle>();
             // get neighbours
             ArrayList neighbours = curParticle.mNeighbours;
@@ -173,10 +268,13 @@ public class ParticleSPH {
         }
     }
 
+    /**
+     * Update particles' positions
+    */
     private void TimeIntegration(){
         float dt =  Time.deltaTime;
         // for every particles pi
-        foreach(UnityEngine.GameObject pi in particlesGenerated){
+        foreach(UnityEngine.GameObject pi in mParticlesGenerated){
             Particle curParticle = pi.GetComponent<Particle>();
 
             // get acceleration
@@ -184,13 +282,13 @@ public class ParticleSPH {
             // get new velocity
             Vector3 newVelocity = curParticle.mVelocity + dt*acceleration;
             // get new position
-            Vector3 newPosition = curParticle.mPosition() + dt*newVelocity;
+            Vector3 newPosition = curParticle.GetPosition() + dt*newVelocity;
             // newPosition.y = 0;
-            Assert.IsTrue(curParticle.GetComponent<Rigidbody>().position == curParticle.mPosition());
+            Assert.IsTrue(curParticle.GetComponent<Rigidbody>().position == curParticle.GetPosition());
             newPosition.y = Terrain.activeTerrain.SampleHeight(curParticle.GetComponent<Rigidbody>().position) + Particle.mRadius;
             Debug.Log("heigthTerrain: " + Terrain.activeTerrain.SampleHeight(newPosition) + "\n"
                     + "newPos: " + newPosition.x + ", " + newPosition.y + ", " + newPosition.z + "\n"
-                    + "curPos: " + curParticle.mPosition().x + ", " + curParticle.mPosition().y + ", " + curParticle.mPosition().z + "\n"
+                    + "curPos: " + curParticle.GetPosition().x + ", " + curParticle.GetPosition().y + ", " + curParticle.GetPosition().z + "\n"
                     );
 
             // update particle

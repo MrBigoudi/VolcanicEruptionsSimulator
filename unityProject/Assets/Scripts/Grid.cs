@@ -2,16 +2,48 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+/**
+ * A static class representing the grid for the sph's neighbour search
+*/
 public static class Grid {
+    /**
+     * The number of columns
+    */
     public static int mNbCols;
+
+    /**
+     * The number of lines
+    */
     public static int mNbLines;
+
+    /**
+     * The cells width
+    */
     public static int mCellWidth;
+
+    /**
+     * The cells height
+    */
     public static int mCellHeight;
+
+    /**
+     * The grid width
+    */
     public static int mWidth;
+
+    /**
+     * The grid height
+    */
     public static int mHeight;
 
+    /**
+     * The cells as a 2D array
+    */
     public static Cell [,] mCells;
 
+    /**
+     * Initiate the grid
+    */
     public static void InitGrid(){
         mCellWidth = (int)Constants.H * 4;
         mCellHeight = (int)Constants.H * 4;        

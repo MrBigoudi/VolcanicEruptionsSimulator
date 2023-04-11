@@ -2,51 +2,85 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-// Instantiate a rigidbody then set the velocity
-
+/**
+ * A class to generate particles
+*/
 public class ParticleGenerator : MonoBehaviour{
-    public GameObject particle;
+    /**
+     * The game object prefab representing a particle
+    */
+    public GameObject mParticle;
     
-    public ParticleSPH sph;
+    /**
+     * The sph solver
+    */
+    public ParticleSPH mSph;
 
-    private bool isShooting = false;
+    /**
+     * A boolean stating if the generator is shooting or not
+    */
+    private bool mIsShooting = false;
 
-    public int maxParticles = 5000;
+    /**
+     * The maximum number of particles
+    */
+    public int mMaxParticles = 5000;
 
+    /**
+     * Initialize the generator at launch
+    */
     public void Start(){
         // Debug.Log("Start");
         Grid.InitGrid();
-        sph = new ParticleSPH(particle, maxParticles);
+        mSph = new ParticleSPH(mParticle, mMaxParticles);
     }
 
+    /**
+     * Update the generator at runtime
+    */
     public void Update(){
         // UpdatePosition();
         // ManageInput();
         if(CanShoot()) GenerateParticle();
-        sph.Update();
+        mSph.Update();
     }
 
+    /**
+     * Update position of the generator
+    */
     private void UpdatePosition(){
         Vector3 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         transform.position = new Vector2(mousePosition.x, mousePosition.y);
     }
 
+    /**
+     * Free the memory at exit
+    */
     public void OnApplicationQuit(){
-        sph.OnApplicationQuit();
+        mSph.OnApplicationQuit();
     }
 
+    /**
+     * Generate a particle
+    */
     private void GenerateParticle(){
-        GameObject circle = sph.GenerateParticle(transform.position);
+        GameObject circle = mSph.GenerateParticle(transform.position);
         // circle.GetComponent<Rigidbody2D>().AddRelativeForce(circle.GetComponent<Particle>().mVelocity);
     }
 
+    /**
+     * Input manager
+    */
     private void ManageInput(){
-        if(Input.GetButtonDown("Fire1")) isShooting = true;
-        if(Input.GetButtonUp("Fire1")) isShooting = false;
+        if(Input.GetButtonDown("Fire1")) mIsShooting = true;
+        if(Input.GetButtonUp("Fire1")) mIsShooting = false;
     }
 
+    /**
+     * Check if the generator can shoot or not
+    */
     private bool CanShoot(){
         // return isShooting && sph.CanGenerateParticle();
-        return sph.CanGenerateParticle();
+        return mSph.CanGenerateParticle();
     }
 }
