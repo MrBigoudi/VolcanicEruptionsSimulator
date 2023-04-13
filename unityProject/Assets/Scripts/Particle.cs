@@ -25,6 +25,11 @@ public class Particle : MonoBehaviour{
     public Vector3 mAccelerationForce = new Vector3();
 
     /**
+     * The viscosity force applied on the particle
+    */
+    public Vector3 mViscosityForce = new Vector3();
+
+    /**
      * The particle's radius
     */
     public static float mRadius = 0.35f; 
