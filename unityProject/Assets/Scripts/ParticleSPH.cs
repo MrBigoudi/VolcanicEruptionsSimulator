@@ -77,6 +77,19 @@ public class ParticleSPH {
     }
 
     /**
+     * Part of the viscosity kernel calculation
+     * @param r The distance between two particles
+     * @return Part of the viscosity kernel calculation
+    */
+    public float K_VISCOSITY(float r){
+        float l = Constants.H;
+        if(r<l) {
+            return r*r*(-4.0f*r + 9.0f*l) + l*l*l*(-5.0f + 6.0f*(Mathf.Log(l)-Mathf.Log(r)));
+        }
+        else return 0.0f;
+    }
+
+    /**
      * Part of the derivated poly6 kernel calculation
      * @param r The distance between two particles
      * @return Part of the derivated poly6 kernel calculation
@@ -84,9 +97,23 @@ public class ParticleSPH {
     public float K_POLY6_Prime(float r){
         if(r<Constants.H) {
             float tmp = ((Constants.H*Constants.H)-r*r);
-            return 4.0f*r*tmp*tmp;
+            return -6.0f*r*tmp*tmp;
         }
         else return 0.0f;    
+    }
+
+    /**
+     * Part of the derivated viscosity kernel calculation
+     * @param r The distance between two particles
+     * @return Part of the derivated viscosity kernel calculation
+    */
+    public float K_VISCOSITY_Prime(float r){
+        float l = Constants.H;
+        if(r<l) {
+            if(r != 0) return r*(-12.0f*r + 18.0f*l) - (6.0f*l*l*l) / r;
+            return 0.0f;
+        }
+        else return 0.0f;
     }
 
     /**
@@ -102,6 +129,18 @@ public class ParticleSPH {
     }
 
     /**
+     * Viscosity kernel calculation
+     * @param p1 The first particle
+     * @param p2 The second particle
+     * @return The viscosity kernel calculation
+    */
+    public float W_VISCOSITY(Particle p1, Particle p2){
+        float r = Vector2.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
+        // Debug.Log(r);
+        return Constants.ALPHA_VISCOSITY * K_VISCOSITY(r);
+    }
+
+    /**
      * Derivated poly6 kernel calculation
      * @param p1 The first particle
      * @param p2 The second particle
@@ -114,6 +153,23 @@ public class ParticleSPH {
     }
 
     /**
+     * Derivated viscosity kernel calculation
+     * @param p1 The first particle
+     * @param p2 The second particle
+     * @return The derivated viscosity kernel calculation
+    */
+    public Vector3 W_VISCOSITY_Grad(Particle p1, Particle p2){
+        float r = Vector2.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
+        float prime = K_VISCOSITY_Prime(r);
+        Vector2 pos = (p1.GetPosition() - p2.GetPosition());
+        // Debug.Log("radius: " + r);
+        // Debug.Log("alpha: " + Constants.ALPHA_VISCOSITY);
+        // Debug.Log("prime: " + prime);
+        // Debug.Log("pos: " + pos);
+        return Constants.ALPHA_VISCOSITY * prime * pos;
+    }
+
+    /**
      * Update particles' positions
     */
     public void Update(){
@@ -122,7 +178,7 @@ public class ParticleSPH {
         // updpate particles' density
         ComputeDensity();
         // update particles' pressure
-        ComputePressure();
+        // ComputePressure();
         // update external forces
         ComputeForces();
         // integrate and update positions
@@ -254,16 +310,19 @@ public class ParticleSPH {
             ArrayList neighbours = curParticle.mNeighbours;
 
             // calculate forces using neighbours
-            Vector3 pressureForce = new Vector3();
+            Vector3 viscosityForce = new Vector3();
             foreach(Particle pj in neighbours){
-                // pressure force
-                Assert.IsTrue(pj.mRho > 0.0f);
-                float factor = (pj.mMass*(curParticle.mPressure + pj.mPressure)) / (2.0f*pj.mRho);
-                // Debug.Log("factor: " + factor + ", rho: " + pj.mRho);
-                pressureForce += factor*W_POLY6_Grad(curParticle, pj);
-
+                // // pressure force
+                // Assert.IsTrue(pj.mRho > 0.0f);
+                // float factor = (pj.mMass*(curParticle.mPressure + pj.mPressure)) / (2.0f*pj.mRho);
+                // // Debug.Log("factor: " + factor + ", rho: " + pj.mRho);
+                // pressureForce += factor*W_POLY6_Grad(curParticle, pj);
+                float factor = pj.mMass / pj.mRho;
+                // Debug.Log("factor: " + factor);
+                viscosityForce += factor*W_VISCOSITY_Grad(curParticle, pj);
             }
-            curParticle.mPressureForce = pressureForce;
+            // curParticle.mPressureForce = pressureForce;
+            curParticle.mViscosityForce = Constants.VISC*curParticle.mMass*viscosityForce;
             curParticle.mAccelerationForce = curParticle.GetAcceleration();
         }
     }
@@ -278,7 +337,8 @@ public class ParticleSPH {
             Particle curParticle = pi.GetComponent<Particle>();
 
             // get acceleration
-            Vector3 acceleration = curParticle.mAccelerationForce + curParticle.mPressureForce;
+            Vector3 acceleration = curParticle.mAccelerationForce + curParticle.mViscosityForce; //+ curParticle.mPressureForce;
+            Debug.Log("acceleration: " + acceleration);
             // get new velocity
             Vector3 newVelocity = curParticle.mVelocity + dt*acceleration;
             // get new position
@@ -286,10 +346,10 @@ public class ParticleSPH {
             // newPosition.y = 0;
             Assert.IsTrue(curParticle.GetComponent<Rigidbody>().position == curParticle.GetPosition());
             newPosition.y = Terrain.activeTerrain.SampleHeight(curParticle.GetComponent<Rigidbody>().position) + Particle.mRadius;
-            Debug.Log("heigthTerrain: " + Terrain.activeTerrain.SampleHeight(newPosition) + "\n"
-                    + "newPos: " + newPosition.x + ", " + newPosition.y + ", " + newPosition.z + "\n"
-                    + "curPos: " + curParticle.GetPosition().x + ", " + curParticle.GetPosition().y + ", " + curParticle.GetPosition().z + "\n"
-                    );
+            // Debug.Log("heigthTerrain: " + Terrain.activeTerrain.SampleHeight(newPosition) + "\n"
+            //         + "newPos: " + newPosition.x + ", " + newPosition.y + ", " + newPosition.z + "\n"
+            //         + "curPos: " + curParticle.GetPosition().x + ", " + curParticle.GetPosition().y + ", " + curParticle.GetPosition().z + "\n"
+            //         );
 
             // update particle
             curParticle.UpdateRigidBody(newPosition, newVelocity);

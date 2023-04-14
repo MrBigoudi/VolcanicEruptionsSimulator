@@ -17,11 +17,6 @@ public class ParticleGenerator : MonoBehaviour{
     public ParticleSPH mSph;
 
     /**
-     * A boolean stating if the generator is shooting or not
-    */
-    private bool mIsShooting = false;
-
-    /**
      * The maximum number of particles
     */
     public int mMaxParticles = 5000;
@@ -72,8 +67,6 @@ public class ParticleGenerator : MonoBehaviour{
      * Input manager
     */
     private void ManageInput(){
-        if(Input.GetButtonDown("Fire1")) mIsShooting = true;
-        if(Input.GetButtonUp("Fire1")) mIsShooting = false;
     }
 
     /**
