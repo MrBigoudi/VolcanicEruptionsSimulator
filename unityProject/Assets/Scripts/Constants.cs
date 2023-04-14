@@ -31,6 +31,11 @@ public static class Constants{
      * Factor for poly6 kernel calculations
     */
     public const float ALPHA_POLY6 = 4.0f / (PI*H*H*H*H*H*H*H*H);
+
+    /**
+     * Factor for viscosity kernel calculations
+    */
+    public const float ALPHA_VISCOSITY = 10.0f / (9.0f*PI*H*H*H*H*H);
     
     /**
      * The viscosity constant
