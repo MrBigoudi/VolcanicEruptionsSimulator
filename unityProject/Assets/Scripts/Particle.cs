@@ -69,7 +69,7 @@ public class Particle : MonoBehaviour{
      * @return The force as a vec3
     */
     public Vector3 GetAcceleration(){
-        return new Vector3(0.0f, -Constants.G, 0.0f);
+        return new Vector3(0.0f, -mMass*Constants.G, 0.0f);
     }
 
     /**
@@ -98,7 +98,8 @@ public class Particle : MonoBehaviour{
      * @return The postion as a vec3
     */
     public Vector3 GetPosition(){
-        return GetComponent<Rigidbody>().position;
+        return transform.position;
+        // return GetComponent<Rigidbody>().position;
     }
 
     /**
@@ -112,9 +113,9 @@ public class Particle : MonoBehaviour{
         mVelocity = newVel;
 
         // GetComponent<Rigidbody>().AddForce(mVelocity);
-        GetComponent<Rigidbody>().MovePosition(newPos);
+        // GetComponent<Rigidbody>().MovePosition(newPos);
         // mPosition = GetComponent<Rigidbody>().position;
-        // transform.position = mPosition;
+        transform.position = newPos;
 
         // update cell
         AssignGridCell();
