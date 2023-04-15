@@ -233,7 +233,7 @@ public class ParticleSPH {
                 GameObject circle = GenerateParticle(position);
                 Particle p = circle.GetComponent<Particle>();
                 mNbCurParticles = 0; // do not count the dam for the max number of particles
-                circle.GetComponent<Rigidbody>().AddRelativeForce(new Vector3(0.0f, -1.0f, 0.0f));
+                // circle.GetComponent<Rigidbody>().AddRelativeForce(new Vector3(0.0f, -1.0f, 0.0f));
             }
         }
     }
@@ -338,14 +338,14 @@ public class ParticleSPH {
 
             // get acceleration
             Vector3 acceleration = curParticle.mAccelerationForce + curParticle.mViscosityForce; //+ curParticle.mPressureForce;
-            Debug.Log("acceleration: " + acceleration);
+            // Debug.Log("acceleration: " + acceleration);
             // get new velocity
             Vector3 newVelocity = curParticle.mVelocity + dt*acceleration;
             // get new position
             Vector3 newPosition = curParticle.GetPosition() + dt*newVelocity;
             // newPosition.y = 0;
-            Assert.IsTrue(curParticle.GetComponent<Rigidbody>().position == curParticle.GetPosition());
-            newPosition.y = Terrain.activeTerrain.SampleHeight(curParticle.GetComponent<Rigidbody>().position) + Particle.mRadius;
+            // Assert.IsTrue(curParticle.GetComponent<Rigidbody>().position == curParticle.GetPosition());
+            newPosition.y = Terrain.activeTerrain.SampleHeight(newPosition) + Particle.mRadius;
             // Debug.Log("heigthTerrain: " + Terrain.activeTerrain.SampleHeight(newPosition) + "\n"
             //         + "newPos: " + newPosition.x + ", " + newPosition.y + ", " + newPosition.z + "\n"
             //         + "curPos: " + curParticle.GetPosition().x + ", " + curParticle.GetPosition().y + ", " + curParticle.GetPosition().z + "\n"
