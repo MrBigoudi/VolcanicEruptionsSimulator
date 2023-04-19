@@ -352,7 +352,11 @@ public class ParticleSPH {
             //         );
 
             // update particle
-            curParticle.UpdateRigidBody(newPosition, newVelocity);
+            if(!curParticle.UpdateRigidBody(newPosition, newVelocity)){
+                // delete the particle
+                mParticlesGenerated.Remove(curParticle);
+                mNbCurParticles--;
+            }
         }
     }
 }

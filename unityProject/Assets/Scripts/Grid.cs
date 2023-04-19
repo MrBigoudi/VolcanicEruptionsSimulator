@@ -4,6 +4,7 @@ using UnityEngine;
 
 /**
  * A static class representing the grid for the sph's neighbour search
+ * The grid is a 2D one at y = 0
 */
 public static class Grid {
     /**
@@ -22,9 +23,9 @@ public static class Grid {
     public static int mCellWidth;
 
     /**
-     * The cells height
+     * The cells depth
     */
-    public static int mCellHeight;
+    public static int mCellDepth;
 
     /**
      * The grid width
@@ -32,9 +33,9 @@ public static class Grid {
     public static int mWidth;
 
     /**
-     * The grid height
+     * The grid depth
     */
-    public static int mHeight;
+    public static int mDepth;
 
     /**
      * The cells as a 2D array
@@ -46,20 +47,20 @@ public static class Grid {
     */
     public static void InitGrid(){
         mCellWidth = (int)Constants.H * 4;
-        mCellHeight = (int)Constants.H * 4;        
+        mCellDepth = (int)Constants.H * 4;        
         mWidth = Screen.width;
-        mHeight = Screen.height;
+        mDepth = Screen.height;
         mNbCols = mWidth / mCellWidth;
-        mNbLines = mHeight / mCellHeight;
+        mNbLines = mDepth / mCellDepth;
 
         mCells = new Cell[mNbLines, mNbCols];
 
         // init the cells
-        for(int i=0; i<mNbLines; i++){
+        for(int i=mNbLines-1; i>=0; i--){
             for(int j=0; j<mNbCols; j++){
-                int curX = j*mCellWidth;
-                int curY = i*mCellHeight;
-                mCells[i,j] = new Cell(curX, curY, mCellHeight, mCellWidth);
+                int curX = i*mCellWidth;
+                int curZ = j*mCellDepth;
+                mCells[i,j] = new Cell(curX, curZ, mCellWidth, mCellDepth);
             }
         }
     }
