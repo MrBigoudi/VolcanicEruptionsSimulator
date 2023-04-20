@@ -18,14 +18,14 @@ public class Cell {
     public int mX;
 
     /**
-     * The y coordinate of the cell
+     * The z coordinate of the cell
     */
-    public int mY;
+    public int mZ;
 
     /**
-     * The heigth of the cell
+     * The depth of the cell
     */
-    public int mHeight;
+    public int mDepth;
 
     /**
      * The width of the cell
@@ -34,11 +34,15 @@ public class Cell {
 
     /**
      * A basic constructor
+     * @param x The x position of the cell
+     * @param z The z position of the cell
+     * @param width The cell's width
+     * @param depth The cell's depth
     */
-    public Cell(int x, int y, int height, int width){
+    public Cell(int x, int y, int width, int depth){
         mX = x;
-        mY = y;
-        mHeight = height;
+        mZ = y;
+        mDepth = depth;
         mWidth = width;
     }
 }

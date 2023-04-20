@@ -170,6 +170,35 @@ public class ParticleSPH {
     }
 
     /**
+     * Get the height at a given position
+     * @param pos The current position\
+     * @return The height
+    */
+    public float GetTerrainHeight(Vector3 pos){
+        return Terrain.activeTerrain.SampleHeight(pos);
+    }
+
+    /**
+     * Compute terrain gradient at a given point
+     * @param pos The current position in the terrain
+     * @return The gradient
+    */
+    public Vector3 GetGradient(Vector3 pos){
+        // decompose the position
+        float x = pos.x;
+        float y = pos.y;
+        float z = pos.z;
+
+        float curHeight = GetTerrainHeight(pos);
+
+        float partialX = GetTerrainHeight(new Vector3(x+Constants.GRAD_DELTA, y, z)) - curHeight;
+        float partialZ = GetTerrainHeight(new Vector3(x, y, z+Constants.GRAD_DELTA)) - curHeight;
+
+        return new Vector3(partialX, y, partialZ);
+    }
+
+
+    /**
      * Update particles' positions
     */
     public void Update(){
@@ -177,10 +206,6 @@ public class ParticleSPH {
         ComputeNeighbours();
         // updpate particles' density
         ComputeDensity();
-        // update particles' pressure
-        // ComputePressure();
-        // update external forces
-        ComputeForces();
         // integrate and update positions
         TimeIntegration();
     }
@@ -233,7 +258,7 @@ public class ParticleSPH {
                 GameObject circle = GenerateParticle(position);
                 Particle p = circle.GetComponent<Particle>();
                 mNbCurParticles = 0; // do not count the dam for the max number of particles
-                circle.GetComponent<Rigidbody>().AddRelativeForce(new Vector3(0.0f, -1.0f, 0.0f));
+                // circle.GetComponent<Rigidbody>().AddRelativeForce(new Vector3(0.0f, -1.0f, 0.0f));
             }
         }
     }
@@ -283,47 +308,8 @@ public class ParticleSPH {
             // Debug.Log("n: " + n + ", sum: " + sum);
             // get the pi's density
             curParticle.mRho = sum;
-        }
-    }    
-    
-    /**
-     * Update particles' pressure
-    */
-    private void ComputePressure(){
-        // for every particles pi
-        foreach(UnityEngine.GameObject pi in mParticlesGenerated){
-            Particle curParticle = pi.GetComponent<Particle>();
-            float presssure = Constants.STIFFNESS*(curParticle.mRho - Constants.RHO_0);
-            // avoid negative values
-            curParticle.mPressure = Mathf.Max(presssure, 0.0f);
-        }
-    }
-
-    /**
-     * Update forces applied to particles
-    */
-    private void ComputeForces(){
-        // for every particles pi
-        foreach(UnityEngine.GameObject pi in mParticlesGenerated){
-            Particle curParticle = pi.GetComponent<Particle>();
-            // get neighbours
-            ArrayList neighbours = curParticle.mNeighbours;
-
-            // calculate forces using neighbours
-            Vector3 viscosityForce = new Vector3();
-            foreach(Particle pj in neighbours){
-                // // pressure force
-                // Assert.IsTrue(pj.mRho > 0.0f);
-                // float factor = (pj.mMass*(curParticle.mPressure + pj.mPressure)) / (2.0f*pj.mRho);
-                // // Debug.Log("factor: " + factor + ", rho: " + pj.mRho);
-                // pressureForce += factor*W_POLY6_Grad(curParticle, pj);
-                float factor = pj.mMass / pj.mRho;
-                // Debug.Log("factor: " + factor);
-                viscosityForce += factor*W_VISCOSITY_Grad(curParticle, pj);
-            }
-            // curParticle.mPressureForce = pressureForce;
-            curParticle.mViscosityForce = Constants.VISC*curParticle.mMass*viscosityForce;
-            curParticle.mAccelerationForce = curParticle.GetAcceleration();
+            // update the particle's height
+            curParticle.UpdateHeight();
         }
     }
 
@@ -335,24 +321,22 @@ public class ParticleSPH {
         // for every particles pi
         foreach(UnityEngine.GameObject pi in mParticlesGenerated){
             Particle curParticle = pi.GetComponent<Particle>();
-
-            // get acceleration
-            Vector3 acceleration = curParticle.mAccelerationForce + curParticle.mViscosityForce; //+ curParticle.mPressureForce;
-            Debug.Log("acceleration: " + acceleration);
+            // get position
+            Vector3 curPosition = curParticle.GetPosition();
             // get new velocity
-            Vector3 newVelocity = curParticle.mVelocity + dt*acceleration;
+            Vector3 newVelocity =  (-Constants.G / Constants.STIFFNESS)*GetGradient(curPosition);
             // get new position
-            Vector3 newPosition = curParticle.GetPosition() + dt*newVelocity;
+            Vector3 newPosition = dt*newVelocity - curPosition;
             // newPosition.y = 0;
-            Assert.IsTrue(curParticle.GetComponent<Rigidbody>().position == curParticle.GetPosition());
-            newPosition.y = Terrain.activeTerrain.SampleHeight(curParticle.GetComponent<Rigidbody>().position) + Particle.mRadius;
-            // Debug.Log("heigthTerrain: " + Terrain.activeTerrain.SampleHeight(newPosition) + "\n"
-            //         + "newPos: " + newPosition.x + ", " + newPosition.y + ", " + newPosition.z + "\n"
-            //         + "curPos: " + curParticle.GetPosition().x + ", " + curParticle.GetPosition().y + ", " + curParticle.GetPosition().z + "\n"
-            //         );
+            // Assert.IsTrue(curParticle.GetComponent<Rigidbody>().position == curParticle.GetPosition());
+            newPosition.y = GetTerrainHeight(newPosition) + Particle.mRadius;
 
             // update particle
-            curParticle.UpdateRigidBody(newPosition, newVelocity);
+            if(!curParticle.UpdateRigidBody(newPosition, newVelocity)){
+                // delete the particle
+                mParticlesGenerated.Remove(curParticle);
+                mNbCurParticles--;
+            }
         }
     }
 }

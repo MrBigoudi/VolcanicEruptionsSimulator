@@ -74,3 +74,18 @@ unityProject/[Aa]ssets/[Ss]treamingAssets/aa/*
 # other files
 .cache
 media/publications
+
+# tex files
+*.tex
+*.log
+*.aux
+*.bib
+*.bbl
+*.blg
+*.fls
+*.gz
+*.fdb_latexmk
+*.vrb
+*.toc
+*.snm
+*.nav
