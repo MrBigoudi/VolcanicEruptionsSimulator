@@ -1,5 +1,33 @@
 \begin{thebibliography}{10}
 
+\bibitem{Solenthaler2011SPHBS}
+Barbara Solenthaler, Peter Bucher, Nuttapong Chentanez, Matthias M{\"u}ller,
+  and Markus~H. Gross.
+\newblock Sph based shallow water simulation.
+\newblock In {\em Workshop on Virtual Reality Interactions and Physical
+  Simulations}, 2011.
+
+\bibitem{RodrguezPaz2005ACS}
+Miguel~X. Rodr{\'i}guez-Paz and Javier Bonet.
+\newblock A corrected smooth particle hydrodynamics formulation of the
+  shallow-water equations.
+\newblock {\em Computers \& Structures}, 83:1396--1410, 2005.
+
+\bibitem{Griffiths}
+Ross Griffiths.
+\newblock The dynamics of lava flows.
+\newblock {\em Annual Review of Fluid Mechanics}, 32:477--518, 01 2000.
+
+\bibitem{Chang2016ANS}
+Kao~Hua Chang, Tsang‐Jung Chang, and Yen‐Ming Chiang.
+\newblock A novel sph-swes approach for modeling subcritical and supercritical
+  flows at open channel junctions.
+\newblock {\em Journal of Hydro-environment Research}, 13:76--88, 2016.
+
+\bibitem{bogdan2019custom}
+Victor Bogdan, Cosmin Bonchiş, and Ciprian Orhei.
+\newblock Custom extended sobel filters, 2019.
+
 \bibitem{Gagnon2019DistributionUO}
 Jonathan Gagnon, Juli{\'a}n Guzman, Valentin Vervondel, François Dagenais,
   David Mould, and Eric Paquette.
@@ -26,13 +54,6 @@ Shenfan Zhang, Fanlong Kong, Chen Li, Changbo Wang, and Hong Qin.
   volcano animation.
 \newblock {\em Computer Animation and Virtual Worlds}, 28, 2017.
 
-\bibitem{Solenthaler2011SPHBS}
-Barbara Solenthaler, Peter Bucher, Nuttapong Chentanez, Matthias M{\"u}ller,
-  and Markus~H. Gross.
-\newblock Sph based shallow water simulation.
-\newblock In {\em Workshop on Virtual Reality Interactions and Physical
-  Simulations}, 2011.
-
 \bibitem{Bernabeu}
 Noé Bernabeu, Pierre Saramito, and Claude Smutek.
 \newblock Modelling lava flow advance using a shallow-depth approximation for
@@ -47,11 +68,6 @@ Mathieu Desbrun and Marie-Paule Cani.
   Workshop on Computer Animation and Simulation (EGCAS)}}, pages 61--76,
   Poitiers, France, August 1996. {Springer-Verlag}.
 \newblock Published under the name Marie-Paule Gascuel.
-
-\bibitem{Griffiths}
-Ross Griffiths.
-\newblock The dynamics of lava flows.
-\newblock {\em Annual Review of Fluid Mechanics}, 32:477--518, 01 2000.
 
 \bibitem{Stam2003RealTimeFD}
 Jos Stam.
@@ -76,5 +92,27 @@ Dan Stora, Pierre-Olivier Agliati, Marie-Paule Cani, Fabrice Neyret, and
   Jean-Dominique Gascuel.
 \newblock Animating lava flows.
 \newblock {\em Graphics Interface}, 12 2000.
+
+\bibitem{6570475}
+Markus Ihmsen, Jens Cornelis, Barbara Solenthaler, Christopher Horvath, and
+  Matthias Teschner.
+\newblock Implicit incompressible sph.
+\newblock {\em IEEE Transactions on Visualization and Computer Graphics},
+  20(3):426--435, 2014.
+
+\bibitem{inproceedings}
+Jan Bender and Dan Koschier.
+\newblock Divergence-free smoothed particle hydrodynamics.
+\newblock 08 2015.
+
+\bibitem{10.1145/1531326.1531346}
+B.~Solenthaler and R.~Pajarola.
+\newblock Predictive-corrective incompressible sph.
+\newblock {\em ACM Trans. Graph.}, 28(3), jul 2009.
+
+\bibitem{Gagnon2016DynamicLT}
+Jonathan Gagnon, François Dagenais, and Eric Paquette.
+\newblock Dynamic lapped texture for fluid simulations.
+\newblock {\em The Visual Computer}, 32:901 -- 909, 2016.
 
 \end{thebibliography}

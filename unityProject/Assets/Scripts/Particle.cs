@@ -65,6 +65,11 @@ public class Particle : MonoBehaviour{
     public ArrayList mNeighbours = new ArrayList();
 
     /**
+     * The height of the particle
+    */
+    public float mHeight = 1.0f;
+
+    /**
      * Get the acceleration force applied on the particle
      * @return The force as a vec3
     */
@@ -134,6 +139,13 @@ public class Particle : MonoBehaviour{
 
         // update cell
         return AssignGridCell();
+    }
+
+    /**
+     * Update the height
+    */
+    public void UpdateHeight(){
+        mHeight = mRho / Constants.RHO_0;
     }
 
 }
