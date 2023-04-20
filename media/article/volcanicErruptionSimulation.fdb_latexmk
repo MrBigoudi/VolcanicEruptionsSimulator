@@ -1,14 +1,15 @@
 # Fdb version 3
-["bibtex volcanicErruptionSimulation"] 1680283752 "volcanicErruptionSimulation.aux" "volcanicErruptionSimulation.bbl" "volcanicErruptionSimulation" 1680283752
+["bibtex volcanicErruptionSimulation"] 1681982929 "volcanicErruptionSimulation.aux" "volcanicErruptionSimulation.bbl" "volcanicErruptionSimulation" 1681982929
   "/usr/share/texmf-dist/bibtex/bst/base/unsrt.bst" 1650183167 18030 1376b4b231b50c66211e47e42eda2875 ""
-  "files/biblio.bib" 1680169286 3876 b1e977e2db5ddd2f8a69eb8afed5b06f ""
-  "volcanicErruptionSimulation.aux" 1680283752 533 439c10240231865f16ca8ddbe3d92ac0 "pdflatex"
+  "files/biblio.bib" 1681982611 6012 2ede022a73da1177990a5cb045e31c3b ""
+  "volcanicErruptionSimulation.aux" 1681982929 913 8ef15a65ac04ab19c436178d18a7edf9 "pdflatex"
   (generated)
   "volcanicErruptionSimulation.bbl"
   "volcanicErruptionSimulation.blg"
-["pdflatex"] 1680283752 "/home/mrbigoudi/Documents/LU3_ENS/S2/INFOSCI/VolcanicEruptionsSimulator/media/article/volcanicErruptionSimulation.tex" "volcanicErruptionSimulation.pdf" "volcanicErruptionSimulation" 1680283752
-  "/home/mrbigoudi/Documents/LU3_ENS/S2/INFOSCI/VolcanicEruptionsSimulator/media/article/volcanicErruptionSimulation.tex" 1680169847 1063 713972cefe161df8311c18ac579f974a ""
+["pdflatex"] 1681982929 "/home/mrbigoudi/Documents/LU3_ENS/S2/INFOSCI/VolcanicEruptionsSimulator/media/article/volcanicErruptionSimulation.tex" "volcanicErruptionSimulation.pdf" "volcanicErruptionSimulation" 1681982929
+  "/home/mrbigoudi/Documents/LU3_ENS/S2/INFOSCI/VolcanicEruptionsSimulator/media/article/volcanicErruptionSimulation.tex" 1681982928 3484 e99eca593b4cd1bc667f163b20eec7f8 ""
   "/usr/share/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc" 1650183167 2375 baa924870cfb487815765f9094cf3728 ""
+  "/usr/share/texmf-dist/fonts/enc/dvips/lm/lm-mathex.enc" 1650183167 3486 c7eadf5dcc57b3b2d11736679f6636ba ""
   "/usr/share/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc" 1650183167 2405 5dcf2c1b967ee25cc46c58cd52244aed ""
   "/usr/share/texmf-dist/fonts/enc/dvips/lm/lm-mathsy.enc" 1650183167 2840 216e6e45ad352e2456e1149f28885bee ""
   "/usr/share/texmf-dist/fonts/enc/dvips/lm/lm-rm.enc" 1650183167 2327 9d6df24f9c4f7368395224341a95523a ""
@@ -46,12 +47,17 @@
   "/usr/share/texmf-dist/fonts/tfm/public/lm/rm-lmr8.tfm" 1650183167 11864 309fd7f43e4a0ba39f6f7644d76e8edf ""
   "/usr/share/texmf-dist/fonts/type1/public/lm/lmbx12.pfb" 1650183167 116908 1fca96723793882c2e0160350c192fc8 ""
   "/usr/share/texmf-dist/fonts/type1/public/lm/lmbx9.pfb" 1650183167 126646 439622e6fd57f388c9979d39c4fce535 ""
+  "/usr/share/texmf-dist/fonts/type1/public/lm/lmex10.pfb" 1650183167 23055 2e5b42921de910eaa97b85df04ca4891 ""
   "/usr/share/texmf-dist/fonts/type1/public/lm/lmmi10.pfb" 1650183167 30388 702fae6a5f0e6e9c48a1d872b442ffcf ""
+  "/usr/share/texmf-dist/fonts/type1/public/lm/lmmi7.pfb" 1650183167 30789 be3ebdf20b6442cc4aaf81a81e17daf4 ""
   "/usr/share/texmf-dist/fonts/type1/public/lm/lmr10.pfb" 1650183167 119235 f35b44530a1d90eb90fe15d9cba67ea0 ""
   "/usr/share/texmf-dist/fonts/type1/public/lm/lmr12.pfb" 1650183167 113634 f99c44d58bae0863375faf0e1d74d612 ""
   "/usr/share/texmf-dist/fonts/type1/public/lm/lmr17.pfb" 1650183167 119752 1bd8d06e4079df624bf59ce3ad7c9aa6 ""
+  "/usr/share/texmf-dist/fonts/type1/public/lm/lmr7.pfb" 1650183167 121145 68312a933e2c689ed40ec0aba373e279 ""
+  "/usr/share/texmf-dist/fonts/type1/public/lm/lmr9.pfb" 1650183167 121065 50bbfa703ce7e11638752ef5a6d120c7 ""
   "/usr/share/texmf-dist/fonts/type1/public/lm/lmri10.pfb" 1650183167 112593 fda2373ba4420af33949610de4c28fe8 ""
   "/usr/share/texmf-dist/fonts/type1/public/lm/lmsy10.pfb" 1650183167 27863 09ce3735688ffde955e72da27c95b61a ""
+  "/usr/share/texmf-dist/fonts/type1/public/lm/lmsy7.pfb" 1650183167 27941 d1f5d03f61a46c3fcc3a2ba904ddda52 ""
   "/usr/share/texmf-dist/tex/context/base/mkii/supp-pdf.mkii" 1650183167 71627 94eb9990bed73c364d7f53f960cc8c5b ""
   "/usr/share/texmf-dist/tex/generic/babel-english/english.ldf" 1650183167 7008 9ff5fdcc865b01beca2b0fe4a46231d4 ""
   "/usr/share/texmf-dist/tex/generic/babel/babel.sty" 1650183167 147649 823237dc86e8acfaa45204ca8085a60e ""
@@ -94,9 +100,9 @@
   "/usr/share/texmf-dist/web2c/texmf.cnf" 1650183167 39911 2da6c67557ec033436fe5418a70a8a61 ""
   "/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map" 1680283727 4278762 af3ac1370db81a450c1118eabf1fe718 ""
   "/var/lib/texmf/web2c/pdftex/pdflatex.fmt" 1680283715 2927660 9f0868a644a10ba7df759e86a67a1505 ""
-  "volcanicErruptionSimulation.aux" 1680283752 533 439c10240231865f16ca8ddbe3d92ac0 "pdflatex"
-  "volcanicErruptionSimulation.bbl" 1680283752 3050 3fbab371ba5c8daad97cbcba4c4d335c "bibtex volcanicErruptionSimulation"
-  "volcanicErruptionSimulation.tex" 1680169847 1063 713972cefe161df8311c18ac579f974a ""
+  "volcanicErruptionSimulation.aux" 1681982929 913 8ef15a65ac04ab19c436178d18a7edf9 "pdflatex"
+  "volcanicErruptionSimulation.bbl" 1681982929 4437 293e74def1e8e20a0eb2d47aa6c050c8 "bibtex volcanicErruptionSimulation"
+  "volcanicErruptionSimulation.tex" 1681982928 3484 e99eca593b4cd1bc667f163b20eec7f8 ""
   (generated)
   "volcanicErruptionSimulation.aux"
   "volcanicErruptionSimulation.log"

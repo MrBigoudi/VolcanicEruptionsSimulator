@@ -20,30 +20,62 @@
 \maketitle
 
 \begin{abstract}
+When thinking about physical phenomenon, lava flows often come first in mind being both visually impressive and a real natural threat for its surrounding areas. Although being popular, fast and physically accurate eruption simulations can be tricky because of the unusual laws the flow follows and the hard solver needed to resolve them. This paper present a new Lagrangian technique to efficiently simulate lava flows using shallow water equations.
 \end{abstract}
 
 \section*{Introduction}
 
-- motivations générales
-
-- rupture (pourquoi les autres méthodes ne sont pas utilisables)
+Being able to simulate lava flows in a physically accurate manner can lead to both visually stunning results and a useful prediction tool to prevent causalities of real eruptions. During eruptions, the flow of lava can be seen as a pretty thin layer of fluid; this observation leads us to the idea of using shallow water equations\cite{Solenthaler2011SPHBS} to simulate the flow.
 
 \section*{State of the art}
 
-- description des méthodes: en une ligne + pourquoi elles ne résolvent pas notre pb
+Simulation of fluids in 3D are well studied in the literature either for Lagrangian solvers or Eulerian methods. Usually these simulations come at high cost, requiring millions of particles to reproduce small scale effects. 
+A way to reduce this cost, as used in \textit{insert citation}, is to solve only two components in the 3D space hence reducing the number of operations and the internal size of the simulation. 
+
+- SWE adding horizontal velocity field \cite{Solenthaler2011SPHBS}\\
+
+- SWE for non-uniform terrain \cite{RodrguezPaz2005ACS} (but uniform particles, i.e. same height everywhere)
 
 \section*{Method}
 
 \subsection*{First approach: Shallow-water}
 
-- sans vitesse voisine horizontale
+- 2D sph -> sphere over height map\\
+- Each particle represent a column of lava of a certain height\\
+- Each column same velocity + parallel to the terrain (for now, later add horizontal velocity ?)
 
 \begin{align}
-    u = -\frac{g}{k}\nabla{Surface}\\
-    \frac{Dh}{Dt} = -h\nabla.u
+    \frac{Dh}{Dt} = -h\nabla.u\\
+    u = -\frac{g}{k}\nabla{H}
 \end{align}
 
-\subsection*{Stokes problem}
+$H$: surface -> $H(x,z) = y$
+$h$: height of a particle representing the column of lava, $h$ is calculated using the formula: 
+$h \rho_0 = \rho$, $\rho_0 = 2500 kg.m^{-3}$ (lava rest density \cite{Griffiths}), $\rho$: the current density of the particle 
+
+difficulties:\\
+- neighbourhood\\
+-> first approximation using basic grid search:\\
+-> 2D grid (y = 0) (${cell}_{width} = 4*W_{radius}$), get the particles within the cell in which is the current particle and then check if $dist(p_i, p_j) < W_{radius}$\\
+- multiple branching \cite{Chang2016ANS}\\
+
+terrain gradient:\\
+- euler method 
+\[
+    z = H(x,y)\\
+   \frac{\partial H}{\partial x} (x,y) = \frac{H(x+1, y) - H(x,y)}{x+1-x} = H(x+1, y) - z\\
+   \frac{\partial H}{\partial y} (x,y) = \frac{H(x, y+1) - H(x,y)}{y+1-y} = H(x, y+1) - z\\
+\]
+
+- sobel operator\cite{bogdan2019custom}
+
+$\nabla H(x,y) = \sqrt{(\frac{\partial H}{\partial x} (x,y))^2 + (\frac{\partial H}{\partial y} (x,y))^2}$
+
+\subsection*{Better approach: Stokes problem}
+
+\subsection*{Rendering}
+
+- rendu sur texture \\
 
 \section*{Results}
 
