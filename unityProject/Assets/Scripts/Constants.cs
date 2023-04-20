@@ -45,11 +45,16 @@ public static class Constants{
     /**
      * The lava rest density
     */
-    public const float RHO_0 = 3500.0f;
+    public const float RHO_0 = 2500.0f;
 
     /**
      * The stiffness constant for gas law
     */
-    public const float STIFFNESS = G/RHO_0;
+    public const float STIFFNESS = 1;
+
+    /**
+     * Delta for gradient calculations 
+    */
+    public const float GRAD_DELTA = 1.0f;
     
 }

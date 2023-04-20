@@ -65,32 +65,51 @@ public class Particle : MonoBehaviour{
     public ArrayList mNeighbours = new ArrayList();
 
     /**
+     * The height of the particle
+    */
+    public float mHeight = 1.0f;
+
+    /**
      * Get the acceleration force applied on the particle
      * @return The force as a vec3
     */
     public Vector3 GetAcceleration(){
-        return new Vector3(0.0f, -Constants.G, 0.0f);
+        return new Vector3(0.0f, -mMass*Constants.G, 0.0f);
     }
 
     /**
      * Assign a grid cell to the particle
+     * @return False if no cell could have been assigned
     */
-    public void AssignGridCell(){
+    public bool AssignGridCell(){
         // TODO: redo this part
         float pX = GetPosition()[0];
-        float pY = GetPosition()[1];
+        float pZ = GetPosition()[2];
 
-        int cX = (int)((pX+(Grid.mWidth/2.0f))/Grid.mCellWidth);
-        int cY = (int)((pY+(Grid.mHeight/2.0f))/Grid.mCellHeight);
+        int cX = (int)(pX/Grid.mCellWidth);
+        int cZ = (int)(pZ/Grid.mCellDepth);
 
         // Debug.Log("x: " + cX + ", y: " + cY + ", px: " + pX + ", py: " + pY);
 
-        // update old grid
-        if(mCell != null) mCell.mParticles.Remove(this);
+        // update grid
+        if(cX < 0 || cX > Grid.mWidth || cZ < 0 || cZ > Grid.mDepth){ // outside of the grid
+            if(mCell != null) mCell.mParticles.Remove(this);
+            return false; 
+        }
+        Cell newCell = Grid.mCells[cX,cZ];
 
-        // update new grid
-        mCell = Grid.mCells[cY,cX];
-        Grid.mCells[cY,cX].mParticles.Add(this);
+        if(mCell == null){ // first assign
+            mCell = newCell;
+            mCell.mParticles.Add(this);
+            return true;
+        }
+
+        if(newCell != mCell) { // if same cell do nothing
+            mCell.mParticles.Remove(this);
+            Grid.mCells[cX,cZ].mParticles.Add(this);
+        }
+
+        return true;
     }
 
     /**
@@ -98,26 +117,35 @@ public class Particle : MonoBehaviour{
      * @return The postion as a vec3
     */
     public Vector3 GetPosition(){
-        return GetComponent<Rigidbody>().position;
+        return transform.position;
+        // return GetComponent<Rigidbody>().position;
     }
 
     /**
      * Update the rigid body of the particle
      * @param newPos The Particle's new position
      * @param newVel The Particle's new velocity
+     * @return True if the particlue should be delete
     */
-    public void UpdateRigidBody(Vector3 newPos, Vector3 newVel){
+    public bool UpdateRigidBody(Vector3 newPos, Vector3 newVel){
         // update internal position
         // mPosition = newPos;
         mVelocity = newVel;
 
         // GetComponent<Rigidbody>().AddForce(mVelocity);
-        GetComponent<Rigidbody>().MovePosition(newPos);
+        // GetComponent<Rigidbody>().MovePosition(newPos);
         // mPosition = GetComponent<Rigidbody>().position;
-        // transform.position = mPosition;
+        transform.position = newPos;
 
         // update cell
-        AssignGridCell();
+        return AssignGridCell();
+    }
+
+    /**
+     * Update the height
+    */
+    public void UpdateHeight(){
+        mHeight = mRho / Constants.RHO_0;
     }
 
 }
