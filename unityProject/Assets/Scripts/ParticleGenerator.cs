@@ -19,7 +19,12 @@ public class ParticleGenerator : MonoBehaviour{
     /**
      * The maximum number of particles
     */
-    public int mMaxParticles = 5000;
+    public int mMaxParticles = 50;
+
+    /**
+     * The variation delta for the particle generation
+    */
+    public float mDelta = 5.0f;
 
     /**
      * Initialize the generator at launch
@@ -56,10 +61,28 @@ public class ParticleGenerator : MonoBehaviour{
     }
 
     /**
+     * Get a random position around the generator
+     * @param delta The delta arround which the position can change
+     * @return The random position
+    */
+    private Vector3 GetRandomPosition(float delta){
+        float v1 = Random.value*2*delta - delta;
+        float v2 = Random.value*2*delta - delta;
+        Vector3 pos = transform.position;
+        pos.x += v1;
+        pos.z += v2;
+        pos.y = mSph.GetTerrainHeight(pos);
+        // Debug.Log("position: " + pos.x + ", " + pos.y + ", " + pos.z);
+        return pos;
+    }
+
+
+    /**
      * Generate a particle
     */
     private void GenerateParticle(){
-        GameObject circle = mSph.GenerateParticle(transform.position);
+        Vector3 position = GetRandomPosition(mDelta);
+        GameObject circle = mSph.GenerateParticle(position);
         // circle.GetComponent<Rigidbody2D>().AddRelativeForce(circle.GetComponent<Particle>().mVelocity);
     }
 

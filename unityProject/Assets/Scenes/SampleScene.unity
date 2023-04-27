@@ -676,7 +676,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mParticle: {fileID: 3132906801724813406, guid: 961aec85dd51e7fd79a04228647aa221, type: 3}
-  mMaxParticles: 5000
+  mMaxParticles: 10
+  mDelta: 1
 --- !u!212 &1708334438
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -737,7 +738,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1708334436}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 56.72, y: 19.661, z: 58.452}
+  m_LocalPosition: {x: 56.72, y: 19.82, z: 58.452}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
