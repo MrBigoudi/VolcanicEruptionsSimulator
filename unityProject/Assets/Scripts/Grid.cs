@@ -48,8 +48,8 @@ public static class Grid {
     public static void InitGrid(){
         mCellWidth = (int)Constants.H * 4;
         mCellDepth = (int)Constants.H * 4;        
-        mWidth = Screen.width;
-        mDepth = Screen.height;
+        mWidth = 2*Screen.width;
+        mDepth = 2*Screen.height;
         mNbCols = mWidth / mCellWidth;
         mNbLines = mDepth / mCellDepth;
 
