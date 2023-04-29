@@ -76,7 +76,6 @@ unityProject/[Aa]ssets/[Ss]treamingAssets/aa/*
 media/publications
 
 # tex files
-*.tex
 *.log
 *.aux
 *.bib
