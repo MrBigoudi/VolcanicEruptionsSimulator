@@ -33,6 +33,16 @@ public class Cell {
     public int mWidth;
 
     /**
+     * The cell's color (for debugging purposes)
+    */
+    public Color mColor;
+
+    /**
+     * The nieghbouring cells
+    */
+    public ArrayList mNeighbours = new ArrayList();
+
+    /**
      * A basic constructor
      * @param x The x position of the cell
      * @param z The z position of the cell
@@ -44,5 +54,23 @@ public class Cell {
         mZ = y;
         mDepth = depth;
         mWidth = width;
+
+        mColor = Random.ColorHSV();
+        mColor.a = 1.0f;
+    }
+
+    /**
+     * Get the particles arround the cell
+     * @return The list of particles
+    */
+    public ArrayList GetAllParticles(){
+        ArrayList res = new ArrayList(mParticles);
+        for(int i=0; i<mNeighbours.Count; i++){
+            ArrayList curList = ((Cell)mNeighbours[i]).mParticles;
+            for(int j=0; j<curList.Count; j++){
+                res.Add(curList[j]);
+            }
+        }
+        return res;
     }
 }
