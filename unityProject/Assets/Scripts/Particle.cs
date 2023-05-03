@@ -67,7 +67,7 @@ public class Particle : MonoBehaviour{
     /**
      * The height of the particle
     */
-    public float mHeight = 1.0f;
+    public float mHeight = mRadius;
 
     /**
      * Get the acceleration force applied on the particle
@@ -89,7 +89,7 @@ public class Particle : MonoBehaviour{
         int cX = (int)(pX/Grid.mCellWidth);
         int cZ = (int)(pZ/Grid.mCellDepth);
 
-        // Debug.Log("x: " + cX + ", y: " + cY + ", px: " + pX + ", py: " + pY);
+        // Debug.Log("x: " + cX + ", z: " + cZ + ", px: " + pX + ", pz: " + pZ);
 
         // update grid
         if(cX < 0 || cX > Grid.mWidth || cZ < 0 || cZ > Grid.mDepth){ // outside of the grid
@@ -101,12 +101,14 @@ public class Particle : MonoBehaviour{
         if(mCell == null){ // first assign
             mCell = newCell;
             mCell.mParticles.Add(this);
+            gameObject.GetComponent<Renderer>().material.color = mCell.mColor;
             return true;
         }
 
         if(newCell != mCell) { // if same cell do nothing
             mCell.mParticles.Remove(this);
             Grid.mCells[cX,cZ].mParticles.Add(this);
+            gameObject.GetComponent<Renderer>().material.color = mCell.mColor;
         }
 
         return true;
@@ -146,6 +148,14 @@ public class Particle : MonoBehaviour{
     */
     public void UpdateHeight(){
         mHeight = mRho / Constants.RHO_0;
+        // float oldRadius = mRadius;
+        mRadius = mHeight / 2.0f;
+
+        // make sphere bigger
+        // float scaleFactor = 0.0f;
+        // if(oldRadius != 0.0f) scaleFactor = mRadius / oldRadius;
+
+        // transform.localScale = new Vector3(scaleFactor, scaleFactor, scaleFactor);
     }
 
 }

@@ -39,6 +39,11 @@ public class ParticleSPH {
     public ArrayList mParticlesGenerated = new ArrayList();
 
     /**
+     * The list of particles to remove
+    */
+    public ArrayList mParticlesToRemove = new ArrayList();
+
+    /**
      * The maximum number of particles
     */
     public int mNbMaxParticles = 0;
@@ -170,6 +175,18 @@ public class ParticleSPH {
     }
 
     /**
+     * Laplacien viscosity kernel calculation
+     * @param p1 The first particle
+     * @param p2 The second particle
+     * @return The derivated viscosity kernel calculation
+    */
+    public float W_VISCOSITY_laplacien(Particle p1, Particle p2){
+        float r = Vector2.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
+        float l = Constants.H;
+        return Constants.ALPHA_VISCOSITY_LAPLACIEN*(l-r);
+    }
+
+    /**
      * Get the height at a given position
      * @param pos The current position\
      * @return The height
@@ -179,20 +196,22 @@ public class ParticleSPH {
     }
 
     /**
-     * Compute terrain gradient at a given point
-     * @param pos The current position in the terrain
+     * Compute the surface gradient at a given point
+     * @param p The current particle
      * @return The gradient
     */
-    public Vector3 GetGradient(Vector3 pos){
+    public Vector3 GetGradient(Particle p){
+        Vector3 pos = p.transform.position;
+
         // decompose the position
         float x = pos.x;
         float y = pos.y;
         float z = pos.z;
 
-        float curHeight = GetTerrainHeight(pos);
+        float curSurface = GetTerrainHeight(pos) + p.mHeight;
 
-        float partialX = GetTerrainHeight(new Vector3(x+Constants.GRAD_DELTA, y, z)) - curHeight;
-        float partialZ = GetTerrainHeight(new Vector3(x, y, z+Constants.GRAD_DELTA)) - curHeight;
+        float partialX = GetTerrainHeight(new Vector3(x+Constants.GRAD_DELTA, y, z)) - curSurface;
+        float partialZ = GetTerrainHeight(new Vector3(x, y, z+Constants.GRAD_DELTA)) - curSurface;
 
         return new Vector3(partialX, y, partialZ);
     }
@@ -206,8 +225,12 @@ public class ParticleSPH {
         ComputeNeighbours();
         // updpate particles' density
         ComputeDensity();
+        // update viscosity forces applied
+        ComputeViscosity();
         // integrate and update positions
         TimeIntegration();
+        // remove the particles otside the boundaries
+        RemoveParticles();
     }
 
     /**
@@ -273,7 +296,7 @@ public class ParticleSPH {
             Assert.IsTrue(curParticle != null);
             ArrayList newNeighbours = new ArrayList();
             // get neighbours
-            ArrayList neighbours = curParticle.mCell.mParticles;
+            ArrayList neighbours = curParticle.mCell.GetAllParticles();
             // for each neighbours check if it is below the kernel radius
             foreach(Particle pj in neighbours){
                 if(Vector3.Distance(curParticle.GetPosition(), pj.GetPosition()) < Constants.H){
@@ -290,6 +313,7 @@ public class ParticleSPH {
      * Update particles' density
     */
     private void ComputeDensity(){
+        Debug.Log("\n\n################################ Density ##############################\n\n");
         // for every particles pi
         foreach(UnityEngine.GameObject pi in mParticlesGenerated){
             Particle curParticle = pi.GetComponent<Particle>();
@@ -298,6 +322,7 @@ public class ParticleSPH {
             int n = 0;
             // get neighbours
             ArrayList neighbours = curParticle.mNeighbours;
+            Debug.Log("nbNeighbour: " + neighbours.Count);
             // for each neighbours add to the sum
             foreach(Particle pj in neighbours){
                 // Debug.Log("TEST NEIGHBOUR");
@@ -314,6 +339,34 @@ public class ParticleSPH {
     }
 
     /**
+     * Update viscosity force applied on particles
+    */
+    private void ComputeViscosity(){
+        // for every particles pi
+        foreach(UnityEngine.GameObject pi in mParticlesGenerated){
+            Particle curParticle = pi.GetComponent<Particle>();
+            Assert.IsTrue(curParticle != null);
+            Vector3 sum = new Vector3();
+            // get neighbours
+            ArrayList neighbours = curParticle.mNeighbours;
+            // for each neighbours add to the sum
+            foreach(Particle pj in neighbours){
+                Vector3 u_ji = pj.mVelocity - curParticle.mVelocity;
+                float laplacienW_ij = W_VISCOSITY_laplacien(curParticle, pj);
+                float factor = 0.0f;
+                if(pj.mRho != 0.0f)
+                    factor = (pj.mMass/pj.mRho)*laplacienW_ij;
+                else
+                    factor = pj.mMass*laplacienW_ij;
+                sum += factor*u_ji;
+            }
+            // get the viscosity force applied on pi
+            curParticle.mViscosityForce = Constants.VISC*curParticle.mMass*sum;
+            // Debug.Log("visocsity: "+curParticle.mViscosityForce);
+        }
+    }
+
+    /**
      * Update particles' positions
     */
     private void TimeIntegration(){
@@ -324,19 +377,36 @@ public class ParticleSPH {
             // get position
             Vector3 curPosition = curParticle.GetPosition();
             // get new velocity
-            Vector3 newVelocity =  (-Constants.G / Constants.STIFFNESS)*GetGradient(curPosition);
+            Vector3 newVelocity = (-Constants.G / Constants.STIFFNESS)*GetGradient(curParticle); // + curParticle.mViscosityForce;
             // get new position
-            Vector3 newPosition = dt*newVelocity - curPosition;
+            Vector3 newPosition = dt*newVelocity + curPosition;
             // newPosition.y = 0;
             // Assert.IsTrue(curParticle.GetComponent<Rigidbody>().position == curParticle.GetPosition());
             newPosition.y = GetTerrainHeight(newPosition) + Particle.mRadius;
 
             // update particle
             if(!curParticle.UpdateRigidBody(newPosition, newVelocity)){
-                // delete the particle
-                mParticlesGenerated.Remove(curParticle);
-                mNbCurParticles--;
+                mParticlesToRemove.Add(pi);
             }
         }
     }
+
+    /**
+     * Remove the particles outside the boundary
+    */
+    private void RemoveParticles(){
+        // for every particles to remove pi
+        while(mParticlesToRemove.Count>0){
+            UnityEngine.GameObject pi = (UnityEngine.GameObject) mParticlesToRemove[0];
+            Particle curParticle = pi.GetComponent<Particle>();
+            // delete the particle
+            mParticlesGenerated.Remove(pi);
+            mParticlesToRemove.RemoveAt(0);
+            // clean the cell
+            if(curParticle.mCell != null) curParticle.mCell.mParticles.Remove(curParticle);
+            UnityEngine.Object.Destroy(pi);
+            mNbCurParticles--;
+        }
+    }
+
 }
