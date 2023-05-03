@@ -36,11 +36,16 @@ public static class Constants{
      * Factor for viscosity kernel calculations
     */
     public const float ALPHA_VISCOSITY = 10.0f / (9.0f*PI*H*H*H*H*H);
+
+    /**
+     * Factor for viscosity kernel laplcien calculations
+    */
+    public const float ALPHA_VISCOSITY_LAPLACIEN = 40.0f / (PI*H*H*H*H*H);
     
     /**
      * The viscosity constant
     */
-    public const float VISC = 200.0f;
+    public const float VISC = 1.0f;
 
     /**
      * The lava rest density
