@@ -101,12 +101,14 @@ public class Particle : MonoBehaviour{
         if(mCell == null){ // first assign
             mCell = newCell;
             mCell.mParticles.Add(this);
+            gameObject.GetComponent<Renderer>().material.color = mCell.mColor;
             return true;
         }
 
         if(newCell != mCell) { // if same cell do nothing
             mCell.mParticles.Remove(this);
             Grid.mCells[cX,cZ].mParticles.Add(this);
+            gameObject.GetComponent<Renderer>().material.color = mCell.mColor;
         }
 
         return true;

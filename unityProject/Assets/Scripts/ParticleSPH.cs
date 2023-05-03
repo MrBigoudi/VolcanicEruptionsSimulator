@@ -296,7 +296,7 @@ public class ParticleSPH {
             Assert.IsTrue(curParticle != null);
             ArrayList newNeighbours = new ArrayList();
             // get neighbours
-            ArrayList neighbours = curParticle.mCell.mParticles;
+            ArrayList neighbours = curParticle.mCell.GetAllParticles();
             // for each neighbours check if it is below the kernel radius
             foreach(Particle pj in neighbours){
                 if(Vector3.Distance(curParticle.GetPosition(), pj.GetPosition()) < Constants.H){
@@ -313,6 +313,7 @@ public class ParticleSPH {
      * Update particles' density
     */
     private void ComputeDensity(){
+        Debug.Log("\n\n################################ Density ##############################\n\n");
         // for every particles pi
         foreach(UnityEngine.GameObject pi in mParticlesGenerated){
             Particle curParticle = pi.GetComponent<Particle>();
@@ -321,6 +322,7 @@ public class ParticleSPH {
             int n = 0;
             // get neighbours
             ArrayList neighbours = curParticle.mNeighbours;
+            Debug.Log("nbNeighbour: " + neighbours.Count);
             // for each neighbours add to the sum
             foreach(Particle pj in neighbours){
                 // Debug.Log("TEST NEIGHBOUR");
@@ -351,11 +353,16 @@ public class ParticleSPH {
             foreach(Particle pj in neighbours){
                 Vector3 u_ji = pj.mVelocity - curParticle.mVelocity;
                 float laplacienW_ij = W_VISCOSITY_laplacien(curParticle, pj);
-                float factor = (pj.mMass/pj.mRho)*laplacienW_ij;
+                float factor = 0.0f;
+                if(pj.mRho != 0.0f)
+                    factor = (pj.mMass/pj.mRho)*laplacienW_ij;
+                else
+                    factor = pj.mMass*laplacienW_ij;
                 sum += factor*u_ji;
             }
             // get the viscosity force applied on pi
             curParticle.mViscosityForce = Constants.VISC*curParticle.mMass*sum;
+            // Debug.Log("visocsity: "+curParticle.mViscosityForce);
         }
     }
 
@@ -370,7 +377,7 @@ public class ParticleSPH {
             // get position
             Vector3 curPosition = curParticle.GetPosition();
             // get new velocity
-            Vector3 newVelocity = (-Constants.G / Constants.STIFFNESS)*GetGradient(curParticle) + curParticle.mViscosityForce;
+            Vector3 newVelocity = (-Constants.G / Constants.STIFFNESS)*GetGradient(curParticle); // + curParticle.mViscosityForce;
             // get new position
             Vector3 newPosition = dt*newVelocity + curPosition;
             // newPosition.y = 0;
