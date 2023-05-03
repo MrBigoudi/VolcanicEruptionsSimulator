@@ -54,9 +54,6 @@ public class Cell {
         mZ = y;
         mDepth = depth;
         mWidth = width;
-
-        mColor = Random.ColorHSV();
-        mColor.a = 1.0f;
     }
 
     /**

@@ -676,7 +676,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mParticle: {fileID: 3132906801724813406, guid: 961aec85dd51e7fd79a04228647aa221, type: 3}
-  mMaxParticles: 50
+  mMaxParticles: 1000
   mDelta: 1
 --- !u!212 &1708334438
 SpriteRenderer:

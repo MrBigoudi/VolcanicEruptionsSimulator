@@ -49,7 +49,6 @@ public static class Grid {
         mCellWidth = (int)Constants.H;
         mCellDepth = (int)Constants.H;
         Vector3 terrainSize = Terrain.activeTerrain.terrainData.size;
-        float maxHeight = Terrain.activeTerrain.terrainData.bounds.max.y;
         mWidth = (int)(terrainSize.x+1);
         mDepth = (int)(terrainSize.z+1);
 
@@ -67,8 +66,12 @@ public static class Grid {
                 int curZ = j*mCellDepth;
                 mCells[i,j] = new Cell(curX, curZ, mCellWidth, mCellDepth);
 
-                Debug.DrawLine(new Vector3(curX, maxHeight, curZ), new Vector3(curX+mCellWidth, maxHeight, curZ), Color.red, 100.0f, false);
-                Debug.DrawLine(new Vector3(curX, maxHeight, curZ), new Vector3(curX, maxHeight, curZ+mCellDepth), Color.red, 100.0f, false);
+                Color cellColor = Random.ColorHSV();
+                cellColor.a = 1.0f;
+                mCells[i,j].mColor = cellColor;
+
+                Debug.DrawLine(new Vector3(curX, 0, curZ), new Vector3(curX+mCellWidth, 0, curZ), cellColor, 200.0f, false);
+                Debug.DrawLine(new Vector3(curX, 0, curZ), new Vector3(curX, 0, curZ+mCellDepth), cellColor, 200.0f, false);
             }
         }
 
