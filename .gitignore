@@ -89,3 +89,5 @@ media/publications
 *.toc
 *.snm
 *.nav
+*.dvi
+*.lbl
