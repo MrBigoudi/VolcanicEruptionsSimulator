@@ -226,7 +226,7 @@ public class ParticleSPH {
         // updpate particles' density
         ComputeDensity();
         // update viscosity forces applied
-        // ComputeViscosity();
+        ComputeViscosity();
         // integrate and update positions
         TimeIntegration();
         // update the color for debugging purposes
@@ -409,7 +409,8 @@ public class ParticleSPH {
             Vector3 newPosition = dt*newVelocity + curPosition;
             // newPosition.y = 0;
             // Assert.IsTrue(curParticle.GetComponent<Rigidbody>().position == curParticle.GetPosition());
-            newPosition.y = GetTerrainHeight(newPosition) + Particle.mRadius;
+            newPosition.y = GetTerrainHeight(newPosition);// + curParticle.mRadius;
+            //Assert.IsTrue(Particle.mRadius == curParticle.Scale)
 
             // update particle
             if(!curParticle.UpdateRigidBody(newPosition, newVelocity)){
