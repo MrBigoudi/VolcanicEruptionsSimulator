@@ -1,0 +1,61 @@
+% ---------------------------------------------------------------------
+% EG author guidelines plus sample file for EG publication using LaTeX2e input
+% D.Fellner, v2.03, Dec 14, 2018
+
+
+\title[EG \LaTeX\ Volcanic Eruption Simulation]%
+      {Volcanic Eruption Simulation using Shallow Water equations}
+
+% for anonymous conference submission please enter your SUBMISSION ID
+% instead of the author's name (and leave the affiliation blank) !!
+% for final version: please provide your *own* ORCID in the brackets following \orcid; see https://orcid.org/ for more details.
+\author[Y. Kedadry \& G. Cordonnier]
+{\parbox{\textwidth}{\centering Y. Kedadry$^{1}$\orcid{0009-0009-7986-6619}
+        and G. Cordonnier$^{2}$\orcid{0000-0003-0124-0180}
+        }
+        \\
+% For Computer Graphics Forum: Please use the abbreviation of your first name.
+{\parbox{\textwidth}{\centering $^1$École Normale Supérieure, France\\
+         $^2$Inria, Université Côte d’Azur, France
+       }
+}
+}
+% ------------------------------------------------------------------------
+
+% if the Editors-in-Chief have given you the data, you may uncomment
+% the following five lines and insert it here
+%
+% \volume{36}   % the volume in which the issue will be published;
+% \issue{1}     % the issue number of the publication
+% \pStartPage{1}      % set starting page
+
+
+%-------------------------------------------------------------------------
+\begin{document}
+\maketitle
+
+%-------------------------------------------------------------------------
+\input{body/abstract}
+
+%-------------------------------------------------------------------------
+\input{body/introduction}
+
+%-------------------------------------------------------------------------
+\input{body/relatedWork}
+
+%-------------------------------------------------------------------------
+\input{body/method}
+
+%-------------------------------------------------------------------------
+\input{body/results}
+
+%-------------------------------------------------------------------------
+\input{body/conclusion}
+
+%-------------------------------------------------------------------------
+% bibtex
+\nocite{*}
+\bibliographystyle{deps/bst/eg-alpha-doi}
+\bibliography{srcs/biblio}
+
+\end{document}

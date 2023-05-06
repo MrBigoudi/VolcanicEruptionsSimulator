@@ -1,47 +1,6 @@
-\documentclass{article}
-\usepackage{graphicx} % Required for inserting images
-\usepackage{cmap}
-\usepackage{lmodern}
-\usepackage[T1]{fontenc}
-\usepackage[english]{babel}
-\usepackage{marvosym}
-\usepackage{amsmath}
-\usepackage{amsfonts}
-\usepackage{amssymb}
-\usepackage{enumitem}
-\usepackage{multicol}
+\section{Method}
 
-\title{Volcanic Eruption Simulation}
-
-\author{Guillaume Cordonnier, Yannis Kedadry}
-\date{}
-
-\begin{document}
-
-\maketitle
-
-\begin{abstract}
-When thinking about physical phenomenon, lava flows often come first in mind; being both visually impressive and a real natural threat for its surrounding areas. Although being popular, fast and physically accurate eruption simulations can be tricky because of the unusual laws the flow follows and the hard solver needed to resolve them. This paper present a new Lagrangian technique to efficiently simulate lava flows using shallow water equations.
-\end{abstract}
-
-% \begin{multicols}{2}
-
-\section*{Introduction}
-
-Being able to simulate lava flows in a physically accurate manner can lead to both visually stunning results and a useful prediction tool to prevent causalities of real eruptions. During eruptions, the flow of lava can be seen as a pretty thin layer of fluid; this observation leads us to the idea of using shallow water equations\cite{Solenthaler2011SPHBS} to simulate the flow.
-
-\section*{State of the art}
-
-Simulation of fluids in 3D are well studied in the literature either for Lagrangian solvers or Eulerian methods. Usually these simulations come at high cost, requiring millions of particles to reproduce small scale effects. 
-A way to reduce this cost, as used in \textit{insert citation}, is to solve only two components in the 3D space hence reducing the number of operations and the internal size of the simulation. 
-
-- SWE adding horizontal velocity field \cite{Solenthaler2011SPHBS}\\
-
-- SWE for non-uniform terrain \cite{RodrguezPaz2005ACS} (but uniform particles, i.e. same height everywhere)
-
-\section*{Method}
-
-\subsection*{First approach: Shallow-water}
+\subsection{First approach: Shallow-water}
 
 - 2D sph -> sphere over height map\\
 - Each particle represents a column of lava of a certain height\\
@@ -72,7 +31,7 @@ terrain gradient:\\
 
 -> simulation explodes without viscosity force so adding them 
 
-\subsubsection*{SPH}
+\subsubsection{SPH}
 
 Since we're using 2D SPH, to evaluate a quantity $q$ at an arbitrary position $x$, we interpolate a weighted sum of contribution of the particles $j$ around $x$ within the radius $l$ of a kernel $W$.
 
@@ -102,7 +61,7 @@ Differential operators act on the kernel only and can be computed using the form
     \Delta q(x_i) = \sum_j{\frac{m_j}{\rho_j} q_j \Delta W(r, l)}
 \end{equation}
 
-\subsubsection*{Algorithm}
+\subsubsection{Algorithm}
 
 The algorithm for the update loop is the following:
 
@@ -150,25 +109,3 @@ $\rho_0 = 2500 kg.m^{-3} \text{(lava rest density \cite{Griffiths})}$
     \item 
 
 \end{enumerate}
-
-\subsection*{Better approach: Stokes problem}
-
-\subsection*{Rendering}
-
-- rendu sur texture \\
-
-\section*{Results}
-
-\section*{Conclusion}
-
-% \end{multicols}
-
-\nocite{*}
-\bibliographystyle{unsrt}
-\bibliography{srcs/biblio.bib}
-
-\appendix
-
-%\input{files/blind_deconv}
-
-\end{document}
