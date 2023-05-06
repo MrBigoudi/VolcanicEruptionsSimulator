@@ -226,9 +226,11 @@ public class ParticleSPH {
         // updpate particles' density
         ComputeDensity();
         // update viscosity forces applied
-        ComputeViscosity();
+        // ComputeViscosity();
         // integrate and update positions
         TimeIntegration();
+        // update the color for debugging purposes
+        UpdateColors();
         // remove the particles otside the boundaries
         RemoveParticles();
     }
@@ -310,10 +312,21 @@ public class ParticleSPH {
     }
 
     /**
+     * Update particles' colours
+    */
+    private void UpdateColors(){
+        // for every particles pi
+        foreach(UnityEngine.GameObject pi in mParticlesGenerated){
+            pi.GetComponent<Particle>().UpdateColor();
+        }
+    }
+
+    /**
      * Update particles' density
     */
     private void ComputeDensity(){
-        Debug.Log("\n\n################################ Density ##############################\n\n");
+        // Debug.Log("\n\n################################ Density ##############################\n\n");
+        Particle.sMaxRho = 0.0f;
         // for every particles pi
         foreach(UnityEngine.GameObject pi in mParticlesGenerated){
             Particle curParticle = pi.GetComponent<Particle>();
@@ -322,7 +335,7 @@ public class ParticleSPH {
             int n = 0;
             // get neighbours
             ArrayList neighbours = curParticle.mNeighbours;
-            Debug.Log("nbNeighbour: " + neighbours.Count);
+            // Debug.Log("nbNeighbour: " + neighbours.Count);
             // for each neighbours add to the sum
             foreach(Particle pj in neighbours){
                 // Debug.Log("TEST NEIGHBOUR");
@@ -333,8 +346,11 @@ public class ParticleSPH {
             // Debug.Log("n: " + n + ", sum: " + sum);
             // get the pi's density
             curParticle.mRho = sum;
+            if(sum > Particle.sMaxRho) Particle.sMaxRho = sum;
             // update the particle's height
             curParticle.UpdateHeight();
+            // update the particle's mass
+            // curParticle.UpdateMass();
         }
     }
 
@@ -342,26 +358,37 @@ public class ParticleSPH {
      * Update viscosity force applied on particles
     */
     private void ComputeViscosity(){
+        Particle.sMaxVisc = 0.0f;
         // for every particles pi
         foreach(UnityEngine.GameObject pi in mParticlesGenerated){
             Particle curParticle = pi.GetComponent<Particle>();
             Assert.IsTrue(curParticle != null);
-            Vector3 sum = new Vector3();
+
+            Vector3 sumVelocity = new Vector3();
+            float sumVisc = 0.0f;
             // get neighbours
             ArrayList neighbours = curParticle.mNeighbours;
-            // for each neighbours add to the sum
+            Assert.IsTrue(neighbours.Count > 0);
+
+            // for each neighbours add to the sums
             foreach(Particle pj in neighbours){
+
+                // get the velocity
                 Vector3 u_ji = pj.mVelocity - curParticle.mVelocity;
                 float laplacienW_ij = W_VISCOSITY_laplacien(curParticle, pj);
                 float factor = 0.0f;
-                if(pj.mRho != 0.0f)
+                if(pj.mRho != 0.0f){
                     factor = (pj.mMass/pj.mRho)*laplacienW_ij;
-                else
-                    factor = pj.mMass*laplacienW_ij;
-                sum += factor*u_ji;
+                } else {
+                    factor = (pj.mMass/Constants.RHO_0)*laplacienW_ij;
+                }
+                sumVelocity += factor*u_ji;
+                sumVisc += factor*pj.mVisc;
             }
             // get the viscosity force applied on pi
-            curParticle.mViscosityForce = Constants.VISC*curParticle.mMass*sum;
+            curParticle.mVisc = sumVisc;
+            if(sumVisc > Particle.sMaxVisc) Particle.sMaxVisc = sumVisc;
+            curParticle.mViscosityForce = sumVisc*curParticle.mMass*sumVelocity;
             // Debug.Log("visocsity: "+curParticle.mViscosityForce);
         }
     }
@@ -377,7 +404,7 @@ public class ParticleSPH {
             // get position
             Vector3 curPosition = curParticle.GetPosition();
             // get new velocity
-            Vector3 newVelocity = (-Constants.G / Constants.STIFFNESS)*GetGradient(curParticle); // + curParticle.mViscosityForce;
+            Vector3 newVelocity = (-Constants.G / Constants.STIFFNESS)*GetGradient(curParticle);// + curParticle.mViscosityForce;
             // get new position
             Vector3 newPosition = dt*newVelocity + curPosition;
             // newPosition.y = 0;

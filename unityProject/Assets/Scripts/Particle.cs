@@ -8,6 +8,15 @@ using UnityEngine;
 public class Particle : MonoBehaviour{
 
     // public Vector3 mPosition = new Vector3();
+    /**
+     * The maximum density
+    */
+    public static float sMaxRho = Constants.RHO_0;
+
+    /**
+     * The maximum viscosity
+    */
+    public static float sMaxVisc = Constants.VISC;
 
     /**
      * The particle's velocity
@@ -50,6 +59,11 @@ public class Particle : MonoBehaviour{
     public float mRho = Constants.RHO_0;
 
     /**
+     * The particle's viscosity
+    */
+    public float mVisc = Constants.VISC;
+
+    /**
      * The particle's pressure
     */
     public float mPressure = 0.0f;
@@ -82,7 +96,6 @@ public class Particle : MonoBehaviour{
      * @return False if no cell could have been assigned
     */
     public bool AssignGridCell(){
-        // TODO: redo this part
         float pX = GetPosition()[0];
         float pZ = GetPosition()[2];
 
@@ -92,7 +105,8 @@ public class Particle : MonoBehaviour{
         // Debug.Log("x: " + cX + ", z: " + cZ + ", px: " + pX + ", pz: " + pZ);
 
         // update grid
-        if(cX < 0 || cX > Grid.mWidth || cZ < 0 || cZ > Grid.mDepth){ // outside of the grid
+        if(cX <= 0 || cX >= Grid.mNbCols || cZ <= 0 || cZ >= Grid.mNbLines){ // outside of the grid
+            // Debug.Log("outside grid");
             if(mCell != null) mCell.mParticles.Remove(this);
             return false; 
         }
@@ -101,14 +115,15 @@ public class Particle : MonoBehaviour{
         if(mCell == null){ // first assign
             mCell = newCell;
             mCell.mParticles.Add(this);
-            gameObject.GetComponent<Renderer>().material.color = mCell.mColor;
+            // gameObject.GetComponent<Renderer>().material.color = mCell.mColor;
             return true;
         }
 
         if(newCell != mCell) { // if same cell do nothing
             mCell.mParticles.Remove(this);
-            Grid.mCells[cX,cZ].mParticles.Add(this);
-            gameObject.GetComponent<Renderer>().material.color = mCell.mColor;
+            newCell.mParticles.Add(this);
+            // gameObject.GetComponent<Renderer>().material.color = newCell.mColor;
+            mCell = newCell;
         }
 
         return true;
@@ -156,6 +171,24 @@ public class Particle : MonoBehaviour{
         // if(oldRadius != 0.0f) scaleFactor = mRadius / oldRadius;
 
         // transform.localScale = new Vector3(scaleFactor, scaleFactor, scaleFactor);
+    }
+
+    /**
+     * Update the particle's mass
+    */
+    public void UpdateMass(){
+        mMass = mVolume * mRho;
+    }
+
+    /**
+     * Update the particle's color
+    */
+    public void UpdateColor(){
+        //Color color = newCell.mColor; // color depending on the grid cell
+        Color color = new Color(mRho/Particle.sMaxRho, 0.0f, 0.0f, 1.0f); // color depending on the density
+        // Color color = new Color(mVisc/Particle.sMaxVisc, 0.0f, 0.0f, 1.0f); // color depending on the density
+
+        gameObject.GetComponent<Renderer>().material.color = color;
     }
 
 }
