@@ -55,7 +55,7 @@ public static class Constants{
     /**
      * The stiffness constant for gas law
     */
-    public const float STIFFNESS = 10;
+    public const float STIFFNESS = 15;
 
     /**
      * Delta for gradient calculations 
