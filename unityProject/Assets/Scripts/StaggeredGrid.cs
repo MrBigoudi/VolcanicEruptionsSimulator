@@ -8,6 +8,16 @@ using UnityEngine.Assertions;
 */
 public static class StaggeredGrid {
     /**
+     * The terrain heightmap x positions
+    */
+    private static float[] sHeightmapX;
+
+    /**
+     * The terrain heightmap z positions
+    */
+    private static float[] sHeightmapZ;
+
+    /**
      * The terrain heightmap
     */
     private static float[,] sHeightmap;
@@ -23,19 +33,60 @@ public static class StaggeredGrid {
     private static float[,] sGradZ;
 
     /**
-     * Init the terrain heightmap
-     * @param nbX The number of cols
-     * @param nbY The number of rows
-     * @param dx The x delta
-     * @param dz The z delta
+     * The number of rows
     */
-    private static void InitHeightMap(int nbX, int nbZ, float dx, float dz){
-        for(int i=0; i<nbX; i++){
-            for(int j=0; j<nbZ; j++){
-                float curX = dx*i;
-                float curZ = dz*j;
+    private static int sNbZ;
+
+    /**
+     * The number of columns
+    */
+    private static int sNbX;
+
+    /**
+     * The difference between rows
+    */
+    private static float sDz;
+
+    /**
+     * The difference between cols
+    */
+    private static float sDx;
+
+    /**
+     * Init dimensions
+    */
+    private static void InitDimensions(){
+        // get the heightmap from unity terrain
+        TerrainData terrainData = Terrain.activeTerrain.terrainData;
+        int heightmapResolution = terrainData.heightmapResolution;
+
+        // get array dimensions
+        sNbX = heightmapResolution;
+        sNbZ = heightmapResolution;
+        sDx = (terrainData.size.x) / (heightmapResolution-1);
+        sDz = (terrainData.size.z) / (heightmapResolution-1);
+
+        sHeightmap = new float[sNbZ, sNbX];
+        sHeightmapX = new float[sNbX];
+        sHeightmapZ = new float[sNbZ];
+
+        sGradZ = new float[sNbZ-1, sNbX];
+        sGradX = new float[sNbZ, sNbX-1];
+    }
+
+    /**
+     * Init the terrain heightmap
+    */
+    private static void InitHeightMap(){
+        for(int j=0; j<sNbZ; j++){
+            for(int i=0; i<sNbX; i++){
+                float curX = sDx*i;
+                float curZ = sDz*j;
                 // unity sample of the height
-                sHeightmap[i,j] = Terrain.activeTerrain.SampleHeight(new Vector3(curX, .0f, curZ));
+                sHeightmap[j,i] = Terrain.activeTerrain.SampleHeight(new Vector3(curX, .0f, curZ));
+                // init the positions for interpolations later
+                sHeightmapX[i] = curX;
+                sHeightmapZ[j] = curZ;
             }
         }
     }
@@ -44,34 +95,23 @@ public static class StaggeredGrid {
      * Init the grid
     */
     public static void Init(){
-        // get the heightmap from unity terrain
-        TerrainData terrainData = Terrain.activeTerrain.terrainData;
-        int heightmapResolution = terrainData.heightmapResolution;
-
-        // get array dimensions
-        int nbX = heightmapResolution;
-        int nbZ = heightmapResolution;
-        float dx = (terrainData.size.x) / (heightmapResolution-1);
-        float dz = (terrainData.size.z) / (heightmapResolution-1);
-
-        sHeightmap = new float[nbX, nbZ];
-        sGradX = new float[nbX-1, nbZ-1];
-        sGradZ = new float[nbX-1, nbZ-1];
+        // init the dimensions
+        InitDimensions();
 
         // init terrain
-        InitHeightMap(nbX, nbZ, dx, dz);
+        InitHeightMap();
 
         // init x gradients
-        for(int i=0; i<nbX-1; i++){
-            for(int j=0; j<nbZ-1; j++){
-                sGradX[i,j] = (sHeightmap[i+1,j] - sHeightmap[i,j]) / dx;
+        for(int j=0; j<sNbZ; j++){
+            for(int i=0; i<sNbZ-1; i++){
+                sGradX[j,i] = (sHeightmap[j,i+1] - sHeightmap[j,i]) / sDx;
             }
         }
 
         // init y gradients
-        for(int i=0; i<nbX-1; i++){
-            for(int j=0; j<nbZ-1; j++){
-                sGradX[i,j] = (sHeightmap[i,j+1] - sHeightmap[i,j]) / dz;
+        for(int j=0; j<sNbZ-1; j++){
+            for(int i=0; i<sNbX; i++){
+                sGradZ[j,i] = (sHeightmap[j+1,i] - sHeightmap[j,i]) / sDz;
             }
         }
     }
@@ -93,7 +133,7 @@ public static class StaggeredGrid {
         int mapX = (int)(terrainPos.x / terrainData.size.x * (resolution - 1));
         int mapZ = (int)(terrainPos.z / terrainData.size.z * (resolution - 1));
 
-        int[] array = {mapX, mapZ};
+        int[] array = {mapZ, mapX};
 
         return array;
     }
@@ -105,12 +145,34 @@ public static class StaggeredGrid {
     */
     public static float GetHeight(Vector3 pos){
         int[] indices = getIndices(pos);
-        // float ownRes = sHeightmap[indices[0], indices[1]];
+        int zIdx = indices[0];
+        int xIdx = indices[1];
+
+        float x = pos.x;
+        float z = pos.z;
+
+        float xLeft  = sHeightmapX[xIdx];
+        float xRight = sHeightmapX[xIdx+1];
+        float zUp    = sHeightmapZ[zIdx+1];
+        float zDown  = sHeightmapZ[zIdx];
+
+        // interpolate height, bilinear
+        float upLeftY = sHeightmap[zIdx+1, xIdx];
+        float upRightY = sHeightmap[zIdx+1, xIdx+1];
+        float downLeftY = sHeightmap[zIdx, xIdx];
+        float downRightY = sHeightmap[zIdx, xIdx+1];
+
+        float ownRes = (downLeftY*(xRight-x)*(zUp-z))+(downRightY*(x-xLeft)*(zUp-z)
+                        +(upLeftY*(xRight-x)*(z-zDown))+(upRightY*(x-xLeft)*(z-zDown)));
+        ownRes /= sDx*sDz;
+
+
         // float unityRes = Terrain.activeTerrain.SampleHeight(pos);
         // Debug.Log("unity: " + unityRes + ", own: " + ownRes);
         // Assert.IsTrue(ownRes == unityRes);
 
-        return Terrain.activeTerrain.SampleHeight(pos);
+        // return unityRes;
+        return ownRes;
     }
 
     /**
