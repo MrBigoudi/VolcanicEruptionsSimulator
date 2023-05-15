@@ -411,7 +411,7 @@ public class ParticleSPH {
             Vector3 newPosition = dt*newVelocity + curPosition;
             // newPosition.y = 0;
             // Assert.IsTrue(curParticle.GetComponent<Rigidbody>().position == curParticle.GetPosition());
-            newPosition.y = GetTerrainHeight(newPosition);// + Particle.mRadius;
+            newPosition.y = GetTerrainHeight(newPosition) + curParticle.GetComponent<SphereCollider>().radius;
 
             // update particle
             if(!curParticle.UpdateRigidBody(newPosition, newVelocity)){
