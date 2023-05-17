@@ -54,7 +54,6 @@ public class ParticleSPH {
     private int mNbCurParticles = 0;
 
 
-
     /**
      * A basic constructor
      * @param particle The particle prefab
@@ -66,6 +65,9 @@ public class ParticleSPH {
 
         // creating a dam
         // CreateDam();
+
+        // init the staggered grid
+        StaggeredGrid.Init();
     }
 
     /**
@@ -192,7 +194,7 @@ public class ParticleSPH {
      * @return The height
     */
     public float GetTerrainHeight(Vector3 pos){
-        return Terrain.activeTerrain.SampleHeight(pos);
+        return StaggeredGrid.GetHeight(pos);
     }
 
     /**
@@ -409,7 +411,7 @@ public class ParticleSPH {
             Vector3 newPosition = dt*newVelocity + curPosition;
             // newPosition.y = 0;
             // Assert.IsTrue(curParticle.GetComponent<Rigidbody>().position == curParticle.GetPosition());
-            newPosition.y = GetTerrainHeight(newPosition);// + curParticle.mRadius;
+            newPosition.y = GetTerrainHeight(newPosition) + curParticle.GetComponent<SphereCollider>().radius;
             //Assert.IsTrue(Particle.mRadius == curParticle.Scale)
 
             // update particle
