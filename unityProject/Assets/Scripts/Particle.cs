@@ -41,12 +41,17 @@ public class Particle : MonoBehaviour{
     /**
      * The particle's radius
     */
-    public static float mRadius = 0.35f; 
+    public float mRadius = sRadius; 
+
+    /**
+     * The particles radii
+    */
+    public static float sRadius = 0.35f; 
 
     /**
      * The particle's volume
     */
-    public static float mVolume = (4.0f/3.0f)*Constants.PI*mRadius*mRadius*mRadius;
+    public static float mVolume = (4.0f/3.0f)*Constants.PI*sRadius*sRadius*sRadius;
 
     /**
      * The particle's mass
@@ -81,7 +86,7 @@ public class Particle : MonoBehaviour{
     /**
      * The height of the particle
     */
-    public float mHeight = mRadius;
+    public float mHeight = sRadius;
 
     /**
      * Get the acceleration force applied on the particle
