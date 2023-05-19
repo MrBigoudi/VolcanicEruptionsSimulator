@@ -203,19 +203,21 @@ public class ParticleSPH {
      * @return The gradient
     */
     public Vector3 GetGradient(Particle p){
-        Vector3 pos = p.transform.position;
+        // Vector3 pos = p.transform.position;
 
-        // decompose the position
-        float x = pos.x;
-        float y = pos.y;
-        float z = pos.z;
+        // // decompose the position
+        // float x = pos.x;
+        // float y = pos.y;
+        // float z = pos.z;
 
-        float curSurface = GetTerrainHeight(pos) + p.mHeight;
+        // float curSurface = GetTerrainHeight(pos) + p.mHeight;
 
-        float partialX = GetTerrainHeight(new Vector3(x+Constants.GRAD_DELTA, y, z)) - curSurface;
-        float partialZ = GetTerrainHeight(new Vector3(x, y, z+Constants.GRAD_DELTA)) - curSurface;
+        // float partialX = GetTerrainHeight(new Vector3(x+Constants.GRAD_DELTA, y, z)) - curSurface;
+        // float partialZ = GetTerrainHeight(new Vector3(x, y, z+Constants.GRAD_DELTA)) - curSurface;
 
-        return new Vector3(partialX, y, partialZ);
+        // return new Vector3(partialX, y, partialZ);
+
+        return StaggeredGrid.GetGradient(p);
     }
 
 
