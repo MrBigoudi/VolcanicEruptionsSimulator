@@ -184,8 +184,8 @@ public static class StaggeredGrid {
         Vector3 pos = p.transform.position;
         int[] indices = getIndices(pos);
 
-        float newX = sGradX[indices[0], indices[1]];
-        float newZ = sGradZ[indices[0], indices[1]];
+        float newX = sGradX[indices[0], indices[1]] - p.mHeight;
+        float newZ = sGradZ[indices[0], indices[1]] - p.mHeight;
 
         return new Vector3(newX, pos.y, newZ);
     }
