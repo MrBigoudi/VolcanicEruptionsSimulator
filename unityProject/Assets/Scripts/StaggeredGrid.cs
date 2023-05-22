@@ -147,6 +147,7 @@ public static class StaggeredGrid {
         int[] indices = getIndices(pos);
         int zIdx = indices[0];
         int xIdx = indices[1];
+        // Debug.Log("xidx: "+xIdx+", zIdx: "+zIdx+ ", pos: " + pos);
 
         float x = pos.x;
         float z = pos.z;

@@ -39,6 +39,11 @@ public class Particle : MonoBehaviour{
     public Vector3 mViscosityForce = new Vector3();
 
     /**
+     * The height's gradient
+    */
+    public Vector3 mHeightGradient = new Vector3();
+
+    /**
      * The particle's radius
     */
     public float mRadius = sRadius; 
