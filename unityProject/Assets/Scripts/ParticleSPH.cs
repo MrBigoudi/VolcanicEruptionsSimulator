@@ -202,7 +202,7 @@ public class ParticleSPH {
      * @param p The current particle
      * @return The gradient
     */
-    public Vector3 GetGradient(Particle p){
+    public Vector3 GetGradientSurface(Particle p){
         // Vector3 pos = p.transform.position;
 
         // // decompose the position
@@ -217,7 +217,7 @@ public class ParticleSPH {
 
         // return new Vector3(partialX, y, partialZ);
 
-        return StaggeredGrid.GetGradient(p);
+        return StaggeredGrid.GetGradient(p) + p.mHeightGradient;
     }
 
 
@@ -227,10 +227,10 @@ public class ParticleSPH {
     public void Update(){
         // update particles' neighbours
         ComputeNeighbours();
-        // updpate particles' density
+        // update particles' density
         ComputeDensity();
-        // update viscosity forces applied
-        ComputeViscosity();
+        // update particle's gradient
+        ComputeGradientParticleHeight();
         // integrate and update positions
         TimeIntegration();
         // update the color for debugging purposes
@@ -359,41 +359,36 @@ public class ParticleSPH {
     }
 
     /**
-     * Update viscosity force applied on particles
+     * Update the gradient of particles' height
     */
-    private void ComputeViscosity(){
-        Particle.sMaxVisc = 0.0f;
+    private void ComputeGradientParticleHeight(){
         // for every particles pi
         foreach(UnityEngine.GameObject pi in mParticlesGenerated){
             Particle curParticle = pi.GetComponent<Particle>();
             Assert.IsTrue(curParticle != null);
 
-            Vector3 sumVelocity = new Vector3();
-            float sumVisc = 0.0f;
+            Vector3 sumGradients = new Vector3();
+            Vector3 sumKernelGradients = new Vector3();
+            
             // get neighbours
             ArrayList neighbours = curParticle.mNeighbours;
-            Assert.IsTrue(neighbours.Count > 0);
-
-            // for each neighbours add to the sums
+            // for each neighbours add to the sum
             foreach(Particle pj in neighbours){
+                Vector3 wij = W_POLY6_Grad(curParticle, pj);
+                sumKernelGradients += wij;
 
-                // get the velocity
-                Vector3 u_ji = pj.mVelocity - curParticle.mVelocity;
-                float laplacienW_ij = W_VISCOSITY_laplacien(curParticle, pj);
-                float factor = 0.0f;
-                if(pj.mRho != 0.0f){
-                    factor = (pj.mMass/pj.mRho)*laplacienW_ij;
-                } else {
-                    factor = (pj.mMass/Constants.RHO_0)*laplacienW_ij;
-                }
-                sumVelocity += factor*u_ji;
-                sumVisc += factor*pj.mVisc;
+                float heigthDif = curParticle.mHeight - pj.mHeight;
+                sumGradients += (pj.mMass/pj.mRho)*heigthDif*wij;
             }
-            // get the viscosity force applied on pi
-            curParticle.mVisc = sumVisc;
-            if(sumVisc > Particle.sMaxVisc) Particle.sMaxVisc = sumVisc;
-            curParticle.mViscosityForce = sumVisc*curParticle.mMass*sumVelocity;
-            // Debug.Log("visocsity: "+curParticle.mViscosityForce);
+            // normalize the sum
+            float x = sumKernelGradients.x != 0 ? sumGradients.x / sumKernelGradients.x : sumGradients.x;
+            float y = sumKernelGradients.y != 0 ? sumGradients.y / sumKernelGradients.y : sumGradients.y;
+            float z = sumKernelGradients.z != 0 ? sumGradients.z / sumKernelGradients.z : sumGradients.z;
+            Vector3 heightGradient = new Vector3(x,y,z);
+            // Debug.Log("beforeUpdt: "+sumGradients+", afterUpdt: "+heightGradient+"\n");
+
+            // update the particle
+            curParticle.mHeightGradient = heightGradient;
         }
     }
 
@@ -408,7 +403,7 @@ public class ParticleSPH {
             // get position
             Vector3 curPosition = curParticle.GetPosition();
             // get new velocity
-            Vector3 newVelocity = (-Constants.G / Constants.STIFFNESS)*GetGradient(curParticle);// + curParticle.mViscosityForce;
+            Vector3 newVelocity = (-Constants.G / Constants.STIFFNESS)*GetGradientSurface(curParticle);// + curParticle.mViscosityForce;
             // get new position
             Vector3 newPosition = dt*newVelocity + curPosition;
             // newPosition.y = 0;
