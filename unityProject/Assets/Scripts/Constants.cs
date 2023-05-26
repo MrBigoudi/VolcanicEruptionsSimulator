@@ -33,14 +33,19 @@ public static class Constants{
     public const float ALPHA_POLY6 = 4.0f / (PI*H*H*H*H*H*H*H*H);
 
     /**
+     * Factor for poly6 kernel laplacian calculations
+    */
+    public const float ALPHA_POLY6_LAPLACIAN = 32.0f / (PI*H*H*H*H*H*H*H*H);
+
+    /**
      * Factor for viscosity kernel calculations
     */
     public const float ALPHA_VISCOSITY = 10.0f / (9.0f*PI*H*H*H*H*H);
 
     /**
-     * Factor for viscosity kernel laplcien calculations
+     * Factor for viscosity kernel laplacian calculations
     */
-    public const float ALPHA_VISCOSITY_LAPLACIEN = 40.0f / (PI*H*H*H*H*H);
+    public const float ALPHA_VISCOSITY_LAPLACIAN = 40.0f / (PI*H*H*H*H*H);
     
     /**
      * The viscosity constant

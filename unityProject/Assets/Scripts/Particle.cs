@@ -44,6 +44,11 @@ public class Particle : MonoBehaviour{
     public Vector3 mHeightGradient = new Vector3();
 
     /**
+     * The height's laplacian
+    */
+    public float mHeightLaplacian = 0.0f;
+
+    /**
      * The particle's radius
     */
     public float mRadius = sRadius; 
@@ -92,6 +97,9 @@ public class Particle : MonoBehaviour{
      * The height of the particle
     */
     public float mHeight = sRadius;
+
+    // public Vector3 mU = new Vector3();
+    // public Vector3 mULap = new Vector3();
 
     /**
      * Get the acceleration force applied on the particle
