@@ -18,11 +18,6 @@ public static class Constants{
     public const float G = 9.81f;
 
     /**
-     * The gas constant
-    */
-    public const float GAS_CONST = 2000.0f;
-
-    /**
      * The kernel radius
     */
     public const float H = 2.0f;
@@ -46,11 +41,6 @@ public static class Constants{
      * Factor for viscosity kernel laplacian calculations
     */
     public const float ALPHA_VISCOSITY_LAPLACIAN = 40.0f / (PI*H*H*H*H*H);
-    
-    /**
-     * The viscosity constant
-    */
-    public const float VISC = 1.0f;
 
     /**
      * The lava rest density
@@ -58,13 +48,8 @@ public static class Constants{
     public const float RHO_0 = 2500.0f;
 
     /**
-     * The stiffness constant for gas law
+     * The stiffness constant
     */
     public const float STIFFNESS = 50;
-
-    /**
-     * Delta for gradient calculations 
-    */
-    public const float GRAD_DELTA = 1.0f;
     
 }
