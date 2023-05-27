@@ -8,25 +8,6 @@ using UnityEngine.Assertions;
  * A class representing an sph solver
 */
 public class ParticleSPH {
-    /**
-     * The dam's width
-    */
-    public const int DAM_WIDTH = 10;
-
-    /**
-     * The dam's height
-    */
-    public const int DAM_HEIGHT = 10;
-
-    /**
-     * The dam's x coordinate
-    */
-    public const int DAM_X = (DAM_WIDTH>>1);
-
-    /**
-     * The dam's y coordinate
-    */
-    public const int DAM_Y = (DAM_HEIGHT>>1);
 
     /**
      * The game object prefab representing a particle
@@ -63,9 +44,6 @@ public class ParticleSPH {
         mParticle = particle;
         mNbMaxParticles = maxParticles;
 
-        // creating a dam
-        // CreateDam();
-
         // init the staggered grid
         StaggeredGrid.Init();
     }
@@ -84,19 +62,6 @@ public class ParticleSPH {
     }
 
     /**
-     * Part of the viscosity kernel calculation
-     * @param r The distance between two particles
-     * @return Part of the viscosity kernel calculation
-    */
-    public float K_VISCOSITY(float r){
-        float l = Constants.H;
-        if(r<l) {
-            return r*r*(-4.0f*r + 9.0f*l) + l*l*l*(-5.0f + 6.0f*(Mathf.Log(l)-Mathf.Log(r)));
-        }
-        else return 0.0f;
-    }
-
-    /**
      * Part of the derivated poly6 kernel calculation
      * @param r The distance between two particles
      * @return Part of the derivated poly6 kernel calculation
@@ -107,6 +72,32 @@ public class ParticleSPH {
             return -6.0f*r*tmp*tmp;
         }
         else return 0.0f;    
+    }
+
+    /**
+     * Part of the poly6 kernel calculation
+     * @param r The distance between two particles
+     * @return Part of the poly6 kernel calculation
+    */
+    public float K_POLY6_Lap(float r){
+        if(r<Constants.H) {
+            float tmp = ((Constants.H*Constants.H)-r*r);
+            return tmp*(2*r*r-Constants.H*Constants.H);
+        }
+        else return 0.0f;
+    }
+
+    /**
+     * Part of the viscosity kernel calculation
+     * @param r The distance between two particles
+     * @return Part of the viscosity kernel calculation
+    */
+    public float K_VISCOSITY(float r){
+        float l = Constants.H;
+        if(r<l) {
+            return r*r*(-4.0f*r + 9.0f*l) + l*l*l*(-5.0f + 6.0f*(Mathf.Log(l)-Mathf.Log(r)));
+        }
+        else return 0.0f;
     }
 
     /**
@@ -136,18 +127,6 @@ public class ParticleSPH {
     }
 
     /**
-     * Viscosity kernel calculation
-     * @param p1 The first particle
-     * @param p2 The second particle
-     * @return The viscosity kernel calculation
-    */
-    public float W_VISCOSITY(Particle p1, Particle p2){
-        float r = Vector2.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
-        // Debug.Log(r);
-        return Constants.ALPHA_VISCOSITY * K_VISCOSITY(r);
-    }
-
-    /**
      * Derivated poly6 kernel calculation
      * @param p1 The first particle
      * @param p2 The second particle
@@ -157,6 +136,30 @@ public class ParticleSPH {
         float r = Vector2.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
         // Debug.Log(r);
         return Constants.ALPHA_POLY6 * K_POLY6_Prime(r) * (p1.GetPosition() - p2.GetPosition());
+    }
+
+    /**
+     * Laplacian poly6 kernel calculation
+     * @param p1 The first particle
+     * @param p2 The second particle
+     * @return The laplacian of poly6 kernel calculation
+    */
+    public float W_POLY6_Lap(Particle p1, Particle p2){
+        float r = Vector2.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
+        // Debug.Log(r);
+        return Constants.ALPHA_POLY6_LAPLACIAN * K_POLY6_Lap(r);
+    }
+
+    /**
+     * Viscosity kernel calculation
+     * @param p1 The first particle
+     * @param p2 The second particle
+     * @return The viscosity kernel calculation
+    */
+    public float W_VISCOSITY(Particle p1, Particle p2){
+        float r = Vector2.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
+        // Debug.Log(r);
+        return Constants.ALPHA_VISCOSITY * K_VISCOSITY(r);
     }
 
     /**
@@ -182,10 +185,10 @@ public class ParticleSPH {
      * @param p2 The second particle
      * @return The derivated viscosity kernel calculation
     */
-    public float W_VISCOSITY_laplacien(Particle p1, Particle p2){
+    public float W_VISCOSITY_Lap(Particle p1, Particle p2){
         float r = Vector2.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
         float l = Constants.H;
-        return Constants.ALPHA_VISCOSITY_LAPLACIEN*(l-r);
+        return Constants.ALPHA_VISCOSITY_LAPLACIAN*(l-r);
     }
 
     /**
@@ -195,6 +198,7 @@ public class ParticleSPH {
     */
     public float GetTerrainHeight(Vector3 pos){
         return StaggeredGrid.GetHeight(pos);
+        // return Terrain.activeTerrain.SampleHeight(pos);
     }
 
     /**
@@ -202,22 +206,8 @@ public class ParticleSPH {
      * @param p The current particle
      * @return The gradient
     */
-    public Vector3 GetGradient(Particle p){
-        // Vector3 pos = p.transform.position;
-
-        // // decompose the position
-        // float x = pos.x;
-        // float y = pos.y;
-        // float z = pos.z;
-
-        // float curSurface = GetTerrainHeight(pos) + p.mHeight;
-
-        // float partialX = GetTerrainHeight(new Vector3(x+Constants.GRAD_DELTA, y, z)) - curSurface;
-        // float partialZ = GetTerrainHeight(new Vector3(x, y, z+Constants.GRAD_DELTA)) - curSurface;
-
-        // return new Vector3(partialX, y, partialZ);
-
-        return StaggeredGrid.GetGradient(p);
+    public Vector3 GetGradientSurface(Particle p){
+        return StaggeredGrid.GetGradient(p) + p.mHeightGradient;
     }
 
 
@@ -227,10 +217,8 @@ public class ParticleSPH {
     public void Update(){
         // update particles' neighbours
         ComputeNeighbours();
-        // updpate particles' density
-        ComputeDensity();
-        // update viscosity forces applied
-        ComputeViscosity();
+        // update particles' heights
+        ComputeHeight();
         // integrate and update positions
         TimeIntegration();
         // update the color for debugging purposes
@@ -273,26 +261,6 @@ public class ParticleSPH {
     }
 
     /**
-     * Create a particle dam
-    */
-    private void CreateDam(){
-        float particleSize = mParticle.GetComponent<Renderer>().bounds.size.x;
-        float particleSizeHalf = particleSize / 2;
-
-        for(int i = -DAM_X; i<DAM_X; i++){
-            for(int j = -DAM_Y; j<DAM_Y; j++){
-                float x = i * particleSize + particleSizeHalf;
-                float y = j * particleSize + particleSizeHalf;
-                Vector3 position = new Vector3(x, y, 0.0f);
-                GameObject circle = GenerateParticle(position);
-                Particle p = circle.GetComponent<Particle>();
-                mNbCurParticles = 0; // do not count the dam for the max number of particles
-                // circle.GetComponent<Rigidbody>().AddRelativeForce(new Vector3(0.0f, -1.0f, 0.0f));
-            }
-        }
-    }
-
-    /**
      * Update particles' neighbours
     */
     private void ComputeNeighbours(){
@@ -309,7 +277,6 @@ public class ParticleSPH {
                     newNeighbours.Add(pj);
                 }
             }
-
             // update new neighbours
             curParticle.mNeighbours = newNeighbours;
         }
@@ -326,74 +293,40 @@ public class ParticleSPH {
     }
 
     /**
-     * Update particles' density
+     * Update particles' height
     */
-    private void ComputeDensity(){
-        // Debug.Log("\n\n################################ Density ##############################\n\n");
-        Particle.sMaxRho = 0.0f;
-        // for every particles pi
+    private void ComputeHeight(){
+        // get height
+        // update max height
+        Particle.sMaxHeight = 0.0f;
         foreach(UnityEngine.GameObject pi in mParticlesGenerated){
             Particle curParticle = pi.GetComponent<Particle>();
             Assert.IsTrue(curParticle != null);
-            float sum = 0.0f;
-            int n = 0;
-            // get neighbours
+            float sum = 0.0f; // sum = density
             ArrayList neighbours = curParticle.mNeighbours;
-            // Debug.Log("nbNeighbour: " + neighbours.Count);
             // for each neighbours add to the sum
             foreach(Particle pj in neighbours){
-                // Debug.Log("TEST NEIGHBOUR");
                 float wij = W_POLY6(curParticle, pj);
                 sum += pj.mMass*wij;
-                n++;
             }
-            // Debug.Log("n: " + n + ", sum: " + sum);
-            // get the pi's density
-            curParticle.mRho = sum;
-            if(sum > Particle.sMaxRho) Particle.sMaxRho = sum;
-            // update the particle's height
-            curParticle.UpdateHeight();
-            // update the particle's mass
-            // curParticle.UpdateMass();
+            curParticle.mHeight = sum/Constants.RHO_0;
+            // update max heigth
+            if(curParticle.mHeight > Particle.sMaxHeight) Particle.sMaxHeight = curParticle.mHeight;
         }
-    }
 
-    /**
-     * Update viscosity force applied on particles
-    */
-    private void ComputeViscosity(){
-        Particle.sMaxVisc = 0.0f;
-        // for every particles pi
+        // get height gradient
         foreach(UnityEngine.GameObject pi in mParticlesGenerated){
             Particle curParticle = pi.GetComponent<Particle>();
             Assert.IsTrue(curParticle != null);
-
-            Vector3 sumVelocity = new Vector3();
-            float sumVisc = 0.0f;
-            // get neighbours
+            Vector3 sumGrad = new Vector3();
             ArrayList neighbours = curParticle.mNeighbours;
-            Assert.IsTrue(neighbours.Count > 0);
-
-            // for each neighbours add to the sums
+            // for each neighbours add to the sum
             foreach(Particle pj in neighbours){
-
-                // get the velocity
-                Vector3 u_ji = pj.mVelocity - curParticle.mVelocity;
-                float laplacienW_ij = W_VISCOSITY_laplacien(curParticle, pj);
-                float factor = 0.0f;
-                if(pj.mRho != 0.0f){
-                    factor = (pj.mMass/pj.mRho)*laplacienW_ij;
-                } else {
-                    factor = (pj.mMass/Constants.RHO_0)*laplacienW_ij;
-                }
-                sumVelocity += factor*u_ji;
-                sumVisc += factor*pj.mVisc;
+                Vector3 wij_grad = W_POLY6_Grad(curParticle, pj);
+                float heightDif = curParticle.mHeight - pj.mHeight;
+                sumGrad += pj.mMass*wij_grad*heightDif/Constants.RHO_0;
             }
-            // get the viscosity force applied on pi
-            curParticle.mVisc = sumVisc;
-            if(sumVisc > Particle.sMaxVisc) Particle.sMaxVisc = sumVisc;
-            curParticle.mViscosityForce = sumVisc*curParticle.mMass*sumVelocity;
-            // Debug.Log("visocsity: "+curParticle.mViscosityForce);
+            curParticle.mHeightGradient = sumGrad;
         }
     }
 
@@ -408,16 +341,15 @@ public class ParticleSPH {
             // get position
             Vector3 curPosition = curParticle.GetPosition();
             // get new velocity
-            Vector3 newVelocity = (-Constants.G / Constants.STIFFNESS)*GetGradient(curParticle);// + curParticle.mViscosityForce;
+            Vector3 newVelocity = (-Constants.G / Constants.STIFFNESS)*GetGradientSurface(curParticle);
             // get new position
             Vector3 newPosition = dt*newVelocity + curPosition;
-            // newPosition.y = 0;
-            // Assert.IsTrue(curParticle.GetComponent<Rigidbody>().position == curParticle.GetPosition());
-            newPosition.y = GetTerrainHeight(newPosition) + curParticle.GetComponent<SphereCollider>().radius;
+
+            newPosition.y = GetTerrainHeight(newPosition);
             //Assert.IsTrue(Particle.mRadius == curParticle.Scale)
 
             // update particle
-            if(!curParticle.UpdateRigidBody(newPosition, newVelocity)){
+            if(!curParticle.UpdatePosition(newPosition)){
                 mParticlesToRemove.Add(pi);
             }
         }

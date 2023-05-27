@@ -70,8 +70,8 @@ public static class Grid {
                 cellColor.a = 1.0f;
                 mCells[i,j].mColor = cellColor;
 
-                Debug.DrawLine(new Vector3(curX, 0, curZ), new Vector3(curX+mCellWidth, 0, curZ), cellColor, 200.0f, false);
-                Debug.DrawLine(new Vector3(curX, 0, curZ), new Vector3(curX, 0, curZ+mCellDepth), cellColor, 200.0f, false);
+                // Debug.DrawLine(new Vector3(curX, 0, curZ), new Vector3(curX+mCellWidth, 0, curZ), cellColor, 200.0f, false);
+                // Debug.DrawLine(new Vector3(curX, 0, curZ), new Vector3(curX, 0, curZ+mCellDepth), cellColor, 200.0f, false);
             }
         }
 
