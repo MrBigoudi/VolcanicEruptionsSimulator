@@ -6,82 +6,30 @@ using UnityEngine;
  * A class representing a particle
 */
 public class Particle : MonoBehaviour{
-
-    // public Vector3 mPosition = new Vector3();
     /**
-     * The maximum density
+     * The particles radii
     */
-    public static float sMaxRho = Constants.RHO_0;
+    public static float sInitRadius = 0.35f;
 
     /**
-     * The maximum viscosity
+     * The particles max height
     */
-    public static float sMaxVisc = Constants.VISC;
+    public static float sMaxHeight = 2*sInitRadius;
 
     /**
-     * The particle's velocity
+     * The particle's mass
     */
-    public Vector3 mVelocity = new Vector3();
-
+    public float mMass = (4.0f/3.0f)*Constants.PI*sInitRadius*sInitRadius*sInitRadius * Constants.RHO_0; // volume * density
+    
     /**
-     * The pressure force applied on the particle
+     * The height of the particle
     */
-    public Vector3 mPressureForce = new Vector3();
-
-    /**
-     * The acceleration force applied on the particle
-    */
-    public Vector3 mAccelerationForce = new Vector3();
-
-    /**
-     * The viscosity force applied on the particle
-    */
-    public Vector3 mViscosityForce = new Vector3();
+    public float mHeight = 2*sInitRadius;
 
     /**
      * The height's gradient
     */
     public Vector3 mHeightGradient = new Vector3();
-
-    /**
-     * The height's laplacian
-    */
-    public float mHeightLaplacian = 0.0f;
-
-    /**
-     * The particle's radius
-    */
-    public float mRadius = sRadius; 
-
-    /**
-     * The particles radii
-    */
-    public static float sRadius = 0.35f; 
-
-    /**
-     * The particle's volume
-    */
-    public static float mVolume = (4.0f/3.0f)*Constants.PI*sRadius*sRadius*sRadius;
-
-    /**
-     * The particle's mass
-    */
-    public float mMass = mVolume * Constants.RHO_0; // volume * density
-
-    /**
-     * The particle's density
-    */
-    public float mRho = Constants.RHO_0;
-
-    /**
-     * The particle's viscosity
-    */
-    public float mVisc = Constants.VISC;
-
-    /**
-     * The particle's pressure
-    */
-    public float mPressure = 0.0f;
 
     /**
      * The cell in which the particle's in
@@ -92,22 +40,6 @@ public class Particle : MonoBehaviour{
      * The particle's neighbours
     */
     public ArrayList mNeighbours = new ArrayList();
-
-    /**
-     * The height of the particle
-    */
-    public float mHeight = sRadius;
-
-    // public Vector3 mU = new Vector3();
-    // public Vector3 mULap = new Vector3();
-
-    /**
-     * Get the acceleration force applied on the particle
-     * @return The force as a vec3
-    */
-    public Vector3 GetAcceleration(){
-        return new Vector3(0.0f, -mMass*Constants.G, 0.0f);
-    }
 
     /**
      * Assign a grid cell to the particle
@@ -153,49 +85,17 @@ public class Particle : MonoBehaviour{
     */
     public Vector3 GetPosition(){
         return transform.position;
-        // return GetComponent<Rigidbody>().position;
     }
 
     /**
-     * Update the rigid body of the particle
+     * Update the position of the particle
      * @param newPos The Particle's new position
-     * @param newVel The Particle's new velocity
      * @return True if the particlue should be delete
     */
-    public bool UpdateRigidBody(Vector3 newPos, Vector3 newVel){
-        // update internal position
-        // mPosition = newPos;
-        mVelocity = newVel;
-
-        // GetComponent<Rigidbody>().AddForce(mVelocity);
-        // GetComponent<Rigidbody>().MovePosition(newPos);
-        // mPosition = GetComponent<Rigidbody>().position;
+    public bool UpdatePosition(Vector3 newPos){
         transform.position = newPos;
-
         // update cell
         return AssignGridCell();
-    }
-
-    /**
-     * Update the height
-    */
-    public void UpdateHeight(){
-        mHeight = mRho / Constants.RHO_0;
-        // float oldRadius = mRadius;
-        mRadius = mHeight / 2.0f;
-
-        // make sphere bigger
-        // float scaleFactor = 0.0f;
-        // if(oldRadius != 0.0f) scaleFactor = mRadius / oldRadius;
-
-        // transform.localScale = new Vector3(scaleFactor, scaleFactor, scaleFactor);
-    }
-
-    /**
-     * Update the particle's mass
-    */
-    public void UpdateMass(){
-        mMass = mVolume * mRho;
     }
 
     /**
@@ -203,9 +103,7 @@ public class Particle : MonoBehaviour{
     */
     public void UpdateColor(){
         //Color color = newCell.mColor; // color depending on the grid cell
-        Color color = new Color(mRho/Particle.sMaxRho, 0.0f, 0.0f, 1.0f); // color depending on the density
-        // Color color = new Color(mVisc/Particle.sMaxVisc, 0.0f, 0.0f, 1.0f); // color depending on the density
-
+        Color color = new Color(mHeight/sMaxHeight, 0.0f, 0.0f, 1.0f); // color depending on the height
         gameObject.GetComponent<Renderer>().material.color = color;
     }
 

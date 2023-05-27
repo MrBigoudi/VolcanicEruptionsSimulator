@@ -8,25 +8,6 @@ using UnityEngine.Assertions;
  * A class representing an sph solver
 */
 public class ParticleSPH {
-    /**
-     * The dam's width
-    */
-    public const int DAM_WIDTH = 10;
-
-    /**
-     * The dam's height
-    */
-    public const int DAM_HEIGHT = 10;
-
-    /**
-     * The dam's x coordinate
-    */
-    public const int DAM_X = (DAM_WIDTH>>1);
-
-    /**
-     * The dam's y coordinate
-    */
-    public const int DAM_Y = (DAM_HEIGHT>>1);
 
     /**
      * The game object prefab representing a particle
@@ -63,9 +44,6 @@ public class ParticleSPH {
         mParticle = particle;
         mNbMaxParticles = maxParticles;
 
-        // creating a dam
-        // CreateDam();
-
         // init the staggered grid
         StaggeredGrid.Init();
     }
@@ -81,6 +59,19 @@ public class ParticleSPH {
             return tmp*tmp*tmp;
         }
         else return 0.0f;
+    }
+
+    /**
+     * Part of the derivated poly6 kernel calculation
+     * @param r The distance between two particles
+     * @return Part of the derivated poly6 kernel calculation
+    */
+    public float K_POLY6_Prime(float r){
+        if(r<Constants.H) {
+            float tmp = ((Constants.H*Constants.H)-r*r);
+            return -6.0f*r*tmp*tmp;
+        }
+        else return 0.0f;    
     }
 
     /**
@@ -110,19 +101,6 @@ public class ParticleSPH {
     }
 
     /**
-     * Part of the derivated poly6 kernel calculation
-     * @param r The distance between two particles
-     * @return Part of the derivated poly6 kernel calculation
-    */
-    public float K_POLY6_Prime(float r){
-        if(r<Constants.H) {
-            float tmp = ((Constants.H*Constants.H)-r*r);
-            return -6.0f*r*tmp*tmp;
-        }
-        else return 0.0f;    
-    }
-
-    /**
      * Part of the derivated viscosity kernel calculation
      * @param r The distance between two particles
      * @return Part of the derivated viscosity kernel calculation
@@ -146,18 +124,6 @@ public class ParticleSPH {
         float r = Vector2.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
         // Debug.Log(r);
         return Constants.ALPHA_POLY6 * K_POLY6(r);
-    }
-
-    /**
-     * Viscosity kernel calculation
-     * @param p1 The first particle
-     * @param p2 The second particle
-     * @return The viscosity kernel calculation
-    */
-    public float W_VISCOSITY(Particle p1, Particle p2){
-        float r = Vector2.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
-        // Debug.Log(r);
-        return Constants.ALPHA_VISCOSITY * K_VISCOSITY(r);
     }
 
     /**
@@ -185,6 +151,18 @@ public class ParticleSPH {
     }
 
     /**
+     * Viscosity kernel calculation
+     * @param p1 The first particle
+     * @param p2 The second particle
+     * @return The viscosity kernel calculation
+    */
+    public float W_VISCOSITY(Particle p1, Particle p2){
+        float r = Vector2.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
+        // Debug.Log(r);
+        return Constants.ALPHA_VISCOSITY * K_VISCOSITY(r);
+    }
+
+    /**
      * Derivated viscosity kernel calculation
      * @param p1 The first particle
      * @param p2 The second particle
@@ -207,7 +185,7 @@ public class ParticleSPH {
      * @param p2 The second particle
      * @return The derivated viscosity kernel calculation
     */
-    public float W_VISCOSITY_laplacien(Particle p1, Particle p2){
+    public float W_VISCOSITY_Lap(Particle p1, Particle p2){
         float r = Vector2.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
         float l = Constants.H;
         return Constants.ALPHA_VISCOSITY_LAPLACIAN*(l-r);
@@ -219,8 +197,8 @@ public class ParticleSPH {
      * @return The height
     */
     public float GetTerrainHeight(Vector3 pos){
-        // return StaggeredGrid.GetHeight(pos);
-        return Terrain.activeTerrain.SampleHeight(pos);
+        return StaggeredGrid.GetHeight(pos);
+        // return Terrain.activeTerrain.SampleHeight(pos);
     }
 
     /**
@@ -229,20 +207,6 @@ public class ParticleSPH {
      * @return The gradient
     */
     public Vector3 GetGradientSurface(Particle p){
-        // Vector3 pos = p.transform.position;
-
-        // // decompose the position
-        // float x = pos.x;
-        // float y = pos.y;
-        // float z = pos.z;
-
-        // float curSurface = GetTerrainHeight(pos) + p.mHeight;
-
-        // float partialX = GetTerrainHeight(new Vector3(x+Constants.GRAD_DELTA, y, z)) - curSurface;
-        // float partialZ = GetTerrainHeight(new Vector3(x, y, z+Constants.GRAD_DELTA)) - curSurface;
-
-        // return new Vector3(partialX, y, partialZ);
-
         return StaggeredGrid.GetGradient(p) + p.mHeightGradient;
     }
 
@@ -253,10 +217,8 @@ public class ParticleSPH {
     public void Update(){
         // update particles' neighbours
         ComputeNeighbours();
-        // update particles' density
+        // update particles' heights
         ComputeHeight();
-        // update particle's gradient
-        // ComputeGradientParticleHeight();
         // integrate and update positions
         TimeIntegration();
         // update the color for debugging purposes
@@ -299,26 +261,6 @@ public class ParticleSPH {
     }
 
     /**
-     * Create a particle dam
-    */
-    private void CreateDam(){
-        float particleSize = mParticle.GetComponent<Renderer>().bounds.size.x;
-        float particleSizeHalf = particleSize / 2;
-
-        for(int i = -DAM_X; i<DAM_X; i++){
-            for(int j = -DAM_Y; j<DAM_Y; j++){
-                float x = i * particleSize + particleSizeHalf;
-                float y = j * particleSize + particleSizeHalf;
-                Vector3 position = new Vector3(x, y, 0.0f);
-                GameObject circle = GenerateParticle(position);
-                Particle p = circle.GetComponent<Particle>();
-                mNbCurParticles = 0; // do not count the dam for the max number of particles
-                // circle.GetComponent<Rigidbody>().AddRelativeForce(new Vector3(0.0f, -1.0f, 0.0f));
-            }
-        }
-    }
-
-    /**
      * Update particles' neighbours
     */
     private void ComputeNeighbours(){
@@ -335,7 +277,6 @@ public class ParticleSPH {
                     newNeighbours.Add(pj);
                 }
             }
-
             // update new neighbours
             curParticle.mNeighbours = newNeighbours;
         }
@@ -356,10 +297,12 @@ public class ParticleSPH {
     */
     private void ComputeHeight(){
         // get height
+        // update max height
+        Particle.sMaxHeight = 0.0f;
         foreach(UnityEngine.GameObject pi in mParticlesGenerated){
             Particle curParticle = pi.GetComponent<Particle>();
             Assert.IsTrue(curParticle != null);
-            float sum = 0.0f;
+            float sum = 0.0f; // sum = density
             ArrayList neighbours = curParticle.mNeighbours;
             // for each neighbours add to the sum
             foreach(Particle pj in neighbours){
@@ -367,6 +310,8 @@ public class ParticleSPH {
                 sum += pj.mMass*wij;
             }
             curParticle.mHeight = sum/Constants.RHO_0;
+            // update max heigth
+            if(curParticle.mHeight > Particle.sMaxHeight) Particle.sMaxHeight = curParticle.mHeight;
         }
 
         // get height gradient
@@ -386,48 +331,6 @@ public class ParticleSPH {
     }
 
     /**
-     * Update the gradient of particles' height
-    */
-    private void ComputeGradientParticleHeight(){
-        // for every particles pi
-        foreach(UnityEngine.GameObject pi in mParticlesGenerated){
-            Particle curParticle = pi.GetComponent<Particle>();
-            Assert.IsTrue(curParticle != null);
-
-            Vector3 sumGradients = new Vector3();
-            Vector3 sumKernelGradients = new Vector3();
-
-            // update laplacian
-            // float sumLaplacian = 0.0f;
-            
-            // get neighbours
-            ArrayList neighbours = curParticle.mNeighbours;
-            // for each neighbours add to the sum
-            foreach(Particle pj in neighbours){
-                Vector3 wij = W_POLY6_Grad(curParticle, pj);
-                float wij_lap = W_POLY6_Lap(curParticle, pj);
-                float factor = (pj.mMass/pj.mRho);
-
-                sumKernelGradients += wij;
-                // sumLaplacian += factor*wij_lap;
-
-                float heigthDif = curParticle.mHeight - pj.mHeight;
-                sumGradients += factor*heigthDif*wij;
-            }
-            // normalize the sum
-            float x = sumKernelGradients.x != 0 ? sumGradients.x / sumKernelGradients.x : sumGradients.x;
-            float y = sumKernelGradients.y != 0 ? sumGradients.y / sumKernelGradients.y : sumGradients.y;
-            float z = sumKernelGradients.z != 0 ? sumGradients.z / sumKernelGradients.z : sumGradients.z;
-            Vector3 heightGradient = new Vector3(x,y,z);
-            // Debug.Log("beforeUpdt: "+sumGradients+", afterUpdt: "+heightGradient+"\n");
-
-            // update the particle
-            curParticle.mHeightGradient = heightGradient;
-            // curParticle.mHeightLaplacian = sumLaplacian;
-        }
-    }
-
-    /**
      * Update particles' positions
     */
     private void TimeIntegration(){
@@ -438,16 +341,15 @@ public class ParticleSPH {
             // get position
             Vector3 curPosition = curParticle.GetPosition();
             // get new velocity
-            Vector3 newVelocity = (-Constants.G / Constants.STIFFNESS)*GetGradientSurface(curParticle);// + curParticle.mViscosityForce;
+            Vector3 newVelocity = (-Constants.G / Constants.STIFFNESS)*GetGradientSurface(curParticle);
             // get new position
             Vector3 newPosition = dt*newVelocity + curPosition;
-            // newPosition.y = 0;
-            // Assert.IsTrue(curParticle.GetComponent<Rigidbody>().position == curParticle.GetPosition());
+
             newPosition.y = GetTerrainHeight(newPosition);
             //Assert.IsTrue(Particle.mRadius == curParticle.Scale)
 
             // update particle
-            if(!curParticle.UpdateRigidBody(newPosition, newVelocity)){
+            if(!curParticle.UpdatePosition(newPosition)){
                 mParticlesToRemove.Add(pi);
             }
         }
