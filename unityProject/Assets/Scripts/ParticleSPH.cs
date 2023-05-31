@@ -43,9 +43,6 @@ public class ParticleSPH {
     public ParticleSPH(GameObject particle, int maxParticles){
         mParticle = particle;
         mNbMaxParticles = maxParticles;
-
-        // init the staggered grid
-        StaggeredGrid.Init();
     }
 
     /**
