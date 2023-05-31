@@ -119,7 +119,7 @@ public static class StaggeredGrid {
     /**
      * Get the indices of the current position inside the arrays
      * @param pos The current position of the object in world space coordinates
-     * @return An array [i,j] with the indices in the arrays
+     * @return An array [j,i] with the indices in the arrays
     */
     private static int[] getIndices(Vector3 pos){
         Terrain terrain = Terrain.activeTerrain;

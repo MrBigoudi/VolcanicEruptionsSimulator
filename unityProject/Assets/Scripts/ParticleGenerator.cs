@@ -30,9 +30,14 @@ public class ParticleGenerator : MonoBehaviour{
      * Initialize the generator at launch
     */
     public void Start(){
-        // Debug.Log("Start");
+        // init the neighbour search grid
         Grid.InitGrid();
+        // init the sph solver
         mSph = new ParticleSPH(mParticle, mMaxParticles);
+        // init the staggered grid
+        StaggeredGrid.Init();
+        // init the lava texture grid
+        LavaTextureMap.Init();
     }
 
     /**
