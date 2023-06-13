@@ -35,4 +35,85 @@ location = {San Diego, California},
 series = {SIGGRAPH '07}
 }
 
-  
+@article{10.1145/3386569.3392438,
+author = {Fang, Yu and Qu, Ziyin and Li, Minchen and Zhang, Xinxin and Zhu, Yixin and Aanjaneya, Mridul and Jiang, Chenfanfu},
+title = {IQ-MPM: An Interface Quadrature Material Point Method for Non-Sticky Strongly Two-Way Coupled Nonlinear Solids and Fluids},
+year = {2020},
+issue_date = {August 2020},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {39},
+number = {4},
+issn = {0730-0301},
+url = {https://doi.org/10.1145/3386569.3392438},
+doi = {10.1145/3386569.3392438},
+abstract = {We propose a novel scheme for simulating two-way coupled interactions between nonlinear elastic solids and incompressible fluids. The key ingredient of this approach is a ghost matrix operator-splitting scheme for strongly coupled nonlinear elastica and incompressible fluids through the weak form of their governing equations. This leads to a stable and efficient method handling large time steps under the CFL limit while using a single monolithic solve for the coupled pressure fields, even in the case with highly nonlinear elastic solids. The use of the Material Point Method (MPM) is essential in the designing of the scheme, it not only preserves discretization consistency with the hybrid Lagrangian-Eulerian fluid solver, but also works naturally with our novel interface quadrature (IQ) discretization for free-slip boundary conditions. While traditional MPM suffers from sticky numerical artifacts, our framework naturally supports discontinuous tangential velocities at the solid-fluid interface. Our IQ discretization results in an easy-to-implement, fully particle-based treatment of the interfacial boundary, avoiding the additional complexities associated with intermediate level set or explicit mesh representations. The efficacy of the proposed scheme is verified by various challenging simulations with fluid-elastica interactions.},
+journal = {ACM Trans. Graph.},
+month = {aug},
+articleno = {51},
+numpages = {16},
+keywords = {numerical methods, MPM, fluid-structure interaction, fluids}
+}
+
+% Cracks inside bread, maybe used for lava ?
+@article{10.1145/3306346.3322949,
+author = {Wolper, Joshuah and Fang, Yu and Li, Minchen and Lu, Jiecong and Gao, Ming and Jiang, Chenfanfu},
+title = {CD-MPM: Continuum Damage Material Point Methods for Dynamic Fracture Animation},
+year = {2019},
+issue_date = {August 2019},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {38},
+number = {4},
+issn = {0730-0301},
+url = {https://doi.org/10.1145/3306346.3322949},
+doi = {10.1145/3306346.3322949},
+abstract = {We present two new approaches for animating dynamic fracture involving large elastoplastic deformation. In contrast to traditional mesh-based techniques, where sharp discontinuity is introduced to split the continuum at crack surfaces, our methods are based on Continuum Damage Mechanics (CDM) with a variational energy-based formulation for crack evolution. Our first approach formulates the resulting dynamic material damage evolution with a Ginzburg-Landau type phase-field equation and discretizes it with the Material Point Method (MPM), resulting in a coupled momentum/damage solver rooted in phase field fracture: PFF-MPM. Although our PFF-MPM approach achieves convincing fracture with or without plasticity, we also introduce a return mapping algorithm that can be analytically solved for a wide range of general non-associated plasticity models, achieving more than two times speedup over traditional iterative approaches. To demonstrate the efficacy of the algorithm, we also develop a Non-Associated Cam-Clay (NACC) plasticity model with a novel fracture-friendly hardening scheme. Our NACC plasticity paired with traditional MPM composes a second approach to dynamic fracture, as it produces a breadth of organic, brittle material fracture effects on its own. Though NACC and PFF can be combined, we focus on exploring their material effects separately. Both methods can be easily integrated into any existing MPM solver, enabling the simulation of various fracturing materials with extremely high visual fidelity while requiring little additional computational overhead.},
+journal = {ACM Trans. Graph.},
+month = {jul},
+articleno = {119},
+numpages = {15},
+keywords = {ductile fracture, material point method (MPM), phase-field, material damage}
+}
+
+% Surface rendering using GPU (great but maybe too complex as a first shot)
+@article{10.1145/3203201,
+author = {Truong, Nghia and Yuksel, Cem},
+title = {A Narrow-Range Filter for Screen-Space Fluid Rendering},
+year = {2018},
+issue_date = {July 2018},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {1},
+number = {1},
+url = {https://doi.org/10.1145/3203201},
+doi = {10.1145/3203201},
+abstract = {We introduce a simple screen-space filtering technique for real-time rendering of particle-based fluid simulations. Starting with a depth-map generated directly from the particle data, our new filter formulation smooths the depth-map by considering the depth values in a narrow range. The depth values outside of this range are carefully handled to achieve the desired surface shape near discontinuities. The simplicity of our formulation leads to a computationally efficient filter. We present examples with complex particle-based fluid simulations and provide comparisons, clearly showing that our filter provides improved surface quality in terms of surface smoothness and preserving boundaries near discontinuities, as compared to prior filtering methods.},
+journal = {Proc. ACM Comput. Graph. Interact. Tech.},
+month = {jul},
+articleno = {17},
+numpages = {15},
+keywords = {particle-based simulation, real-time rendering, screen-space filtering, fluid rendering}
+}
+
+% Real time screen space fluid rendering (older but easier to implement)
+% surface depth useless because no overlapping particles
+@inproceedings{10.1145/1507149.1507164,
+author = {van der Laan, Wladimir J. and Green, Simon and Sainz, Miguel},
+title = {Screen Space Fluid Rendering with Curvature Flow},
+year = {2009},
+isbn = {9781605584294},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/1507149.1507164},
+doi = {10.1145/1507149.1507164},
+abstract = {We present an approach for rendering the surface of a particle-based fluid that is simple to implement, has real-time performance with a configurable speed/quality trade-off, and smoothes the surface to prevent the fluid from looking "blobby" or jelly-like. The method is not based on polygonization and as such circumvents the usual grid artifacts of marching cubes. It only renders the surface where it is visible, and has inherent view-dependent level-of-detail. We use Perlin noise to add detail to the surface of the fluid. All the processing, rendering and shading steps are directly implemented on graphics hardware.},
+booktitle = {Proceedings of the 2009 Symposium on Interactive 3D Graphics and Games},
+pages = {91–98},
+numpages = {8},
+keywords = {curvature flow, real-time, SPH, screen-space, noise, rendering, fluid, foam, GPU},
+location = {Boston, Massachusetts},
+series = {I3D '09}
+}
+
+    
