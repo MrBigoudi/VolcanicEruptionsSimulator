@@ -16,6 +16,8 @@ public class ParticleGenerator : MonoBehaviour{
     */
     public ParticleSPH mSph;
 
+    public LavaRenderer mRenderer;
+
     /**
      * The maximum number of particles
     */
@@ -48,6 +50,8 @@ public class ParticleGenerator : MonoBehaviour{
         // ManageInput();
         if(CanShoot()) GenerateParticle();
         mSph.Update();
+        LavaTextureMap.Update();
+        mRenderer.Render();
     }
 
     /**

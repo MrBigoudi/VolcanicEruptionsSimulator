@@ -91,4 +91,14 @@ public static class Grid {
             }
         }
     }
+
+    /**
+     * Get the particles arround and inside a cell given it's position in the grid
+     * @param i The i position in the grid
+     * @param j The j position in the grid
+     * @return The particles arround and inside the cell
+    */
+    public static ArrayList GetParticles(int i, int j){
+        return mCells[i,j].GetAllParticles();
+    }
 }
