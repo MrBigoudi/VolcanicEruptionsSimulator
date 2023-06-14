@@ -19,7 +19,7 @@ public class ParticleGenerator : MonoBehaviour{
     /**
      * The maximum number of particles
     */
-    public int mMaxParticles = 50;
+    public int mMaxParticles = 500;
 
     /**
      * The variation delta for the particle generation
