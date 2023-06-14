@@ -1,0 +1,37 @@
+% render with particles stretching in the border, cool but tricky
+@article{10.1145/2421636.2421641,
+author = {Yu, Jihun and Turk, Greg},
+title = {Reconstructing Surfaces of Particle-Based Fluids Using Anisotropic Kernels},
+year = {2013},
+issue_date = {January 2013},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {32},
+number = {1},
+issn = {0730-0301},
+url = {https://doi.org/10.1145/2421636.2421641},
+doi = {10.1145/2421636.2421641},
+abstract = {In this article we present a novel surface reconstruction method for particle-based fluid simulators such as Smoothed Particle Hydrodynamics. In particle-based simulations, fluid surfaces are usually defined as a level set of an implicit function. We formulate the implicit function as a sum of anisotropic smoothing kernels, and the direction of anisotropy at a particle is determined by performing Principal Component Analysis (PCA) over the neighboring particles. In addition, we perform a smoothing step that repositions the centers of these smoothing kernels. Since these anisotropic smoothing kernels capture the local particle distributions more accurately, our method has advantages over existing methods in representing smooth surfaces, thin streams, and sharp features of fluids. Our method is fast, easy to implement, and our results demonstrate a significant improvement in the quality of reconstructed surfaces as compared to existing methods.},
+journal = {ACM Trans. Graph.},
+month = {feb},
+articleno = {5},
+numpages = {12},
+keywords = {fluid simulation, physically based animation, surface reconstruction, Computer graphics, anisotropic basis functions}
+}
+
+% isotropic version of the previous article
+% try to copy particles inside cells instead of references to max cache hit rate
+@inproceedings{10.5555/846276.846298,
+author = {M\"{u}ller, Matthias and Charypar, David and Gross, Markus},
+title = {Particle-Based Fluid Simulation for Interactive Applications},
+year = {2003},
+isbn = {1581136595},
+publisher = {Eurographics Association},
+address = {Goslar, DEU},
+abstract = {Realistically animated fluids can add substantial realism to interactive applications such as virtual surgery simulators or computer games. In this paper we propose an interactive method based on Smoothed Particle Hydrodynamics (SPH) to simulate fluids with free surfaces. The method is an extension of the SPH-based technique by Desbrun to animate highly deformable bodies. We gear the method towards fluid simulation by deriving the force density fields directly from the Navier-Stokes equation and by adding a term to model surface tension effects. In contrast to Eulerian grid-based approaches, the particle-based approach makes mass conservation equations and convection terms dispensable which reduces the complexity of the simulation. In addition, the particles can directly be used to render the surface of the fluid. We propose methods to track and visualize the free surface using point splatting and marching cubes-based surface reconstruction. Our animation method is fast enough to be used in interactive systems and to allow for user interaction with models consisting of up to 5000 particles.},
+booktitle = {Proceedings of the 2003 ACM SIGGRAPH/Eurographics Symposium on Computer Animation},
+pages = {154–159},
+numpages = {6},
+location = {San Diego, California},
+series = {SCA '03}
+}
