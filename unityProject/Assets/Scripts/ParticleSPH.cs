@@ -50,7 +50,7 @@ public class ParticleSPH {
      * @param r The distance between two particles
      * @return Part of the poly6 kernel calculation
     */
-    public float K_POLY6(float r){
+    public static float K_POLY6(float r){
         if(r<Constants.H) {
             float tmp = ((Constants.H*Constants.H)-r*r);
             return tmp*tmp*tmp;
@@ -118,7 +118,7 @@ public class ParticleSPH {
      * @return The poly6 kernel calculation
     */
     public float W_POLY6(Particle p1, Particle p2){
-        float r = Vector2.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
+        float r = Vector3.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
         // Debug.Log(r);
         return Constants.ALPHA_POLY6 * K_POLY6(r);
     }
@@ -130,7 +130,7 @@ public class ParticleSPH {
      * @return The derivated poly6 kernel calculation
     */
     public Vector3 W_POLY6_Grad(Particle p1, Particle p2){
-        float r = Vector2.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
+        float r = Vector3.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
         // Debug.Log(r);
         return Constants.ALPHA_POLY6 * K_POLY6_Prime(r) * (p1.GetPosition() - p2.GetPosition());
     }
@@ -142,7 +142,7 @@ public class ParticleSPH {
      * @return The laplacian of poly6 kernel calculation
     */
     public float W_POLY6_Lap(Particle p1, Particle p2){
-        float r = Vector2.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
+        float r = Vector3.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
         // Debug.Log(r);
         return Constants.ALPHA_POLY6_LAPLACIAN * K_POLY6_Lap(r);
     }
@@ -154,7 +154,7 @@ public class ParticleSPH {
      * @return The viscosity kernel calculation
     */
     public float W_VISCOSITY(Particle p1, Particle p2){
-        float r = Vector2.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
+        float r = Vector3.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
         // Debug.Log(r);
         return Constants.ALPHA_VISCOSITY * K_VISCOSITY(r);
     }
@@ -166,7 +166,7 @@ public class ParticleSPH {
      * @return The derivated viscosity kernel calculation
     */
     public Vector3 W_VISCOSITY_Grad(Particle p1, Particle p2){
-        float r = Vector2.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
+        float r = Vector3.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
         float prime = K_VISCOSITY_Prime(r);
         Vector2 pos = (p1.GetPosition() - p2.GetPosition());
         // Debug.Log("radius: " + r);
@@ -183,7 +183,7 @@ public class ParticleSPH {
      * @return The derivated viscosity kernel calculation
     */
     public float W_VISCOSITY_Lap(Particle p1, Particle p2){
-        float r = Vector2.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
+        float r = Vector3.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
         float l = Constants.H;
         return Constants.ALPHA_VISCOSITY_LAPLACIAN*(l-r);
     }
@@ -309,6 +309,7 @@ public class ParticleSPH {
             curParticle.mHeight = sum/Constants.RHO_0;
             // update max heigth
             if(curParticle.mHeight > Particle.sMaxHeight) Particle.sMaxHeight = curParticle.mHeight;
+            // Debug.Log("curHeight: " + curParticle.mHeight + "\n");
         }
 
         // get height gradient

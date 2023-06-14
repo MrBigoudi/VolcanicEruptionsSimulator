@@ -20,13 +20,9 @@ public class LavaTextureMap : MonoBehaviour{
      * Init dimensions
     */
     private static void InitDimensions(){
-        // get the heightmap from unity terrain
-        TerrainData terrainData = Terrain.activeTerrain.terrainData;
-        int heightmapResolution = terrainData.heightmapResolution;
-
         // get array dimensions
-        sNbX = heightmapResolution;
-        sNbZ = heightmapResolution;
+        sNbX = Grid.mNbCols;
+        sNbZ = Grid.mNbLines;
 
         sHeightmap = new float[sNbZ, sNbX];
     }
@@ -46,29 +42,47 @@ public class LavaTextureMap : MonoBehaviour{
     }
 
     /**
-     * Get the indices of the current position inside the arrays
-     * @param pos The current position of the object in world space coordinates
-     * @return An array [j,i] with the indices in the arrays
+     * Update the lava's heights
     */
-    private static int[] getIndices(Vector3 pos){
-        Terrain terrain = Terrain.activeTerrain;
-        TerrainData terrainData = terrain.terrainData;
+    public static void Update(){
+        // find neighbours for every points of the grid
+        for(int j=1; j<sNbZ-1; j++){
+            for(int i=1; i<sNbX-1; i++){
+                ArrayList neighbours = Grid.GetParticles(i,j);
+                // interpolate all neighbours
+                Vector3 curPos = new Vector3(Grid.mCells[i,j].mX, 0.0f, Grid.mCells[i,j].mZ);
+                float height = 0.0f;
 
-        // convert world-space position to terrain-local coordinates
-        Vector3 terrainPos = pos - terrain.transform.position;
+                foreach(Particle pj in neighbours){
+                    Vector3 pjPos = pj.GetPosition();
+                    pjPos.y = 0.0f;
 
-        // convert terrain-local coordinates to heightmap index coordinates
-        int resolution = terrainData.heightmapResolution;
-        int mapX = (int)(terrainPos.x / terrainData.size.x * (resolution - 1));
-        int mapZ = (int)(terrainPos.z / terrainData.size.z * (resolution - 1));
+                    float r = Vector3.Distance(curPos, pjPos) / Constants.H;
+                    float weight = Constants.ALPHA_POLY6 * ParticleSPH.K_POLY6(r);
 
-        int[] array = {mapZ, mapX};
+                    height += pj.mHeight;
+                    // Debug.Log("pj height: "+pj.mHeight);
+                }
 
-        return array;
+                sHeightmap[j,i] = height;
+                // Debug.Log("p height: "+height);
+            }
+        }
     }
 
     /**
-     * Update the lava's height given a particle
-     * @param p The particle representing
+     * Get the vertices of the heightmap
     */
+    public static List<Vector3> GetVertices(){
+        List<Vector3> res = new List<Vector3>();
+        for(int j=0; j<sNbZ; j++){
+            for(int i=0; i<sNbX; i++){
+                Vector3 newPos = new Vector3(Grid.mCells[i,j].mX, sHeightmap[j,i], Grid.mCells[i,j].mZ);
+                Debug.Log("pos: "+newPos);
+                res.Add(newPos);
+            }
+        }
+        return res;
+    }
+
 }
