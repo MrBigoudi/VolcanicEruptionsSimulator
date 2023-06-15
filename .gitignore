@@ -79,7 +79,7 @@ media/publications
 # tex files
 **.log
 *.aux
-*.bib
+# *.bib
 *.bbl
 *.blg
 *.fls

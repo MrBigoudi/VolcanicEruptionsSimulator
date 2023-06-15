@@ -64,9 +64,10 @@ public class Cell {
         ArrayList res = new ArrayList(mParticles);
         for(int i=0; i<mNeighbours.Count; i++){
             ArrayList curList = ((Cell)mNeighbours[i]).mParticles;
-            for(int j=0; j<curList.Count; j++){
-                res.Add(curList[j]);
-            }
+            res.AddRange(curList);
+            // for(int j=0; j<curList.Count; j++){
+            //     res.Add(curList[j]);
+            // }
         }
         return res;
     }
