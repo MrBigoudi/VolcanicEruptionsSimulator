@@ -16,7 +16,10 @@ public class ParticleGenerator : MonoBehaviour{
     */
     public ParticleSPH mSph;
 
-    public LavaRenderer mRenderer;
+    /**
+     * The lava height map
+    */
+    public LavaTextureMap mLavaTextureMap;
 
     /**
      * The maximum number of particles
@@ -39,7 +42,7 @@ public class ParticleGenerator : MonoBehaviour{
         // init the staggered grid
         StaggeredGrid.Init();
         // init the lava texture grid
-        LavaTextureMap.Init();
+        mLavaTextureMap.Init();
     }
 
     /**
@@ -50,8 +53,7 @@ public class ParticleGenerator : MonoBehaviour{
         // ManageInput();
         if(CanShoot()) GenerateParticle();
         mSph.Update();
-        LavaTextureMap.Update();
-        mRenderer.Render();
+        mLavaTextureMap.Update();
     }
 
     /**
@@ -80,7 +82,7 @@ public class ParticleGenerator : MonoBehaviour{
         Vector3 pos = transform.position;
         pos.x += v1;
         pos.z += v2;
-        pos.y = mSph.GetTerrainHeight(pos);
+        pos.y = ParticleSPH.GetTerrainHeight(pos);
         // Debug.Log("position: " + pos.x + ", " + pos.y + ", " + pos.z);
         return pos;
     }
