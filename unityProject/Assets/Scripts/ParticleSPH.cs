@@ -193,7 +193,7 @@ public class ParticleSPH {
      * @param pos The current position\
      * @return The height
     */
-    public float GetTerrainHeight(Vector3 pos){
+    public static float GetTerrainHeight(Vector3 pos){
         return StaggeredGrid.GetHeight(pos);
         // return Terrain.activeTerrain.SampleHeight(pos);
     }

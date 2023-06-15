@@ -9,6 +9,7 @@ public class FlyCamera : MonoBehaviour {
     Simple flycam I made, since I couldn't find any others made public.  
     Made simple to use (drag and drop, done) for regular keyboard layout  
     wasd : basic movement
+    c: Makes camera move
     shift : Makes camera accelerate
     space : Moves camera on X and Z axis only.  So camera doesn't gain any height*/
      
@@ -21,12 +22,14 @@ public class FlyCamera : MonoBehaviour {
     private float totalRun= 1.0f;
      
     void Update () {
-        lastMouse = Input.mousePosition - lastMouse ;
-        lastMouse = new Vector3(-lastMouse.y * camSens, lastMouse.x * camSens, 0 );
-        lastMouse = new Vector3(transform.eulerAngles.x + lastMouse.x , transform.eulerAngles.y + lastMouse.y, 0);
-        transform.eulerAngles = lastMouse;
-        lastMouse =  Input.mousePosition;
-        //Mouse  camera angle done.  
+        if(Input.GetKey(KeyCode.C)){
+            lastMouse = Input.mousePosition - lastMouse ;
+            lastMouse = new Vector3(-lastMouse.y * camSens, lastMouse.x * camSens, 0 );
+            lastMouse = new Vector3(transform.eulerAngles.x + lastMouse.x , transform.eulerAngles.y + lastMouse.y, 0);
+            transform.eulerAngles = lastMouse;
+            lastMouse =  Input.mousePosition;
+            //Mouse  camera angle done.  
+        }
        
         //Keyboard commands
         float f = 0.0f;
