@@ -24,6 +24,7 @@ public class LavaTextureMap : MonoBehaviour{
     public Mesh sMesh;
     public MeshRenderer sMeshRenderer;
     public MeshFilter sMeshFilter;
+    public Material sMeshMaterial;
 
 
 
@@ -50,9 +51,9 @@ public class LavaTextureMap : MonoBehaviour{
             for(int i=0; i<sNbX; i++){
                 sHeightmap[j,i] = 0.0f;
 
-                int curX = Grid.mCells[i,j].mX;
-                int curZ = Grid.mCells[i,j].mZ;
-                float cellWidth = Grid.mCellWidth;
+                // float curX = Grid.mCells[i,j].mX;
+                // float curZ = Grid.mCells[i,j].mZ;
+                // float cellWidth = Grid.mCellWidth;
 
                 // Debug.DrawLine(new Vector3(curX, 0, curZ), new Vector3(curX+cellWidth, 0, curZ), Color.blue, 200.0f, false);
                 // Debug.DrawLine(new Vector3(curX, 0, curZ), new Vector3(curX, 0, curZ+cellWidth), Color.green, 200.0f, false);
@@ -64,6 +65,7 @@ public class LavaTextureMap : MonoBehaviour{
         sMeshRenderer = gameObject.AddComponent<MeshRenderer>();
         sMeshRenderer.sharedMaterial = new Material(Shader.Find("Standard"));
         sMeshFilter = gameObject.AddComponent<MeshFilter>();
+        sMeshMaterial = Resources.Load("LavaMaterial", typeof(Material)) as Material;
     }
 
     /**
@@ -79,11 +81,11 @@ public class LavaTextureMap : MonoBehaviour{
                 float height = 0.0f;
 
                 foreach(Particle pj in neighbours){
-                    Vector3 pjPos = pj.GetPosition();
-                    pjPos.y = 0.0f;
+                    // Vector3 pjPos = pj.GetPosition();
+                    // pjPos.y = 0.0f;
 
-                    float r = Vector3.Distance(curPos, pjPos) / Constants.H;
-                    float weight = Constants.ALPHA_POLY6 * ParticleSPH.K_POLY6(r);
+                    // float r = Vector3.Distance(curPos, pjPos) / Constants.H;
+                    // float weight = Constants.ALPHA_POLY6 * ParticleSPH.K_POLY6(r);
 
                     height += pj.mHeight;
                     // Debug.Log("pj height: "+pj.mHeight);
@@ -98,7 +100,7 @@ public class LavaTextureMap : MonoBehaviour{
         }
 
         // generate the mesh
-        CreateMesh();
+        // CreateMesh();
     }
 
     /**
@@ -115,6 +117,7 @@ public class LavaTextureMap : MonoBehaviour{
         sMesh.uv = GetUVs();
 
         sMeshFilter.mesh = sMesh;
+        sMeshRenderer.material = sMeshMaterial;
     }
 
     // public void OnDrawGizmosSelected(){
@@ -144,12 +147,15 @@ public class LavaTextureMap : MonoBehaviour{
                 float curZ = Grid.mCells[i,j].mZ;
                 // Debug.Log("x: "+curX+", z: "+ curZ);
 
-                float terrainHeight = ParticleSPH.GetTerrainHeight(new Vector3(curX, 0.0f, curZ));
-
-                Vector3 newPos = new Vector3(curX, sHeightmap[j,i]+terrainHeight, curZ);
                 // Vector3 newPos = new Vector3(curX, 0.0f, curZ);
                 // Debug.Log("pos: "+newPos);
-                res.Add(newPos);
+                if(sHeightmap[j,i]==0.0f){
+                    res.Add(new Vector3(curX, 0.0f, curZ));
+                }else{
+                    float terrainHeight = ParticleSPH.GetTerrainHeight(new Vector3(curX, 0.0f, curZ));
+                    Vector3 newPos = new Vector3(curX, sHeightmap[j,i]+terrainHeight, curZ);
+                    res.Add(newPos);
+                }
             }
         }
         // Debug.Log("\n\n");
@@ -169,6 +175,7 @@ public class LavaTextureMap : MonoBehaviour{
                 int nextCol = i+1;
                 if(i==sNbX-1) nextCol = 0;
 
+                // for the first side
                 // first triangle
                 res.Add(curLine+i);
                 res.Add(curLine+nextCol);
@@ -177,6 +184,16 @@ public class LavaTextureMap : MonoBehaviour{
                 res.Add(curLine+nextCol);
                 res.Add(nextLine+nextCol);
                 res.Add(nextLine+i);
+
+                // for the other side
+                // first triangle
+                res.Add(curLine+i);
+                res.Add(nextLine+i);
+                res.Add(curLine+nextCol);
+                // second triangle
+                res.Add(curLine+nextCol);
+                res.Add(nextLine+i);
+                res.Add(nextLine+nextCol);
             }
         }
         int[] tmp = res.ToArray();
