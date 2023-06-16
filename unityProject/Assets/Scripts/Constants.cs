@@ -20,7 +20,7 @@ public static class Constants{
     /**
      * The kernel radius
     */
-    public const float H = 2.0f;
+    public const float H = 0.5f;
 
     /**
      * Factor for poly6 kernel calculations

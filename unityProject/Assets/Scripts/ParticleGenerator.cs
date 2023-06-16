@@ -92,9 +92,11 @@ public class ParticleGenerator : MonoBehaviour{
      * Generate a particle
     */
     private void GenerateParticle(){
-        Vector3 position = GetRandomPosition(mDelta);
-        GameObject circle = mSph.GenerateParticle(position);
-        // circle.GetComponent<Rigidbody2D>().AddRelativeForce(circle.GetComponent<Particle>().mVelocity);
+        for(int i=0; i<1; i++){
+            Vector3 position = GetRandomPosition(mDelta);
+            GameObject circle = mSph.GenerateParticle(position);
+            // circle.GetComponent<Rigidbody2D>().AddRelativeForce(circle.GetComponent<Particle>().mVelocity);
+        }
     }
 
     /**

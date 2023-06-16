@@ -9,7 +9,7 @@ public class Particle : MonoBehaviour{
     /**
      * The particles radii
     */
-    public static float sInitRadius = 0.35f;
+    public static float sInitRadius = 0.05f;
 
     /**
      * The particles max height
