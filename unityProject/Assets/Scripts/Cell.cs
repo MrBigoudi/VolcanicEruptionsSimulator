@@ -15,22 +15,22 @@ public class Cell {
     /**
      * The x coordinate of the cell
     */
-    public int mX;
+    public float mX;
 
     /**
      * The z coordinate of the cell
     */
-    public int mZ;
+    public float mZ;
 
     /**
      * The depth of the cell
     */
-    public int mDepth;
+    public float mDepth;
 
     /**
      * The width of the cell
     */
-    public int mWidth;
+    public float mWidth;
 
     /**
      * The cell's color (for debugging purposes)
@@ -49,7 +49,7 @@ public class Cell {
      * @param width The cell's width
      * @param depth The cell's depth
     */
-    public Cell(int x, int y, int width, int depth){
+    public Cell(float x, float y, float width, float depth){
         mX = x;
         mZ = y;
         mDepth = depth;

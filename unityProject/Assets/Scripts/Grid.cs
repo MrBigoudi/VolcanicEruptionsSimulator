@@ -20,12 +20,12 @@ public static class Grid {
     /**
      * The cells width
     */
-    public static int mCellWidth;
+    public static float mCellWidth;
 
     /**
      * The cells depth
     */
-    public static int mCellDepth;
+    public static float mCellDepth;
 
     /**
      * The grid width
@@ -46,14 +46,14 @@ public static class Grid {
      * Initiate the grid
     */
     public static void InitGrid(){
-        mCellWidth = (int)Constants.H;
-        mCellDepth = (int)Constants.H;
+        mCellWidth = Constants.H;
+        mCellDepth = Constants.H;
         Vector3 terrainSize = Terrain.activeTerrain.terrainData.size;
         mWidth = (int)(terrainSize.x+1);
         mDepth = (int)(terrainSize.z+1);
 
-        mNbCols = mWidth / mCellWidth;
-        mNbLines = mDepth / mCellDepth;
+        mNbCols = (int)(mWidth / mCellWidth);
+        mNbLines = (int)(mDepth / mCellDepth);
         int iMax = mNbLines-1;
         int jMax = mNbCols-1;
 
@@ -62,13 +62,13 @@ public static class Grid {
         // init the cells
         for(int i=iMax; i>=0; i--){
             for(int j=0; j<=jMax; j++){
-                int curX = i*mCellWidth;
-                int curZ = j*mCellDepth;
+                float curX = i*mCellWidth;
+                float curZ = j*mCellDepth;
                 mCells[i,j] = new Cell(curX, curZ, mCellWidth, mCellDepth);
 
-                Color cellColor = Random.ColorHSV();
-                cellColor.a = 1.0f;
-                mCells[i,j].mColor = cellColor;
+                // Color cellColor = Random.ColorHSV();
+                // cellColor.a = 1.0f;
+                // mCells[i,j].mColor = cellColor;
 
                 // Debug.DrawLine(new Vector3(curX, 0, curZ), new Vector3(curX+mCellWidth, 0, curZ), cellColor, 200.0f, false);
                 // Debug.DrawLine(new Vector3(curX, 0, curZ), new Vector3(curX, 0, curZ+mCellDepth), cellColor, 200.0f, false);
