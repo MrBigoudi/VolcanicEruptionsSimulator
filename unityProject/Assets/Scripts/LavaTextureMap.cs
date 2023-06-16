@@ -100,7 +100,7 @@ public class LavaTextureMap : MonoBehaviour{
         }
 
         // generate the mesh
-        //CreateMesh();
+        // CreateMesh();
     }
 
     /**
@@ -147,15 +147,15 @@ public class LavaTextureMap : MonoBehaviour{
                 float curZ = Grid.mCells[i,j].mZ;
                 // Debug.Log("x: "+curX+", z: "+ curZ);
 
-                float terrainHeight = ParticleSPH.GetTerrainHeight(new Vector3(curX, 0.0f, curZ));
-
-                Vector3 newPos = new Vector3(curX, sHeightmap[j,i]+terrainHeight, curZ);
                 // Vector3 newPos = new Vector3(curX, 0.0f, curZ);
                 // Debug.Log("pos: "+newPos);
-                if(sHeightmap[j,i]==0.0f)
+                if(sHeightmap[j,i]==0.0f){
                     res.Add(new Vector3(curX, 0.0f, curZ));
-                else
+                }else{
+                    float terrainHeight = ParticleSPH.GetTerrainHeight(new Vector3(curX, 0.0f, curZ));
+                    Vector3 newPos = new Vector3(curX, sHeightmap[j,i]+terrainHeight, curZ);
                     res.Add(newPos);
+                }
             }
         }
         // Debug.Log("\n\n");
