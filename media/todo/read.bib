@@ -37,3 +37,28 @@ numpages = {6},
 location = {San Diego, California},
 series = {SCA '03}
 }
+
+
+% SWE model using SPH
+% Usually swe was eulerian -> laggragian implies more freedom for particles
+% 2D SPH since not tracking the height of the particle inside the water
+% A bit bumpy surface if particles are too sparsed
+@article{10.1007/s00371-010-0439-9,
+author = {Lee, Hyokwang and Han, Soonhung},
+title = {Solving the Shallow Water Equations Using 2D SPH Particles For Interactive Applications},
+year = {2010},
+issue_date = {June 2010},
+publisher = {Springer-Verlag},
+address = {Berlin, Heidelberg},
+volume = {26},
+number = {6–8},
+issn = {0178-2789},
+url = {https://doi.org/10.1007/s00371-010-0439-9},
+doi = {10.1007/s00371-010-0439-9},
+abstract = {In this paper, we introduce a 2D particle-based approach to achieve realistic water surface behaviors for interactive applications. We formulate 2D particle-based Shallow Water equations using the Smoothed Particle Hydrodynamics. Particles defined with specific amount of water volume interplay with each other, which generates the horizon flow and the water surface motion. By the application of the particle-based Lagrangian framework to the 2D Shallow Water simulation, our method allows the water particles to move freely without being confined to a grid. The motion of the particles can represent global flow with dynamic waves covering a large area while avoiding extensive 3D fluid dynamics computation. The 2D particle-based Shallow Water equations are straightforward and computed fast with the GPU-based implementation. Experiments on a standard hardware demonstrate the performance of our approach which is running on the GPU, and the results show a realistic motion of the water surface at interactive rates.},
+journal = {Vis. Comput.},
+month = {jun},
+pages = {865–872},
+numpages = {8},
+keywords = {Real-time simulation, Shallow Water equations, GPU, SPH}
+}
