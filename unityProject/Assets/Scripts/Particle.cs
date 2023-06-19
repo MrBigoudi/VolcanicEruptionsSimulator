@@ -9,37 +9,63 @@ public class Particle : MonoBehaviour{
     /**
      * The particles radii
     */
-    public static float sInitRadius = 0.05f;
+    public static float sInitRadius = 0.2f;
+
+    public float mRadius;
 
     /**
-     * The particles max height
+     * The particle's volume
     */
-    public static float sMaxHeight = 2*sInitRadius;
-
-    /**
-     * The particle's mass
-    */
-    public float mMass = (4.0f/3.0f)*Constants.PI*sInitRadius*sInitRadius*sInitRadius * Constants.RHO_0; // volume * density
+    public float mVolume;
     
     /**
      * The height of the particle
     */
-    public float mHeight = 2*sInitRadius;
+    public float mHeight;
+
+    /**
+     * The height derivative of the particle
+    */
+    public float mHeightDerivative;
 
     /**
      * The height's gradient
     */
-    public Vector3 mHeightGradient = new Vector3();
+    public Vector3 mHeightGradient;
+
+    /**
+     * The particle's velocity
+    */
+    public Vector3 mVelocity;
 
     /**
      * The cell in which the particle's in
     */
-    public Cell mCell = null;
+    public Cell mCell;
 
     /**
      * The particle's neighbours
     */
-    public ArrayList mNeighbours = new ArrayList();
+    public ArrayList mNeighbours;
+
+    /**
+     * The number of neighbours
+    */
+    public int mNbNeighbours;
+
+    public void Init(bool ghost){
+        mRadius = ghost ? 0.0f : sInitRadius;
+        mVolume = 200.0f/Constants.RHO_0; // mass / density;
+        mHeight = ghost ? 0.0f : 2.0f*sInitRadius;
+        mHeightDerivative = 0.0f;
+        mHeightGradient = new Vector3();
+        mVelocity = new Vector3(1,1,1);
+        mCell = null;
+        mNeighbours = new ArrayList();
+        mNbNeighbours = 1;
+        this.transform.localScale = ghost ? new Vector3() : new Vector3(mRadius, mRadius, mRadius);
+        AssignGridCell();
+    }
 
     /**
      * Assign a grid cell to the particle
@@ -87,13 +113,21 @@ public class Particle : MonoBehaviour{
         return transform.position;
     }
 
+    public void UpdateRadius(){
+        mRadius = mHeight/2.0f;
+        this.transform.localScale = new Vector3(mRadius, mRadius, mRadius);
+    }
+
     /**
      * Update the position of the particle
      * @param newPos The Particle's new position
+     * @param newVelocity The Particle's new velocity
      * @return True if the particlue should be delete
     */
-    public bool UpdatePosition(Vector3 newPos){
+    public bool UpdatePosition(Vector3 newPos, Vector3 newVelocity){
         transform.position = newPos;
+        mVelocity = newVelocity;
+        UpdateRadius();
         // update cell
         return AssignGridCell();
     }
@@ -102,9 +136,14 @@ public class Particle : MonoBehaviour{
      * Update the particle's color
     */
     public void UpdateColor(){
-        //Color color = newCell.mColor; // color depending on the grid cell
-        Color color = new Color(mHeight/sMaxHeight, 0.0f, 0.0f, 1.0f); // color depending on the height
+        Color color = mCell.mColor; // color depending on the grid cell
+        // Color color = new Color(mHeight/sMaxHeight, 0.0f, 0.0f, 1.0f); // color depending on the height
         gameObject.GetComponent<Renderer>().material.color = color;
+    }
+
+    void OnDrawGizmosSelected(){
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, Constants.H);
     }
 
 }
