@@ -290,6 +290,7 @@ MonoBehaviour:
   sMesh: {fileID: 0}
   sMeshRenderer: {fileID: 0}
   sMeshFilter: {fileID: 0}
+  sMeshMaterial: {fileID: 0}
 --- !u!4 &466742552
 Transform:
   m_ObjectHideFlags: 0

@@ -43,6 +43,21 @@ public class ParticleGenerator : MonoBehaviour{
         StaggeredGrid.Init();
         // init the lava texture grid
         mLavaTextureMap.Init();
+        // generate initial ghosts particles
+        // GenerateGhostParticles();
+    }
+
+    private void GenerateGhostParticles(){
+        // place a particle in every cell of the grid
+        for(int i=5; i<Grid.mNbLines-5; i++){
+            for(int j=5; j<Grid.mNbCols-5; j++){
+                float curX = Grid.mCells[i,j].mX;
+                float curZ = Grid.mCells[i,j].mZ;
+                float curY = Terrain.activeTerrain.SampleHeight(new Vector3(curX, 0.0f, curZ));
+                Vector3 position = new Vector3(curX, curY, curZ);
+                GameObject circle = mSph.GenerateParticle(position, true);
+            }
+        }
     }
 
     /**
