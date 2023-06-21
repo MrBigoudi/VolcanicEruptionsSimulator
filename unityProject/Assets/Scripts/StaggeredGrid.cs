@@ -32,6 +32,8 @@ public static class StaggeredGrid {
     */
     private static float[,] sGradZ;
 
+    private static float[,] sLapl;
+
     /**
      * The number of rows
     */
@@ -72,6 +74,8 @@ public static class StaggeredGrid {
 
         sGradZ = new float[sNbZ-1, sNbX];
         sGradX = new float[sNbZ, sNbX-1];
+
+        sLapl = new float[sNbX-1,sNbZ-1];
     }
 
     /**
@@ -91,16 +95,7 @@ public static class StaggeredGrid {
         }
     }
 
-    /**
-     * Init the grid
-    */
-    public static void Init(){
-        // init the dimensions
-        InitDimensions();
-
-        // init terrain
-        InitHeightMap();
-
+    private static void InitGradients(){
         // init x gradients
         for(int j=0; j<sNbZ; j++){
             for(int i=0; i<sNbZ-1; i++){
@@ -114,6 +109,31 @@ public static class StaggeredGrid {
                 sGradZ[j,i] = (sHeightmap[j+1,i] - sHeightmap[j,i]) / sDz;
             }
         }
+    }
+
+    private static void InitLaplacians(){
+        // init x laplacians
+        for(int j=1; j<sNbZ-1; j++){
+            for(int i=1; i<sNbZ-1; i++){
+                
+                sLapl[j,i] = (sHeightmap[j,i+1] - sHeightmap[j,i]) / sDx;
+            }
+        }
+    }
+
+    /**
+     * Init the grid
+    */
+    public static void Init(){
+        // init the dimensions
+        InitDimensions();
+
+        // init terrain
+        InitHeightMap();
+
+        InitGradients();
+        InitLaplacians();
+        
     }
 
     /**
