@@ -24,14 +24,14 @@ public class Particle : MonoBehaviour{
     public float mHeight;
 
     /**
-     * The height derivative of the particle
-    */
-    public float mHeightDerivative;
-
-    /**
      * The height's gradient
     */
     public Vector3 mHeightGradient;
+
+    /**
+     * The height's laplacian
+    */
+    public float mHeightLaplacian;
 
     /**
      * The particle's velocity
@@ -57,8 +57,8 @@ public class Particle : MonoBehaviour{
         mRadius = ghost ? 0.0f : sInitRadius;
         mVolume = 200.0f/Constants.RHO_0; // mass / density;
         mHeight = ghost ? 0.0f : 2.0f*sInitRadius;
-        mHeightDerivative = 0.0f;
         mHeightGradient = new Vector3();
+        mHeightLaplacian = 0.0f;
         mVelocity = new Vector3(1,1,1);
         mCell = null;
         mNeighbours = new ArrayList();

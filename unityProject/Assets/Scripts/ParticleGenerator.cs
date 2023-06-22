@@ -40,7 +40,7 @@ public class ParticleGenerator : MonoBehaviour{
         // init the sph solver
         mSph = new ParticleSPH(mParticle, mMaxParticles);
         // init the staggered grid
-        StaggeredGrid.Init();
+        StaggeredGridV2.Init();
         // init the lava texture grid
         mLavaTextureMap.Init();
         // generate initial ghosts particles

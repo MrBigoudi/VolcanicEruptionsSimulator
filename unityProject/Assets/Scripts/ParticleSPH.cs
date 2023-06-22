@@ -206,7 +206,7 @@ public class ParticleSPH {
      * @return The height
     */
     public static float GetTerrainHeight(Vector3 pos){
-        return StaggeredGrid.GetHeight(pos);
+        return StaggeredGridV2.GetHeight(pos);
         // return Terrain.activeTerrain.SampleHeight(pos);
     }
 
@@ -216,7 +216,7 @@ public class ParticleSPH {
      * @return The gradient
     */
     public Vector3 GetGradientSurface(Particle p){
-        return StaggeredGrid.GetGradient(p) + p.mHeightGradient;
+        return StaggeredGridV2.GetGradient(p) + p.mHeightGradient;
     }
 
 
@@ -307,7 +307,6 @@ public class ParticleSPH {
     */
     private void UpdateHeight(){
         // get height
-        // calculate dh/dt
         foreach(UnityEngine.GameObject pi in mParticlesGenerated){
             Particle curParticle = pi.GetComponent<Particle>();
             Assert.IsTrue(curParticle != null);
@@ -336,6 +335,7 @@ public class ParticleSPH {
             }
             curParticle.mHeightGradient = sumGrad;
         }
+
     }
 
     /**
