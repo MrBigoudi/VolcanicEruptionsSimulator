@@ -62,3 +62,52 @@ pages = {865–872},
 numpages = {8},
 keywords = {Real-time simulation, Shallow Water equations, GPU, SPH}
 }
+
+% SPH for really viscous fluids
+% Implicit method
+% Reconstruct velocity field from a target gradient
+% Using normalized (and then simplified) interpolation to avoid problems at free surfaces
+@article{10.1145/2766925,
+author = {Peer, Andreas and Ihmsen, Markus and Cornelis, Jens and Teschner, Matthias},
+title = {An Implicit Viscosity Formulation for SPH Fluids},
+year = {2015},
+issue_date = {August 2015},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {34},
+number = {4},
+issn = {0730-0301},
+url = {https://doi.org/10.1145/2766925},
+doi = {10.1145/2766925},
+abstract = {We present a novel implicit formulation for highly viscous fluids simulated with Smoothed Particle Hydrodynamics SPH. Compared to explicit methods, our formulation is significantly more efficient and handles a larger range of viscosities. Differing from existing implicit formulations, our approach reconstructs the velocity field from a target velocity gradient. This gradient encodes a desired shear-rate damping and preserves the velocity divergence that is introduced by the SPH pressure solver to counteract density deviations. The target gradient ensures that pressure and viscosity computation do not interfere. Therefore, only one pressure projection step is required, which is in contrast to state-of-the-art implicit Eulerian formulations. While our model differs from true viscosity in that vorticity diffusion is not encoded in the target gradient, it nevertheless captures many of the qualitative behaviors of viscous liquids. Our formulation can easily be incorporated into complex scenarios with one- and two-way coupled solids and multiple fluid phases with different densities and viscosities.},
+journal = {ACM Trans. Graph.},
+month = {jul},
+articleno = {114},
+numpages = {10},
+keywords = {fluid simulation, smoothed particle hydrodynamics, viscosity, physically-based animation}
+}
+
+% PCISPH
+% Fully lagrangian
+% Prediction scheme to determine pressure -> avoid solving pressure Poisson but still able to use large dt
+% apparently 10x faster than WCSPH with almost same results
+% still a bit slow to get to the threshold (only 3 iterations needed but..)
+% not really usefull for us because we don't deal with pressure
+@inproceedings{10.1145/1576246.1531346,
+author = {Solenthaler, B. and Pajarola, R.},
+title = {Predictive-Corrective Incompressible SPH},
+year = {2009},
+isbn = {9781605587264},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/1576246.1531346},
+doi = {10.1145/1576246.1531346},
+abstract = {We present a novel, incompressible fluid simulation method based on the Lagrangian Smoothed Particle Hydrodynamics (SPH) model. In our method, incompressibility is enforced by using a prediction-correction scheme to determine the particle pressures. For this, the information about density fluctuations is actively propagated through the fluid and pressure values are updated until the targeted density is satisfied. With this approach, we avoid the computational expenses of solving a pressure Poisson equation, while still being able to use large time steps in the simulation. The achieved results show that our predictive-corrective incompressible SPH (PCISPH) method clearly outperforms the commonly used weakly compressible SPH (WCSPH) model by more than an order of magnitude while the computations are in good agreement with the WCSPH results.},
+booktitle = {ACM SIGGRAPH 2009 Papers},
+articleno = {40},
+numpages = {6},
+keywords = {SPH, fluid simulation, incompressibility},
+location = {New Orleans, Louisiana},
+series = {SIGGRAPH '09}
+}
+
