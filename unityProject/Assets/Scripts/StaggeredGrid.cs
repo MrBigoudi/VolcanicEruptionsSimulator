@@ -153,7 +153,12 @@ public static class StaggeredGrid {
         int mapX = (int)(terrainPos.x / terrainData.size.x * (resolution - 1));
         int mapZ = (int)(terrainPos.z / terrainData.size.z * (resolution - 1));
 
-        int[] array = {mapZ, mapX};
+        int posX = (int)(pos.x / sDx);
+        int posZ = (int)(pos.z / sDz);
+
+        int[] array = {posZ, posX};
+        // Debug.Log("before: {" + mapZ + ", "+ mapX +"}\n"+
+        //             "after: {" + posZ + ", "+ posX +"}\n");
 
         return array;
     }
