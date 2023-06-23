@@ -3,8 +3,6 @@
 
 
 
-
-
 // the staggered grid inside GPU
 struct StaggeredGrid{
     StructuredBuffer<float>  _Heights;
@@ -14,18 +12,18 @@ struct StaggeredGrid{
     StructuredBuffer<float2> _Gradients;
     StructuredBuffer<float>  _Laplacians;
 
-    int _NbCols, _NbLines;
+    uint _NbCols, _NbLines;
     float _DeltaCols, _DeltaLines;
 };
 
 uniform StaggeredGrid _StaggeredGrid;
 
-int2 StaggeredGridGetIndices(float3 pos){
-    int posX = (int)(pos.x / _StaggeredGrid._DeltaCols);
-    int posZ = (int)(pos.z / _StaggeredGrid._DeltaLines);
-    int2 res = int2(posZ, posX);
-    return res
-}
+uint2 StaggeredGridGetIndices(float3 pos){
+    uint posX = (pos.x / _StaggeredGrid._DeltaCols);
+    uint posZ = (pos.z / _StaggeredGrid._DeltaLines);
+    uint2 res = uint2(posZ, posX);
+    return res;
+};
 
 
 struct Particle{

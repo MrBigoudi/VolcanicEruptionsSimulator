@@ -285,12 +285,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 049d1bff9efbe203c97482f2f7943a53, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sNbX: 0
-  sNbZ: 0
-  sMesh: {fileID: 0}
-  sMeshRenderer: {fileID: 0}
-  sMeshFilter: {fileID: 0}
-  sMeshMaterial: {fileID: 0}
+  _Material: {fileID: 2100000, guid: a8f5d5dcb21ab474e98df8d5091d58a9, type: 2}
 --- !u!4 &466742552
 Transform:
   m_ObjectHideFlags: 0

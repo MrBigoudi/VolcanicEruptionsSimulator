@@ -42,7 +42,7 @@ public class ParticleGenerator : MonoBehaviour{
         // init the staggered grid
         StaggeredGridV2.Init();
         // init the lava texture grid
-        mLavaTextureMap.Init();
+        // mLavaTextureMap.Init();
         // generate initial ghosts particles
         // GenerateGhostParticles();
     }
@@ -68,7 +68,7 @@ public class ParticleGenerator : MonoBehaviour{
         // ManageInput();
         if(CanShoot()) GenerateParticle();
         mSph.Update();
-        mLavaTextureMap.Update();
+        mLavaTextureMap.Updt(mSph.FetchPositions());
     }
 
     /**

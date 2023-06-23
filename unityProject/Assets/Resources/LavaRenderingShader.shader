@@ -1,67 +1,89 @@
-Shader "Custom/LavaRenderingShader"
-{
+Shader "Custom/LavaRenderingShader"{
     Properties{
-		_MainTex("Albedo (RGB)", 2D) = "white" {}
-		_Glossiness("Smoothness", Range(0,1)) = 0.5
-		_Metallic("Metallic", Range(0,1)) = 0.0
-	}
-		SubShader{
-			Tags { "RenderType" = "Opaque" }
-			LOD 200
-
-			CGPROGRAM
-			// Physically based Standard lighting model
-			#pragma surface surf Standard addshadow fullforwardshadows
-			#pragma multi_compile_instancing
-			#pragma instancing_options procedural:setup
-
-			sampler2D _MainTex;
-			float _size;
-
-			struct Input {
-				float2 uv_MainTex;
+    }
+    SubShader{
+ 
+        Pass{
+            CGPROGRAM
+            #pragma vertex vert
+            #pragma geometry geom
+            #pragma fragment frag
+            // make fog work
+            #pragma multi_compile_fog
+ 
+            #include "UnityCG.cginc"
+ 
+            struct appdata{
+				float4 vertex : POSITION;
 			};
-
-			struct Particle
-			{
-				float3 position;
-				float4 color;	// TODO-SATJ: could probably get away with float3
+			
+			struct v2g{
+				float4 objPos : SV_POSITION;
 			};
+			
+			struct g2f{
+				float4 worldPos : SV_POSITION;
+				fixed4 col : COLOR;
+			};
+ 
+            v2g vert (appdata v){
+                v2g o;
+                o.objPos = v.vertex;
+                return o;
+            }
+ 
+            [maxvertexcount(6)]
+            void geom(point v2g input[1], inout TriangleStream<g2f> triStream){
+                g2f o;
+				float length = 0.5f;
+				float4 pos;
 
-		#ifdef UNITY_PROCEDURAL_INSTANCING_ENABLED
-			StructuredBuffer<Particle> _particlesBuffer;
-		#endif
+				// first triangle
+				// bottom left
+				pos = float4(input[0].objPos.x-length, input[0].objPos.y, input[0].objPos.z-length, 1);
+				o.worldPos = UnityObjectToClipPos(pos);
+				o.col = fixed4(1,0,0,1);
+				triStream.Append(o);
+				// top left
+				pos = float4(input[0].objPos.x-length, input[0].objPos.y, input[0].objPos.z+length, 1);
+				o.worldPos = UnityObjectToClipPos(pos);
+				o.col = fixed4(0,1,0,1);
+				triStream.Append(o);
+				// bottom right
+				pos = float4(input[0].objPos.x+length, input[0].objPos.y, input[0].objPos.z-length, 1);
+				o.worldPos = UnityObjectToClipPos(pos);
+				o.col = fixed4(0,0,1,1);
+				triStream.Append(o);
+				triStream.RestartStrip();
 
-			void setup()
-			{
-			#ifdef UNITY_PROCEDURAL_INSTANCING_ENABLED
-				float3 pos = _particlesBuffer[unity_InstanceID].position;
-				float size = _size;
+				// second triangle
+				// top left
+				pos = float4(input[0].objPos.x-length, input[0].objPos.y, input[0].objPos.z+length, 1);
+				o.worldPos = UnityObjectToClipPos(pos);
+				o.col = fixed4(0,1,0,1);
+				triStream.Append(o);
+				// top right
+				pos = float4(input[0].objPos.x+length, input[0].objPos.y, input[0].objPos.z+length, 1);
+				o.worldPos = UnityObjectToClipPos(pos);
+				o.col = fixed4(0,1,1,1);
+				triStream.Append(o);
+				// bottom right
+				pos = float4(input[0].objPos.x+length, input[0].objPos.y, input[0].objPos.z-length, 1);
+				o.worldPos = UnityObjectToClipPos(pos);
+				o.col = fixed4(0,0,1,1);
+				triStream.Append(o);
+				triStream.RestartStrip();
 
-				unity_ObjectToWorld._11_21_31_41 = float4(size, 0, 0, 0);
-				unity_ObjectToWorld._12_22_32_42 = float4(0, size, 0, 0);
-				unity_ObjectToWorld._13_23_33_43 = float4(0, 0, size, 0);
-				unity_ObjectToWorld._14_24_34_44 = float4(pos.xyz, 1);
-				unity_WorldToObject = unity_ObjectToWorld;
-				unity_WorldToObject._14_24_34 *= -1;
-				unity_WorldToObject._11_22_33 = 1.0f / unity_WorldToObject._11_22_33;
-			#endif
-			}
+            }
+ 
+            fixed4 frag (g2f i) : SV_Target{
+                fixed4 col = i.col;
+				return col;
+				// return fixed4(0,0,0,1);
+            }
 
-			half _Glossiness;
-			half _Metallic;
-
-			void surf(Input IN, inout SurfaceOutputStandard o) {
-				float4 col = float4(1, 1, 1, 1);
-				#ifdef UNITY_PROCEDURAL_INSTANCING_ENABLED
-				col = _particlesBuffer[unity_InstanceID].color;
-				#endif
-				o.Albedo = col.rgb;
-				o.Metallic = _Metallic;
-				o.Smoothness = _Glossiness;
-				o.Alpha = col.a;
-			}
-			ENDCG
+            ENDCG
 		}
-			FallBack "Diffuse"
+    }
+    FallBack "Diffuse"
 }

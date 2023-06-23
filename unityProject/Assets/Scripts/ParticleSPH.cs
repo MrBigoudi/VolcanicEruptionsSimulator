@@ -382,4 +382,13 @@ public class ParticleSPH {
         }
     }
 
+    public List<Vector3> FetchPositions(){
+        List<Vector3> positions = new List<Vector3>();
+        foreach(UnityEngine.GameObject pi in mParticlesGenerated){
+            Particle curParticle = pi.GetComponent<Particle>();
+            positions.Add(curParticle.GetPosition());
+        }
+        return positions;
+    }
+
 }
