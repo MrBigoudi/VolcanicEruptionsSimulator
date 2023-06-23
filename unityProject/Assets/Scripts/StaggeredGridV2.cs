@@ -87,7 +87,7 @@ public static class StaggeredGridV2 {
         InitLaplacians();
     }
 
-    private static int[] getIndices(Vector3 pos){
+    private static int[] GetIndices(Vector3 pos){
         int posX = (int)(pos.x / _DeltaCols);
         int posZ = (int)(pos.z / _DeltaLines);
         int[] array = {posZ, posX};
@@ -106,7 +106,7 @@ public static class StaggeredGridV2 {
     }
 
     public static float GetHeight(Vector3 pos){
-        int[] indices = getIndices(pos);
+        int[] indices = GetIndices(pos);
         int zIdx = indices[0];
         int xIdx = indices[1];
 
@@ -131,7 +131,7 @@ public static class StaggeredGridV2 {
 
     public static Vector3 GetGradient(Particle p){
         Vector3 pos = p.transform.position;
-        int[] indices = getIndices(pos);
+        int[] indices = GetIndices(pos);
         int zIdx = indices[0];
         int xIdx = indices[1];
 
@@ -151,7 +151,7 @@ public static class StaggeredGridV2 {
     }
 
     public static float GetLaplacian(Vector3 pos){
-        int[] indices = getIndices(pos);
+        int[] indices = GetIndices(pos);
         int zIdx = indices[0];
         int xIdx = indices[1];
 

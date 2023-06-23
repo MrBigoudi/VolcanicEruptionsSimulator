@@ -1,0 +1,42 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel Update
+
+
+
+
+
+// the staggered grid inside GPU
+struct StaggeredGrid{
+    StructuredBuffer<float>  _Heights;
+    StructuredBuffer<float>  _HalfHeightsCols;
+    StructuredBuffer<float>  _HalfHeightsLines;
+
+    StructuredBuffer<float2> _Gradients;
+    StructuredBuffer<float>  _Laplacians;
+
+    int _NbCols, _NbLines;
+    float _DeltaCols, _DeltaLines;
+};
+
+uniform StaggeredGrid _StaggeredGrid;
+
+int2 StaggeredGridGetIndices(float3 pos){
+    int posX = (int)(pos.x / _StaggeredGrid._DeltaCols);
+    int posZ = (int)(pos.z / _StaggeredGrid._DeltaLines);
+    int2 res = int2(posZ, posX);
+    return res
+}
+
+
+struct Particle{
+    float3 _Position;
+    float  _Height;
+    float2 _HeightGradient;
+};
+
+RWStructuredBuffer<Particle> _Particles;
+
+[numthreads(8,8,1)]
+void Update(uint3 id : SV_DispatchThreadID){
+    
+}
