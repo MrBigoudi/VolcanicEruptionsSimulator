@@ -10,27 +10,46 @@ using UnityEngine.Assertions;
 public class LavaTextureMap : MonoBehaviour{
 
     List<Particle> _Particles;
-    Vector4[] _Positions;
+    Vector3[] _Positions;
     float[] _Heights;
 
     public Material _Material;
     private const int _ArraySize = 1023;
+    private Mesh _Mesh;
+    private MeshFilter _MeshFilter;
 
     /**
      * Init the lava heightmap
     */
     public void Awake(){
         // init the mesh
-        _Positions = new Vector4[_ArraySize];
+        _Positions = new Vector3[_ArraySize];
         _Heights = new float[_ArraySize];
 
+        _Mesh = new Mesh();
+        _Mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+        _MeshFilter = gameObject.AddComponent<MeshFilter>();
+        _MeshFilter.mesh = _Mesh;
         Renderer renderer = gameObject.AddComponent<MeshRenderer>();
         renderer.material = _Material;
     }
 
     private void UpdtMesh(){
-        _Material.SetVectorArray("_ParticlePositions", _Positions);
-        _Material.SetFloatArray("_ParticleHeights", _Heights);
+        _Mesh.SetVertices(_Positions);
+
+        // Generate indices for the points
+        int[] indices = new int[_ArraySize];
+        Vector2[] uvs = new Vector2[_ArraySize];
+
+        for (int i = 0; i < _ArraySize; i++){
+            indices[i] = i;
+            uvs[i] = new Vector2(_Heights[i], 0.0f);
+        }
+        
+        _Mesh.SetIndices(indices, MeshTopology.Points, 0);
+        _Mesh.SetUVs(0, uvs);
+
+        _Mesh.UploadMeshData(false);
     }
 
     /**
@@ -43,11 +62,10 @@ public class LavaTextureMap : MonoBehaviour{
     }
 
     private void FetchPositions(List<Particle> particles){
-        _Positions = new Vector4[_ArraySize];
+        _Positions = new Vector3[_ArraySize];
         for(int i=0; i<particles.Count; i++){
             Particle p = particles[i];
-            Vector3 pos = p.GetPosition();
-            _Positions[i] = new Vector4(pos.x, pos.y, pos.z, 1.0f);
+            _Positions[i] = p.GetPosition();
         }
     }
 
