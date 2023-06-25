@@ -338,7 +338,7 @@ RectTransform:
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 38, y: 70}
+  m_SizeDelta: {x: 110, y: 105}
   m_Pivot: {x: 1, y: 1}
 --- !u!114 &578815211
 MonoBehaviour:
@@ -810,7 +810,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 75109a609841dbca89cf807f8528725d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mParticle: {fileID: 3132906801724813406, guid: 961aec85dd51e7fd79a04228647aa221, type: 3}
+  mParticle: {fileID: 2690186486015429398, guid: 961aec85dd51e7fd79a04228647aa221, type: 3}
   mLavaTextureMap: {fileID: 466742551}
   mMaxParticles: 1000
   mDelta: 1
@@ -1169,6 +1169,7 @@ MonoBehaviour:
   _Display: {fileID: 2073775779}
   _SampleDuration: 1
   _Mode: 0
+  _ParticleGenerator: {fileID: 1708334437}
 --- !u!114 &2073775779
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1191,11 +1192,13 @@ MonoBehaviour:
       m_Calls: []
   m_text: 'FPS
 
-    000
+    Max 000
 
-    000
+    Avg 000
 
-    000'
+    Min 000
+
+    Particles 0'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -1234,7 +1237,7 @@ MonoBehaviour:
   m_textAlignment: 65535
   m_characterSpacing: 0
   m_wordSpacing: 0
-  m_lineSpacing: 0
+  m_lineSpacing: 15
   m_lineSpacingMax: 0
   m_paragraphSpacing: 0
   m_charWidthMaxAdj: 0

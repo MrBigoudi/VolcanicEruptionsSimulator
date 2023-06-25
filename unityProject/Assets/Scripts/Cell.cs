@@ -10,7 +10,7 @@ public class Cell {
     /**
      * The list of particles inside the cell
     */
-    public ArrayList mParticles = new ArrayList();
+    public List<Particle> mParticles = new List<Particle>();
 
     /**
      * The x coordinate of the cell
@@ -40,7 +40,7 @@ public class Cell {
     /**
      * The nieghbouring cells
     */
-    public ArrayList mNeighbours = new ArrayList();
+    public List<Cell> mNeighbours = new List<Cell>();
 
     /**
      * A basic constructor
@@ -60,10 +60,10 @@ public class Cell {
      * Get the particles arround the cell
      * @return The list of particles
     */
-    public ArrayList GetAllParticles(){
-        ArrayList res = new ArrayList(mParticles);
+    public List<Particle> GetAllParticles(){
+        List<Particle> res = new List<Particle>(mParticles);
         for(int i=0; i<mNeighbours.Count; i++){
-            ArrayList curList = ((Cell)mNeighbours[i]).mParticles;
+            List<Particle> curList = ((Cell)mNeighbours[i]).mParticles;
             res.AddRange(curList);
             // for(int j=0; j<curList.Count; j++){
             //     res.Add(curList[j]);

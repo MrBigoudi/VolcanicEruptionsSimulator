@@ -98,7 +98,7 @@ public static class Grid {
      * @param j The j position in the grid
      * @return The particles arround and inside the cell
     */
-    public static ArrayList GetParticles(int i, int j){
+    public static List<Particle> GetParticles(int i, int j){
         return mCells[i,j].GetAllParticles();
     }
 }
