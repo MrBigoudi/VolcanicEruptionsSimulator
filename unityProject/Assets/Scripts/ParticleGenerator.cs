@@ -9,7 +9,7 @@ public class ParticleGenerator : MonoBehaviour{
     /**
      * The game object prefab representing a particle
     */
-    public GameObject mParticle;
+    public Particle mParticle;
     
     /**
      * The sph solver
@@ -43,21 +43,6 @@ public class ParticleGenerator : MonoBehaviour{
         StaggeredGridV2.Init();
         // init the lava texture grid
         // mLavaTextureMap.Init();
-        // generate initial ghosts particles
-        // GenerateGhostParticles();
-    }
-
-    private void GenerateGhostParticles(){
-        // place a particle in every cell of the grid
-        for(int i=5; i<Grid.mNbLines-5; i++){
-            for(int j=5; j<Grid.mNbCols-5; j++){
-                float curX = Grid.mCells[i,j].mX;
-                float curZ = Grid.mCells[i,j].mZ;
-                float curY = Terrain.activeTerrain.SampleHeight(new Vector3(curX, 0.0f, curZ));
-                Vector3 position = new Vector3(curX, curY, curZ);
-                GameObject circle = mSph.GenerateParticle(position, true);
-            }
-        }
     }
 
     /**
@@ -68,7 +53,7 @@ public class ParticleGenerator : MonoBehaviour{
         // ManageInput();
         if(CanShoot()) GenerateParticle();
         mSph.Update();
-        mLavaTextureMap.Updt(mSph.FetchPositions());
+        mLavaTextureMap.Updt((List<Particle>)mSph.mParticlesGenerated);
     }
 
     /**
@@ -109,7 +94,7 @@ public class ParticleGenerator : MonoBehaviour{
     private void GenerateParticle(){
         for(int i=0; i<1; i++){
             Vector3 position = GetRandomPosition(mDelta);
-            GameObject circle = mSph.GenerateParticle(position);
+            Particle circle = mSph.GenerateParticle(position);
             // circle.GetComponent<Rigidbody2D>().AddRelativeForce(circle.GetComponent<Particle>().mVelocity);
         }
     }

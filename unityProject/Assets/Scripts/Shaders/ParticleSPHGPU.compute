@@ -1,0 +1,11 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel Update
+
+#include "Include.hlsl"
+#include "StaggeredGrid.hlsl"
+#include "Kernel.hlsl"
+
+[numthreads(8,8,1)]
+void Update(uint3 id : SV_DispatchThreadID){
+    
+}

@@ -12,17 +12,17 @@ public class ParticleSPH {
     /**
      * The game object prefab representing a particle
     */
-    private GameObject mParticle;
+    private Particle mParticle;
 
     /**
      * The list of particles to manage
     */
-    public ArrayList mParticlesGenerated = new ArrayList();
+    public List<Particle> mParticlesGenerated = new List<Particle>();
 
     /**
      * The list of particles to remove
     */
-    public ArrayList mParticlesToRemove = new ArrayList();
+    public List<Particle> mParticlesToRemove = new List<Particle>();
 
     /**
      * The maximum number of particles
@@ -32,7 +32,7 @@ public class ParticleSPH {
     /**
      * The current number of particles
     */
-    private int mNbCurParticles = 0;
+    public int mNbCurParticles = 0;
 
 
     /**
@@ -40,7 +40,7 @@ public class ParticleSPH {
      * @param particle The particle prefab
      * @param maxParticles The maximum number of particles
     */
-    public ParticleSPH(GameObject particle, int maxParticles){
+    public ParticleSPH(Particle particle, int maxParticles){
         mParticle = particle;
         mNbMaxParticles = maxParticles;
     }
@@ -180,7 +180,7 @@ public class ParticleSPH {
     public Vector3 W_VISCOSITY_Grad(Particle p1, Particle p2){
         float r = Vector3.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
         float prime = K_VISCOSITY_Prime(r);
-        Vector2 pos = (p1.GetPosition() - p2.GetPosition());
+        Vector3 pos = (p1.GetPosition() - p2.GetPosition());
         // Debug.Log("radius: " + r);
         // Debug.Log("alpha: " + Constants.ALPHA_VISCOSITY);
         // Debug.Log("prime: " + prime);
@@ -250,8 +250,8 @@ public class ParticleSPH {
      * @param position The particle's position
      * @return The particle as a GameObject
     */
-    public GameObject GenerateParticle(Vector3 position, bool ghost = false){
-        GameObject circle = GameObject.Instantiate(mParticle, position, new Quaternion());
+    public Particle GenerateParticle(Vector3 position, bool ghost = false){
+        Particle circle = GameObject.Instantiate(mParticle, position, new Quaternion());
         // add the circle to the list of particles generated
         mParticlesGenerated.Add(circle);
         Particle p = circle.GetComponent<Particle>();
@@ -274,12 +274,12 @@ public class ParticleSPH {
     */
     private void ComputeNeighbours(){
         // for every particles pi
-        foreach(UnityEngine.GameObject pi in mParticlesGenerated){
-            Particle curParticle = pi.GetComponent<Particle>();
+        foreach(Particle pi in mParticlesGenerated){
+            Particle curParticle = pi;
             Assert.IsTrue(curParticle != null);
-            ArrayList newNeighbours = new ArrayList();
+            List<Particle> newNeighbours = new List<Particle>();
             // get neighbours
-            ArrayList neighbours = curParticle.mCell.GetAllParticles();
+            List<Particle> neighbours = curParticle.mCell.GetAllParticles();
             // for each neighbours check if it is below the kernel radius
             foreach(Particle pj in neighbours){
                 if(Vector3.Distance(curParticle.GetPosition(), pj.GetPosition()) < Constants.H){
@@ -297,8 +297,8 @@ public class ParticleSPH {
     */
     private void UpdateColors(){
         // for every particles pi
-        foreach(UnityEngine.GameObject pi in mParticlesGenerated){
-            pi.GetComponent<Particle>().UpdateColor();
+        foreach(Particle pi in mParticlesGenerated){
+            pi.UpdateColor();
         }
     }
 
@@ -307,11 +307,11 @@ public class ParticleSPH {
     */
     private void UpdateHeight(){
         // get height
-        foreach(UnityEngine.GameObject pi in mParticlesGenerated){
-            Particle curParticle = pi.GetComponent<Particle>();
+        foreach(Particle pi in mParticlesGenerated){
+            Particle curParticle = pi;
             Assert.IsTrue(curParticle != null);
             float sumHeight = 0.0f;
-            ArrayList neighbours = curParticle.mNeighbours;
+            List<Particle> neighbours = curParticle.mNeighbours;
             // for each neighbours add to the sum
             foreach(Particle pj in neighbours){
                 float wij = W_POLY6(curParticle, pj);
@@ -323,11 +323,11 @@ public class ParticleSPH {
         }
 
         // get height gradient
-        foreach(UnityEngine.GameObject pi in mParticlesGenerated){
-            Particle curParticle = pi.GetComponent<Particle>();
+        foreach(Particle pi in mParticlesGenerated){
+            Particle curParticle = pi;
             Assert.IsTrue(curParticle != null);
             Vector3 sumGrad = new Vector3();
-            ArrayList neighbours = curParticle.mNeighbours;
+            List<Particle> neighbours = curParticle.mNeighbours;
             // for each neighbours add to the sum
             foreach(Particle pj in neighbours){
                 Vector3 wij_grad = W_POLY6_Grad(curParticle, pj);
@@ -344,8 +344,8 @@ public class ParticleSPH {
     private void TimeIntegration(){
         float dt =  Time.deltaTime;
         // for every particles pi
-        foreach(UnityEngine.GameObject pi in mParticlesGenerated){
-            Particle curParticle = pi.GetComponent<Particle>();
+        foreach(Particle pi in mParticlesGenerated){
+            Particle curParticle = pi;
             if(curParticle.mHeight == 0.0f) continue;
             // get position
             Vector3 curPosition = curParticle.GetPosition();
@@ -370,8 +370,8 @@ public class ParticleSPH {
     private void RemoveParticles(){
         // for every particles to remove pi
         while(mParticlesToRemove.Count>0){
-            UnityEngine.GameObject pi = (UnityEngine.GameObject) mParticlesToRemove[0];
-            Particle curParticle = pi.GetComponent<Particle>();
+            Particle pi = mParticlesToRemove[0];
+            Particle curParticle = pi;
             // delete the particle
             mParticlesGenerated.Remove(pi);
             mParticlesToRemove.RemoveAt(0);
@@ -380,15 +380,6 @@ public class ParticleSPH {
             UnityEngine.Object.Destroy(pi);
             mNbCurParticles--;
         }
-    }
-
-    public List<Vector3> FetchPositions(){
-        List<Vector3> positions = new List<Vector3>();
-        foreach(UnityEngine.GameObject pi in mParticlesGenerated){
-            Particle curParticle = pi.GetComponent<Particle>();
-            positions.Add(curParticle.GetPosition());
-        }
-        return positions;
     }
 
 }

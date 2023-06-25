@@ -63,7 +63,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: a8f5d5dcb21ab474e98df8d5091d58a9, type: 2}
+  - {fileID: 0}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -116,4 +116,5 @@ MonoBehaviour:
   mHeightGradient: {x: 0, y: 0, z: 0}
   mHeightLaplacian: 0
   mVelocity: {x: 0, y: 0, z: 0}
+  mNeighbours: []
   mNbNeighbours: 0

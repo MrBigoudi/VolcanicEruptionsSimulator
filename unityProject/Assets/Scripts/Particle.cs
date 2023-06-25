@@ -46,7 +46,7 @@ public class Particle : MonoBehaviour{
     /**
      * The particle's neighbours
     */
-    public ArrayList mNeighbours;
+    public List<Particle> mNeighbours;
 
     /**
      * The number of neighbours
@@ -61,7 +61,7 @@ public class Particle : MonoBehaviour{
         mHeightLaplacian = 0.0f;
         mVelocity = new Vector3(1,1,1);
         mCell = null;
-        mNeighbours = new ArrayList();
+        mNeighbours = new List<Particle>();
         mNbNeighbours = 1;
         this.transform.localScale = ghost ? new Vector3() : new Vector3(mRadius, mRadius, mRadius);
         AssignGridCell();
