@@ -1,8 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UnityEngine.Assertions;
-
+using System;
+using UnityEditor;
 
 /**
  * A class representing the grid storing lava heightmap
@@ -17,6 +19,28 @@ public class LavaTextureMap : MonoBehaviour{
     private const int _ArraySize = 1023;
     private Mesh _Mesh;
     private MeshFilter _MeshFilter;
+    private RenderTexture _RenderTexture;
+
+    private void GetTexture(){
+        int res = Terrain.activeTerrain.terrainData.heightmapResolution;
+        _RenderTexture = RenderTexture.GetTemporary(res, res);
+        Graphics.Blit(null, _RenderTexture, _Material);
+
+        //transfer image from rendertexture to texture
+        Texture2D texture = new Texture2D(res, res);
+        RenderTexture.active = _RenderTexture;
+        texture.ReadPixels(new Rect(Vector2.zero, new Vector2(res, res)), 0, 0);
+
+        //save texture to file
+        byte[] png = texture.EncodeToPNG();
+        File.WriteAllBytes("Assets/test.png", png);
+        AssetDatabase.Refresh();
+
+        //clean up variables
+        RenderTexture.active = null;
+        RenderTexture.ReleaseTemporary(_RenderTexture);
+        DestroyImmediate(texture);
+    }
 
     /**
      * Init the lava heightmap
@@ -59,6 +83,7 @@ public class LavaTextureMap : MonoBehaviour{
         FetchPositions(particles);
         FetchHeights(particles);
         UpdtMesh();
+        GetTexture();
     }
 
     private void FetchPositions(List<Particle> particles){
