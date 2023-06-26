@@ -1,5 +1,7 @@
 Shader "Custom/LavaRenderingShader"{
     Properties{
+		_Color ("Main Color", Color) = (1,1,1,1)
+		_MainTex ("Texture", 2D) = "black" {}
     }
     SubShader{
  
@@ -8,6 +10,13 @@ Shader "Custom/LavaRenderingShader"{
             #pragma vertex vert
 			#pragma geometry geom
             #pragma fragment frag
+
+			#include "UnityCG.cginc"
+
+			//texture and transforms of the texture
+			sampler2D _MainTex;
+			float4 _MainTex_ST;
+			fixed4 _Color;
  
             struct appdata {
 				float4 vertex : POSITION;
@@ -21,6 +30,7 @@ Shader "Custom/LavaRenderingShader"{
 
 			struct g2f {
 				float4 worldPos : SV_POSITION;
+				float2 uv : TEXCOORD0;
 			};
 
             v2g vert(appdata v) {
@@ -38,37 +48,44 @@ Shader "Custom/LavaRenderingShader"{
 
 				// first triangle
 				// bottom left
-				pos = float4(input[0].vertex.x-length, input[0].vertex.y, input[0].vertex.z-length, 1);
+				pos = float4(input[0].vertex.x-length, input[0].vertex.y + input[0].uv.x, input[0].vertex.z-length, 1);
 				o.worldPos = UnityObjectToClipPos(pos);
+				o.uv = TRANSFORM_TEX(input[0].uv, _MainTex);
 				triStream.Append(o);
 				// top left
-				pos = float4(input[0].vertex.x-length, input[0].vertex.y, input[0].vertex.z+length, 1);
+				pos = float4(input[0].vertex.x-length, input[0].vertex.y + input[0].uv.x, input[0].vertex.z+length, 1);
 				o.worldPos = UnityObjectToClipPos(pos);
+				o.uv = TRANSFORM_TEX(input[0].uv, _MainTex);
 				triStream.Append(o);
 				// bottom right
-				pos = float4(input[0].vertex.x+length, input[0].vertex.y, input[0].vertex.z-length, 1);
+				pos = float4(input[0].vertex.x+length, input[0].vertex.y + input[0].uv.x, input[0].vertex.z-length, 1);
 				o.worldPos = UnityObjectToClipPos(pos);
+				o.uv = TRANSFORM_TEX(input[0].uv, _MainTex);
 				triStream.Append(o);
 				triStream.RestartStrip();
 
 				// second triangle
 				// top left
-				pos = float4(input[0].vertex.x-length, input[0].vertex.y, input[0].vertex.z+length, 1);
+				pos = float4(input[0].vertex.x-length, input[0].vertex.y + input[0].uv.x, input[0].vertex.z+length, 1);
 				o.worldPos = UnityObjectToClipPos(pos);
+				o.uv = TRANSFORM_TEX(input[0].uv, _MainTex);
 				triStream.Append(o);
 				// top right
-				pos = float4(input[0].vertex.x+length, input[0].vertex.y, input[0].vertex.z+length, 1);
+				pos = float4(input[0].vertex.x+length, input[0].vertex.y + input[0].uv.x, input[0].vertex.z+length, 1);
 				o.worldPos = UnityObjectToClipPos(pos);
+				o.uv = TRANSFORM_TEX(input[0].uv, _MainTex);
 				triStream.Append(o);
 				// bottom right
-				pos = float4(input[0].vertex.x+length, input[0].vertex.y, input[0].vertex.z-length, 1);
+				pos = float4(input[0].vertex.x+length, input[0].vertex.y + input[0].uv.x, input[0].vertex.z-length, 1);
 				o.worldPos = UnityObjectToClipPos(pos);
+				o.uv = TRANSFORM_TEX(input[0].uv, _MainTex);
 				triStream.Append(o);
 				triStream.RestartStrip();
 			}
 
-            fixed4 frag(g2f i) : SV_Target {
-                return fixed4(1, 1, 1, 1);
+            fixed4 frag(v2g i) : SV_Target {
+				fixed4 col = tex2D(_MainTex, i.uv);
+                return col*_Color;
             }
 
             ENDCG
