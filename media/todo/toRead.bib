@@ -1,4 +1,5 @@
 % THINGS TO READ
+
 @article{10.1145/3528223.3530109,
 author = {Shao, Han and Huang, Libo and Michels, Dominik L.},
 title = {A Fast Unsmoothed Aggregation Algebraic Multigrid Framework for the Large-Scale Simulation of Incompressible Flow},
@@ -18,6 +19,7 @@ numpages = {18},
 keywords = {multigrid methods, single instruction, fluid dynamics, multiple data (SIMD), viscous liquids}
 }
 
+% General approach for fluid simulations
 @inproceedings{10.1145/1281500.1281681,
 author = {Bridson, Robert and M\"{u}ller-Fischer, Matthias},
 title = {Fluid Simulation: SIGGRAPH 2007 Course NotesVideo Files Associated with This Course Are Available from the Citation Page},
@@ -116,4 +118,129 @@ location = {Boston, Massachusetts},
 series = {I3D '09}
 }
 
+
+% marching cube algorithm to create a mesh from particles
+@article{10.1145/37402.37422,
+author = {Lorensen, William E. and Cline, Harvey E.},
+title = {Marching Cubes: A High Resolution 3D Surface Construction Algorithm},
+year = {1987},
+issue_date = {July 1987},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {21},
+number = {4},
+issn = {0097-8930},
+url = {https://doi.org/10.1145/37402.37422},
+doi = {10.1145/37402.37422},
+abstract = {We present a new algorithm, called marching cubes, that creates triangle models of constant density surfaces from 3D medical data. Using a divide-and-conquer approach to generate inter-slice connectivity, we create a case table that defines triangle topology. The algorithm processes the 3D medical data in scan-line order and calculates triangle vertices using linear interpolation. We find the gradient of the original data, normalize it, and use it as a basis for shading the models. The detail in images produced from the generated surface models is the result of maintaining the inter-slice connectivity, surface data, and gradient information present in the original 3D data. Results from computed tomography (CT), magnetic resonance (MR), and single-photon emission computed tomography (SPECT) illustrate the quality and functionality of marching cubes. We also discuss improvements that decrease processing time and add solid modeling capabilities.},
+journal = {SIGGRAPH Comput. Graph.},
+month = {aug},
+pages = {163–169},
+numpages = {7}
+}
+
     
+% Volcanologist simulations
+% Most of them are not renderered in real time but show the results after the simulation process
+@article{article,
+author = {Damiani, Maria Luisa and Groppelli, Gianluca and Norini, Gianluca and Bertino, Elisa and Gigliuto, A. and Nucita, Andrea},
+year = {2006},
+month = {05},
+pages = {512-526},
+title = {A lava flow simulation model for the development of volcanic hazard maps for Mount Etna (Italy)},
+volume = {32},
+journal = {Computers & Geosciences},
+doi = {10.1016/j.cageo.2005.08.011}
+}
+
+@article{article,
+author = {Bernabeu, Noé and Saramito, Pierre and Smutek, Claude},
+year = {2016},
+month = {03},
+pages = {},
+title = {Modelling lava flow advance using a shallow-depth approximation for three-dimensional cooling of viscoplastic flows},
+volume = {426},
+journal = {Geological Society, London, Special Publications},
+doi = {10.1144/SP426.27}
+}
+
+@article{article,
+author = {Cordonnier, B. and Lev, Einat and Garel, Fanny},
+year = {2015},
+month = {07},
+pages = {},
+title = {Bechmarking lava-flow models},
+volume = {426},
+journal = {Geological Society, London, Special Publications},
+doi = {10.1144/SP426.7}
+}
+
+% more about topography changes
+@article{HOOPER1998241,
+title = {Computer-simulation models of scoria cone degradation},
+journal = {Journal of Volcanology and Geothermal Research},
+volume = {83},
+number = {3},
+pages = {241-267},
+year = {1998},
+issn = {0377-0273},
+doi = {https://doi.org/10.1016/S0377-0273(98)00031-6},
+url = {https://www.sciencedirect.com/science/article/pii/S0377027398000316},
+author = {Donald M. Hooper and Michael F. Sheridan},
+keywords = {computer simulation, San Francisco volcanic field, Springerville volcanic field, scoria cones, cinder cones, diffusion, geomorphological models, numerical simulation, surficial processes},
+abstract = {Long-term erosional modifications of the relatively simple morphology of scoria (`cinder') cones are ideally suited for study by field and computer-simulation methods. A series of temporally-distinct cones in the San Francisco and Springerville volcanic fields of Arizona provides the foundation for documenting the degradational evolution of scoria cones in a semi-arid climate. Progressive changes due to erosion are illustrated by the systematic decrease with increasing age of various morphometric parameters, including scoria cone height, cone height/width ratio (Hco/Wco), crater depth/width ratio, and slope angle. For example, Holocene–latest Pleistocene cones in the San Francisco field have a mean Hco/Wco value of 0.178±0.041, a mean maximum slope angle of 29.7±4.2°, and a mean average slope angle of 26.4±7.3°, whereas the group of Pliocene cones have values of 0.077±0.024, 20.5±5.8°, and 8.7±2.7°, respectively. Comparative morphology of scoria cones is a potentially useful dating tool for mapping volcanic fields. In order to better understand the degradational modifications of these volcanic landforms, we have developed a numerical approach to simulate the surficial processes responsible for the erosion of a typical scoria cone. The simulation algorithm can apply either a linear diffusion-equation model or a model with a nonlinear transport law. Using a finite-difference formulation, the simulation operates upon a three-dimensional scoria cone input as a matrix of elevation values. Utilizing both field and model results, the correlation between changing Hco/Wco value, cone age, and computer time step was expressed graphically to derive comprehensive values of the transport or diffusion coefficient (Df) for both volcanic fields. For the San Francisco volcanic field, Df had a calculated value of 21.4 m2/kyr for the linear model and 5.3 m/kyr for the nonlinear model, while for the Springerville volcanic field Df had a calculated value of 24.4 m2/kyr for the linear model and 6.3 m/kyr for the nonlinear model.}
+}
+
+% neighbour search in gpu using Delaunay triangulations
+% looks cool but hard to implement
+% git: https://gitlab.com/hporro01/mcleap
+@inproceedings {10.2312:egp.20221002,
+booktitle = {Eurographics 2022 - Posters},
+editor = {Sauvage, Basile and Hasic-Telalovic, Jasminka},
+title = {{Fixed-radius Near Neighbors Searching for 2D Simulations on the GPU using Delaunay Triangulations}},
+author = {Porro, Heinich and Crespin, Benoît and Hitschfeld-Kahler, Nancy and Navarro, Cristobal},
+year = {2022},
+publisher = {The Eurographics Association},
+ISSN = {1017-4656},
+ISBN = {978-3-03868-171-7},
+DOI = {10.2312/egp.20221002}
+}
+
+% IISPH
+@ARTICLE{6570475,
+  author={Ihmsen, Markus and Cornelis, Jens and Solenthaler, Barbara and Horvath, Christopher and Teschner, Matthias},
+  journal={IEEE Transactions on Visualization and Computer Graphics}, 
+  title={Implicit Incompressible SPH}, 
+  year={2014},
+  volume={20},
+  number={3},
+  pages={426-435},
+  doi={10.1109/TVCG.2013.105}
+}
+
+// find paper about flip
+// find paper about WCSPH
+
+% MPM for snow simulation
+@article{10.1145/2461912.2461948,
+author = {Stomakhin, Alexey and Schroeder, Craig and Chai, Lawrence and Teran, Joseph and Selle, Andrew},
+title = {A Material Point Method for Snow Simulation},
+year = {2013},
+issue_date = {July 2013},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {32},
+number = {4},
+issn = {0730-0301},
+url = {https://doi.org/10.1145/2461912.2461948},
+doi = {10.1145/2461912.2461948},
+abstract = {Snow is a challenging natural phenomenon to visually simulate. While the graphics community has previously considered accumulation and rendering of snow, animation of snow dynamics has not been fully addressed. Additionally, existing techniques for solids and fluids have difficulty producing convincing snow results. Specifically, wet or dense snow that has both solid- and fluid-like properties is difficult to handle. Consequently, this paper presents a novel snow simulation method utilizing a user-controllable elasto-plastic constitutive model integrated with a hybrid Eulerian/Lagrangian Material Point Method. The method is continuum based and its hybrid nature allows us to use a regular Cartesian grid to automate treatment of self-collision and fracture. It also naturally allows us to derive a grid-based semi-implicit integration scheme that has conditioning independent of the number of Lagrangian particles. We demonstrate the power of our method with a variety of snow phenomena including complex character interactions.},
+journal = {ACM Trans. Graph.},
+month = {jul},
+articleno = {102},
+numpages = {10},
+keywords = {physically-based modeling, material point, snow simulation}
+}
+
+      
+
