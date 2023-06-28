@@ -342,7 +342,7 @@ public class ParticleSPH {
      * Update particles' positions
     */
     private void TimeIntegration(){
-        float dt =  Time.deltaTime;
+        float dt = 1000.0f;
         // for every particles pi
         foreach(Particle pi in mParticlesGenerated){
             Particle curParticle = pi;

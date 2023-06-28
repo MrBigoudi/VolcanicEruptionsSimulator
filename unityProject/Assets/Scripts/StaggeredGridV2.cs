@@ -6,15 +6,15 @@ using UnityEngine.Assertions;
 
 public static class StaggeredGridV2 {
 
-    private static float[,] _Heights;
-    private static float[,] _HalfHeightsCols;
-    private static float[,] _HalfHeightsLines;
+    public static float[,] _Heights;
+    public static float[,] _HalfHeightsCols;
+    public static float[,] _HalfHeightsLines;
 
-    private static Vector2[,] _Gradients;
-    private static float[,] _Laplacians;
+    public static Vector2[,] _Gradients;
+    public static float[,] _Laplacians;
 
-    private static int _NbCols, _NbLines;
-    private static float _DeltaCols, _DeltaLines;
+    public static int _NbCols, _NbLines;
+    public static float _DeltaCols, _DeltaLines;
 
     private static void InitDimensions(){
         // get the heightmap from unity terrain

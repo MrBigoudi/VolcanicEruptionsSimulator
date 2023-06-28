@@ -11,7 +11,10 @@ public class Particle : MonoBehaviour{
     */
     public static float sInitRadius = 0.2f;
 
+    private static int _IdGenerator = 0;
+
     public float mRadius;
+    public int _Id;
 
     /**
      * The particle's volume
@@ -61,6 +64,7 @@ public class Particle : MonoBehaviour{
         mHeightLaplacian = 0.0f;
         mVelocity = new Vector3(1,1,1);
         mCell = null;
+        _Id = _IdGenerator++;
         mNeighbours = new List<Particle>();
         mNbNeighbours = 1;
         this.transform.localScale = ghost ? new Vector3() : new Vector3(mRadius, mRadius, mRadius);
