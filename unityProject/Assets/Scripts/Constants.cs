@@ -50,6 +50,6 @@ public static class Constants{
     /**
      * The stiffness constant
     */
-    public const float STIFFNESS = 50;
+    public const float STIFFNESS = 25f;
     
 }

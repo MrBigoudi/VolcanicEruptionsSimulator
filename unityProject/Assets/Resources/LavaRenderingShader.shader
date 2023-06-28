@@ -81,8 +81,8 @@ Shader "Custom/LavaRenderingShader"{
                 triStream.RestartStrip();
             }
 
-            fixed4 frag(v2g i) : SV_Target {
-                fixed4 col = fixed4(i.uv.x, i.uv.x, i.uv.x,1);
+            fixed4 frag(g2f i) : SV_Target {
+                fixed4 col = fixed4(i.uv.x, i.uv.x, i.uv.x, 1);
                 return col;
             }
 

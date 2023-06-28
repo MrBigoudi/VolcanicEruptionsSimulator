@@ -11,12 +11,12 @@ using UnityEditor;
 */
 public class LavaTextureMap : MonoBehaviour{
 
-    List<Particle> _Particles;
+    List<ParticleGPU> _Particles;
     Vector3[] _Positions;
     float[] _Heights;
 
     public Material _Material;
-    private const int _ArraySize = 1023;
+    // private const int _ArraySize = 1023;
     private Mesh _Mesh;
     private MeshFilter _MeshFilter;
 
@@ -39,9 +39,9 @@ public class LavaTextureMap : MonoBehaviour{
         texture.Apply();  // Apply changes to the texture
 
         //save texture to file
-        byte[] png = texture.EncodeToPNG();
-        File.WriteAllBytes("Assets/test.png", png);
-        AssetDatabase.Refresh();
+        // byte[] png = texture.EncodeToPNG();
+        // File.WriteAllBytes("Assets/test.png", png);
+        // AssetDatabase.Refresh();
 
         //clean up variables
         RenderTexture.active = null;
@@ -54,8 +54,8 @@ public class LavaTextureMap : MonoBehaviour{
     */
     public void Awake(){
         // init the mesh
-        _Positions = new Vector3[_ArraySize];
-        _Heights = new float[_ArraySize];
+        // _Positions = new Vector3[_ArraySize];
+        // _Heights = new float[_ArraySize];
 
         _Mesh = new Mesh();
         _Mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
@@ -67,6 +67,8 @@ public class LavaTextureMap : MonoBehaviour{
 
     private void UpdtMesh(){
         _Mesh.SetVertices(_Positions);
+
+        int _ArraySize = _Positions.Length;
 
         // Generate indices for the points
         int[] indices = new int[_ArraySize];
@@ -86,27 +88,34 @@ public class LavaTextureMap : MonoBehaviour{
     /**
      * Update the lava's heights
     */
-    public void Updt(List<Particle> particles){
-        FetchPositions(particles);
-        FetchHeights(particles);
+    public void Updt(int nbParticles, float[] heights, Vector3[] positions){
+        _Positions = new Vector3[nbParticles];
+        _Heights = new float[nbParticles];
+
+        for(int i=0; i<nbParticles; i++){
+            _Positions[i] = positions[i];
+            _Heights[i] = heights[i];
+            // if(i==0) 
+                // Debug.Log(i + ": " + heights[i] + ", " + positions[i]);
+        }
         UpdtMesh();
         GetTexture();
     }
 
-    private void FetchPositions(List<Particle> particles){
-        _Positions = new Vector3[_ArraySize];
-        for(int i=0; i<particles.Count; i++){
-            Particle p = particles[i];
-            _Positions[i] = p.GetPosition();
-        }
-    }
+    // private void FetchPositions(List<ParticleGPU> particles){
+    //     _Positions = new Vector3[_ArraySize];
+    //     for(int i=0; i<particles.Count; i++){
+    //         ParticleGPU p = particles[i];
+    //         _Positions[i] = p._Position;
+    //     }
+    // }
 
-    private void FetchHeights(List<Particle> particles){
-        _Heights = new float[_ArraySize];
-        for(int i=0; i<particles.Count; i++){
-            Particle p = particles[i];
-            _Heights[i] = p.mHeight;
-        }
-    }
+    // private void FetchHeights(List<ParticleGPU> particles){
+    //     _Heights = new float[_ArraySize];
+    //     for(int i=0; i<particles.Count; i++){
+    //         Particle p = particles[i];
+    //         _Heights[i] = p._Height;
+    //     }
+    // }
 
 }

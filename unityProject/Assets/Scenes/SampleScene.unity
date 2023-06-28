@@ -811,9 +811,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 75109a609841dbca89cf807f8528725d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mParticle: {fileID: 2690186486015429398, guid: 961aec85dd51e7fd79a04228647aa221, type: 3}
+  _Shader: {fileID: 7200000, guid: 0fccdd0c65323124590166214ef8a2a3, type: 3}
   mLavaTextureMap: {fileID: 466742551}
-  mMaxParticles: 1000
+  mMaxParticles: 50000
+  _Stiffness: 25
   mDelta: 1
 --- !u!212 &1708334438
 SpriteRenderer:
