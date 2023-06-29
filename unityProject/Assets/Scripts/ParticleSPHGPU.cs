@@ -25,7 +25,7 @@ public class ParticleSPHGPU {
     public int mNbMaxParticles = 0;
     public int mNbCurParticles = 0;
 
-    private static int _MAX_NEIGHBOURS = 100;
+    private static int _MAX_NEIGHBOURS = 1000;
 
     public ComputeShader _Shader;
 

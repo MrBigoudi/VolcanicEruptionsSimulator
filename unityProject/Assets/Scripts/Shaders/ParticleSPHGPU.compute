@@ -281,6 +281,7 @@ void AssignCell(uint3 id : SV_DispatchThreadID){
     uint index = i+j*GRID_NB_COLS;
     _Cells[id.x] = index;
     p._Cell = index;
+    _Particles[id.x] = p;
 }
 
 [numthreads(100,1,1)]
@@ -314,13 +315,13 @@ void UpdateHeights(uint3 id : SV_DispatchThreadID){
     float sumHeights = 0.0f;
     float3 sumGrads  = float3(0.0f, 0.0f, 0.0f);
 
-    for(uint j=0; j<_NbCurParticles; j++){
-    // for(uint j=firstNeighbour; j<lastNeighbour; j++){
+    // for(uint j=0; j<_NbCurParticles; j++){
+    for(uint j=firstNeighbour; j<lastNeighbour; j++){
         // check if there are neighbour left
-        // if(_Neighbours[j] == -1) return;
+        if(_Neighbours[j] == -1) break;
 
-        ParticleGPU pj = _Particles[j];
-        // ParticleGPU pj = GetParticle(_Neighbours[j]);
+        // ParticleGPU pj = _Particles[j];
+        ParticleGPU pj = GetParticle(_Neighbours[j]);
         if(KernelDistance(pi._Position, pj._Position) >= H) continue;
 
         float  wijHeight = W_POLY6(pi, pj);
