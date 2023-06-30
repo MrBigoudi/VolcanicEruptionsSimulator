@@ -21,7 +21,7 @@ public struct ParticleGPU{
 /**
  * A class representing an sph solver
 */
-public class ParticleSPHGPU {
+public class ParticleSPHGPU : MonoBehaviour{
     public int mNbMaxParticles = 0;
     public int mNbCurParticles = 0;
 
@@ -82,7 +82,7 @@ public class ParticleSPHGPU {
     private ParticleGPU[] _Particles;
 
 
-    public ParticleSPHGPU(int maxParticles, ComputeShader shader){
+    public void Create(int maxParticles, ComputeShader shader){
         mNbMaxParticles = maxParticles;
         _Shader = shader;
         // Debug.Log(_Shader);
@@ -289,6 +289,12 @@ public class ParticleSPHGPU {
         _StaggeredGridHalfHeightsLinesBuffer = SetData(halfHeightsLines, _StaggeredGridHalfHeightsLinesId);
         _StaggeredGridGradientsBuffer        = SetData(gradients, _StaggeredGridGradientsId);
         _StaggeredGridLaplaciansBuffer       = SetData(laplacians, _StaggeredGridLaplaciansId);
+        // release buffers
+        // _StaggeredGridHeightsBuffer.Dispose();
+        // _StaggeredGridHalfHeightsColsBuffer.Dispose();
+        // _StaggeredGridHalfHeightsLinesBuffer.Dispose();
+        // _StaggeredGridGradientsBuffer.Dispose();
+        // _StaggeredGridLaplaciansBuffer.Dispose();
     }
 
     private void InitGpuBuffers(){
@@ -357,7 +363,7 @@ public class ParticleSPHGPU {
         _PositionsBuffer.GetData(_Positions);
     }
 
-    public void Update(Vector3 position, float stiffness){
+    public void Updt(Vector3 position, float stiffness){
         _Shader.SetFloat("STIFF", stiffness);
         int res = mNbMaxParticles / 100;
         // generate particle in GPU
@@ -397,7 +403,7 @@ public class ParticleSPHGPU {
         ReleaseBuffers();
     }
 
-    public void OnDestroy(){
+    public void OnDisable(){
         ReleaseBuffers();
     }
 }

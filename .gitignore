@@ -91,3 +91,5 @@ media/publications
 *.nav
 *.dvi
 *.lbl
+
+*.pdf

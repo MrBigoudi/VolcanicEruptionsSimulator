@@ -50,7 +50,8 @@ public class ParticleGenerator : MonoBehaviour{
         StaggeredGridV2.Init();
         // init the lava texture grid
         // mLavaTextureMap.Init();
-        mSphGPU = new ParticleSPHGPU(mMaxParticles, _Shader);
+        mSphGPU = gameObject.AddComponent(typeof(ParticleSPHGPU)) as ParticleSPHGPU;
+        mSphGPU.Create(mMaxParticles, _Shader);
     }
 
     /**
@@ -64,20 +65,8 @@ public class ParticleGenerator : MonoBehaviour{
         //     position = GenerateParticle();
         // }
         // mSph.Update();
-        mSphGPU.Update(position, _Stiffness);
+        mSphGPU.Updt(position, _Stiffness);
         mLavaTextureMap.Updt(mSphGPU.mNbCurParticles, mSphGPU._Heights, mSphGPU._Positions);
-    }
-
-    /**
-     * Free the memory at exit
-    */
-    public void OnApplicationQuit(){
-        // mSph.OnApplicationQuit();
-        mSphGPU.OnApplicationQuit();
-    }
-
-    public void OnDestroy(){
-        mSphGPU.OnDestroy();
     }
 
     /**

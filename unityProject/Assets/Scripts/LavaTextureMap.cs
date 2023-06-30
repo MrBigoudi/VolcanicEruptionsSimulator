@@ -23,6 +23,9 @@ public class LavaTextureMap : MonoBehaviour{
     [SerializeField]
     Camera _Camera;
 
+    [SerializeField, Range(1000, 50000)]
+    public int _Spike = 5000;
+
     private RenderTexture _RenderTexture;
 
     private float[,] _TerrainHeights;
@@ -54,12 +57,38 @@ public class LavaTextureMap : MonoBehaviour{
     }
 
     private void UpdateTerrainHeights(){
-        for(int i=0; i<_Positions.Length; i++){
+        int len = _Heights.Length;
+        for(int i=0; i<_InitialTerrainHeights.GetLength(0); i++){
+            for(int j=0; j<_InitialTerrainHeights.GetLength(1); j++){
+                _TerrainHeights[i,j] = _InitialTerrainHeights[i,j];
+            }
+        }
+
+        Vector2[,] tmp = new Vector2[_TerrainHeights.GetLength(0),_TerrainHeights.GetLength(1)];
+        float maxHeight = 0.0f;
+        for(int i=0; i<len; i++){
             int[] indices = StaggeredGridV2.GetIndices(_Positions[i]);
             int zIdx = indices[0];
             int xIdx = indices[1];
-            _TerrainHeights[zIdx, xIdx] = _Heights[i];
+
+            tmp[zIdx, xIdx] += new Vector2(1, _Heights[i]);
+            if(tmp[zIdx, zIdx].x > maxHeight){
+                maxHeight = tmp[zIdx, xIdx].x;
+            }
         }
+
+        // normalize heights and update terrain
+        for(int i=0; i<len; i++){
+            int[] indices = StaggeredGridV2.GetIndices(_Positions[i]);
+            int zIdx = indices[0];
+            int xIdx = indices[1];
+            float v1 = (tmp[zIdx, xIdx].x / tmp[zIdx, xIdx].y) / maxHeight;
+            float v2 = _InitialTerrainHeights[zIdx, xIdx];
+            _TerrainHeights[zIdx, xIdx] = (v1/_Spike + v2);
+            // _TerrainHeights[zIdx, xIdx] = (_Heights[i] / maxHeight);
+        }
+        
+        // NormalizeTerrain(_InitialMaxHeight);
         Terrain.activeTerrain.terrainData.SetHeights(0, 0, _TerrainHeights);
     }
 
@@ -81,7 +110,7 @@ public class LavaTextureMap : MonoBehaviour{
 
         TerrainData data = Terrain.activeTerrain.terrainData;
         _TerrainHeights = data.GetHeights(0, 0, data.heightmapResolution, data.heightmapResolution);
-        _InitialTerrainHeights = data.GetHeights(0, 0, data.heightmapResolution, data.heightmapResolution);
+        _InitialTerrainHeights = data.GetHeights(0, 0, data.heightmapResolution, data.heightmapResolution);        
     }
 
     private void UpdtMesh(){
