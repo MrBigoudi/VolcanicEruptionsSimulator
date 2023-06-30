@@ -87,7 +87,7 @@ public static class StaggeredGridV2 {
         InitLaplacians();
     }
 
-    private static int[] GetIndices(Vector3 pos){
+    public static int[] GetIndices(Vector3 pos){
         int posX = (int)(pos.x / _DeltaCols);
         int posZ = (int)(pos.z / _DeltaLines);
         int[] array = {posZ, posX};

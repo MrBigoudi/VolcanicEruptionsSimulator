@@ -25,6 +25,9 @@ public class LavaTextureMap : MonoBehaviour{
 
     private RenderTexture _RenderTexture;
 
+    private float[,] _TerrainHeights;
+    private float[,] _InitialTerrainHeights;
+
     private void GetTexture(){
         int res = (Terrain.activeTerrain.terrainData.heightmapResolution / 4) * 4;
         _RenderTexture = RenderTexture.GetTemporary(res, res);
@@ -42,12 +45,24 @@ public class LavaTextureMap : MonoBehaviour{
         // byte[] png = texture.EncodeToPNG();
         // File.WriteAllBytes("Assets/test.png", png);
         // AssetDatabase.Refresh();
+        
 
         //clean up variables
         RenderTexture.active = null;
         RenderTexture.ReleaseTemporary(_RenderTexture);
         DestroyImmediate(texture);
     }
+
+    private void UpdateTerrainHeights(){
+        for(int i=0; i<_Positions.Length; i++){
+            int[] indices = StaggeredGridV2.GetIndices(_Positions[i]);
+            int zIdx = indices[0];
+            int xIdx = indices[1];
+            _TerrainHeights[zIdx, xIdx] = _Heights[i];
+        }
+        Terrain.activeTerrain.terrainData.SetHeights(0, 0, _TerrainHeights);
+    }
+
 
     /**
      * Init the lava heightmap
@@ -63,6 +78,10 @@ public class LavaTextureMap : MonoBehaviour{
         _MeshFilter.mesh = _Mesh;
         Renderer renderer = gameObject.AddComponent<MeshRenderer>();
         renderer.material = _Material;
+
+        TerrainData data = Terrain.activeTerrain.terrainData;
+        _TerrainHeights = data.GetHeights(0, 0, data.heightmapResolution, data.heightmapResolution);
+        _InitialTerrainHeights = data.GetHeights(0, 0, data.heightmapResolution, data.heightmapResolution);
     }
 
     private void UpdtMesh(){
@@ -100,6 +119,11 @@ public class LavaTextureMap : MonoBehaviour{
         }
         UpdtMesh();
         GetTexture();
+        UpdateTerrainHeights();
+    }
+
+    public void OnApplicationQuit(){
+        Terrain.activeTerrain.terrainData.SetHeights(0, 0, _InitialTerrainHeights);
     }
 
     // private void FetchPositions(List<ParticleGPU> particles){
