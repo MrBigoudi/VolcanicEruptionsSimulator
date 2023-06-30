@@ -12,17 +12,17 @@ public class ParticleSPH {
     /**
      * The game object prefab representing a particle
     */
-    private GameObject mParticle;
+    private Particle mParticle;
 
     /**
      * The list of particles to manage
     */
-    public ArrayList mParticlesGenerated = new ArrayList();
+    public List<Particle> mParticlesGenerated = new List<Particle>();
 
     /**
      * The list of particles to remove
     */
-    public ArrayList mParticlesToRemove = new ArrayList();
+    public List<Particle> mParticlesToRemove = new List<Particle>();
 
     /**
      * The maximum number of particles
@@ -32,7 +32,7 @@ public class ParticleSPH {
     /**
      * The current number of particles
     */
-    private int mNbCurParticles = 0;
+    public int mNbCurParticles = 0;
 
 
     /**
@@ -40,7 +40,7 @@ public class ParticleSPH {
      * @param particle The particle prefab
      * @param maxParticles The maximum number of particles
     */
-    public ParticleSPH(GameObject particle, int maxParticles){
+    public ParticleSPH(Particle particle, int maxParticles){
         mParticle = particle;
         mNbMaxParticles = maxParticles;
     }
@@ -136,6 +136,18 @@ public class ParticleSPH {
     }
 
     /**
+     * Derivated poly6 kernel calculation
+     * @param p1 The first particle
+     * @param p2 The second particle
+     * @return The derivated poly6 kernel calculation
+    */
+    public float W_POLY6_Derivated(Particle p1, Particle p2){
+        float r = Vector3.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
+        // Debug.Log(r);
+        return Constants.ALPHA_POLY6 * K_POLY6_Prime(r);
+    }
+
+    /**
      * Laplacian poly6 kernel calculation
      * @param p1 The first particle
      * @param p2 The second particle
@@ -168,7 +180,7 @@ public class ParticleSPH {
     public Vector3 W_VISCOSITY_Grad(Particle p1, Particle p2){
         float r = Vector3.Distance(p1.GetPosition(), p2.GetPosition()) / Constants.H;
         float prime = K_VISCOSITY_Prime(r);
-        Vector2 pos = (p1.GetPosition() - p2.GetPosition());
+        Vector3 pos = (p1.GetPosition() - p2.GetPosition());
         // Debug.Log("radius: " + r);
         // Debug.Log("alpha: " + Constants.ALPHA_VISCOSITY);
         // Debug.Log("prime: " + prime);
@@ -194,7 +206,7 @@ public class ParticleSPH {
      * @return The height
     */
     public static float GetTerrainHeight(Vector3 pos){
-        return StaggeredGrid.GetHeight(pos);
+        return StaggeredGridV2.GetHeight(pos);
         // return Terrain.activeTerrain.SampleHeight(pos);
     }
 
@@ -204,7 +216,7 @@ public class ParticleSPH {
      * @return The gradient
     */
     public Vector3 GetGradientSurface(Particle p){
-        return StaggeredGrid.GetGradient(p) + p.mHeightGradient;
+        return StaggeredGridV2.GetGradient(p) + p.mHeightGradient;
     }
 
 
@@ -215,7 +227,7 @@ public class ParticleSPH {
         // update particles' neighbours
         ComputeNeighbours();
         // update particles' heights
-        ComputeHeight();
+        UpdateHeight();
         // integrate and update positions
         TimeIntegration();
         // update the color for debugging purposes
@@ -238,13 +250,13 @@ public class ParticleSPH {
      * @param position The particle's position
      * @return The particle as a GameObject
     */
-    public GameObject GenerateParticle(Vector3 position){
-        GameObject circle = GameObject.Instantiate(mParticle, position, new Quaternion());
+    public Particle GenerateParticle(Vector3 position, bool ghost = false){
+        Particle circle = GameObject.Instantiate(mParticle, position, new Quaternion());
         // add the circle to the list of particles generated
         mParticlesGenerated.Add(circle);
         Particle p = circle.GetComponent<Particle>();
-        // p.mPosition() = position;
-        p.AssignGridCell();
+        p.Init(ghost);
+        // Debug.Log("height: "+p.mHeight);
         mNbCurParticles++;
         return circle;
     }
@@ -254,7 +266,7 @@ public class ParticleSPH {
      * @return True if it can
     */
     public bool CanGenerateParticle(){
-        return (mNbCurParticles <= mNbMaxParticles);
+        return (mNbCurParticles < mNbMaxParticles);
     }
 
     /**
@@ -262,12 +274,12 @@ public class ParticleSPH {
     */
     private void ComputeNeighbours(){
         // for every particles pi
-        foreach(UnityEngine.GameObject pi in mParticlesGenerated){
-            Particle curParticle = pi.GetComponent<Particle>();
+        foreach(Particle pi in mParticlesGenerated){
+            Particle curParticle = pi;
             Assert.IsTrue(curParticle != null);
-            ArrayList newNeighbours = new ArrayList();
+            List<Particle> newNeighbours = new List<Particle>();
             // get neighbours
-            ArrayList neighbours = curParticle.mCell.GetAllParticles();
+            List<Particle> neighbours = curParticle.mCell.GetAllParticles();
             // for each neighbours check if it is below the kernel radius
             foreach(Particle pj in neighbours){
                 if(Vector3.Distance(curParticle.GetPosition(), pj.GetPosition()) < Constants.H){
@@ -276,6 +288,7 @@ public class ParticleSPH {
             }
             // update new neighbours
             curParticle.mNeighbours = newNeighbours;
+            curParticle.mNbNeighbours = newNeighbours.Count;
         }
     }
 
@@ -284,58 +297,56 @@ public class ParticleSPH {
     */
     private void UpdateColors(){
         // for every particles pi
-        foreach(UnityEngine.GameObject pi in mParticlesGenerated){
-            pi.GetComponent<Particle>().UpdateColor();
+        foreach(Particle pi in mParticlesGenerated){
+            pi.UpdateColor();
         }
     }
 
     /**
      * Update particles' height
     */
-    private void ComputeHeight(){
+    private void UpdateHeight(){
         // get height
-        // update max height
-        Particle.sMaxHeight = 0.0f;
-        foreach(UnityEngine.GameObject pi in mParticlesGenerated){
-            Particle curParticle = pi.GetComponent<Particle>();
+        foreach(Particle pi in mParticlesGenerated){
+            Particle curParticle = pi;
             Assert.IsTrue(curParticle != null);
-            float sum = 0.0f; // sum = density
-            ArrayList neighbours = curParticle.mNeighbours;
+            float sumHeight = 0.0f;
+            List<Particle> neighbours = curParticle.mNeighbours;
             // for each neighbours add to the sum
             foreach(Particle pj in neighbours){
                 float wij = W_POLY6(curParticle, pj);
-                sum += pj.mMass*wij;
+                sumHeight += pj.mVolume*wij;
+                // Debug.Log("Sum: " + sum + ", Wij: " + wij + ". volume: " + pj.mVolume+"\n");
             }
-            curParticle.mHeight = sum/Constants.RHO_0;
-            // update max heigth
-            if(curParticle.mHeight > Particle.sMaxHeight) Particle.sMaxHeight = curParticle.mHeight;
+            curParticle.mHeight = sumHeight;
             // Debug.Log("curHeight: " + curParticle.mHeight + "\n");
         }
 
         // get height gradient
-        foreach(UnityEngine.GameObject pi in mParticlesGenerated){
-            Particle curParticle = pi.GetComponent<Particle>();
+        foreach(Particle pi in mParticlesGenerated){
+            Particle curParticle = pi;
             Assert.IsTrue(curParticle != null);
             Vector3 sumGrad = new Vector3();
-            ArrayList neighbours = curParticle.mNeighbours;
+            List<Particle> neighbours = curParticle.mNeighbours;
             // for each neighbours add to the sum
             foreach(Particle pj in neighbours){
                 Vector3 wij_grad = W_POLY6_Grad(curParticle, pj);
-                float heightDif = curParticle.mHeight - pj.mHeight;
-                sumGrad += pj.mMass*wij_grad*heightDif/Constants.RHO_0;
+                sumGrad += pj.mVolume*wij_grad;
             }
             curParticle.mHeightGradient = sumGrad;
         }
+
     }
 
     /**
      * Update particles' positions
     */
     private void TimeIntegration(){
-        float dt =  Time.deltaTime;
+        float dt = 1000.0f;
         // for every particles pi
-        foreach(UnityEngine.GameObject pi in mParticlesGenerated){
-            Particle curParticle = pi.GetComponent<Particle>();
+        foreach(Particle pi in mParticlesGenerated){
+            Particle curParticle = pi;
+            if(curParticle.mHeight == 0.0f) continue;
             // get position
             Vector3 curPosition = curParticle.GetPosition();
             // get new velocity
@@ -347,7 +358,7 @@ public class ParticleSPH {
             //Assert.IsTrue(Particle.mRadius == curParticle.Scale)
 
             // update particle
-            if(!curParticle.UpdatePosition(newPosition)){
+            if(!curParticle.UpdatePosition(newPosition, newVelocity)){
                 mParticlesToRemove.Add(pi);
             }
         }
@@ -359,8 +370,8 @@ public class ParticleSPH {
     private void RemoveParticles(){
         // for every particles to remove pi
         while(mParticlesToRemove.Count>0){
-            UnityEngine.GameObject pi = (UnityEngine.GameObject) mParticlesToRemove[0];
-            Particle curParticle = pi.GetComponent<Particle>();
+            Particle pi = mParticlesToRemove[0];
+            Particle curParticle = pi;
             // delete the particle
             mParticlesGenerated.Remove(pi);
             mParticlesToRemove.RemoveAt(0);

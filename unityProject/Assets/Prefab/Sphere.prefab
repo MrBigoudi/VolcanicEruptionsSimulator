@@ -28,8 +28,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3132906801724813406}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.14657879, y: -4.264312, z: -7.162404}
-  m_LocalScale: {x: 0.35, y: 0.35, z: 0.35}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -42,7 +42,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3132906801724813406}
-  m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: 0}
 --- !u!23 &672967089056439307
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -63,7 +63,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: cd04ce728b307706499bf07e5542addb, type: 2}
+  - {fileID: 0}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -96,7 +96,7 @@ SphereCollider:
   m_IsTrigger: 0
   m_Enabled: 0
   serializedVersion: 2
-  m_Radius: 0.5
+  m_Radius: 0.01
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &2690186486015429398
 MonoBehaviour:
@@ -110,15 +110,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: db125a5bcc08ce906b71d966f9d881f6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mVelocity: {x: 0, y: 0, z: 0}
-  mPressureForce: {x: 0, y: 0, z: 0}
-  mAccelerationForce: {x: 0, y: 0, z: 0}
-  mViscosityForce: {x: 0, y: 0, z: 0}
+  mRadius: 0
+  mVolume: 0
+  mHeight: 1
   mHeightGradient: {x: 0, y: 0, z: 0}
   mHeightLaplacian: 0
-  mRadius: 0.35
-  mMass: 117.28641
-  mRho: 3500
-  mVisc: 1
-  mPressure: 0
-  mHeight: 1
+  mVelocity: {x: 0, y: 0, z: 0}
+  mNeighbours: []
+  mNbNeighbours: 0

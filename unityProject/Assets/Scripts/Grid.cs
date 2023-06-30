@@ -66,9 +66,9 @@ public static class Grid {
                 float curZ = j*mCellDepth;
                 mCells[i,j] = new Cell(curX, curZ, mCellWidth, mCellDepth);
 
-                // Color cellColor = Random.ColorHSV();
-                // cellColor.a = 1.0f;
-                // mCells[i,j].mColor = cellColor;
+                Color cellColor = Random.ColorHSV();
+                cellColor.a = 1.0f;
+                mCells[i,j].mColor = cellColor;
 
                 // Debug.DrawLine(new Vector3(curX, 0, curZ), new Vector3(curX+mCellWidth, 0, curZ), cellColor, 200.0f, false);
                 // Debug.DrawLine(new Vector3(curX, 0, curZ), new Vector3(curX, 0, curZ+mCellDepth), cellColor, 200.0f, false);
@@ -98,7 +98,7 @@ public static class Grid {
      * @param j The j position in the grid
      * @return The particles arround and inside the cell
     */
-    public static ArrayList GetParticles(int i, int j){
+    public static List<Particle> GetParticles(int i, int j){
         return mCells[i,j].GetAllParticles();
     }
 }
