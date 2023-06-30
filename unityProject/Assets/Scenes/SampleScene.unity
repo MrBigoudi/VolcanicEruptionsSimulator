@@ -287,6 +287,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _Material: {fileID: 2100000, guid: a8f5d5dcb21ab474e98df8d5091d58a9, type: 2}
   _Camera: {fileID: 2006106620}
+  _Spike: 4000
 --- !u!4 &466742552
 Transform:
   m_ObjectHideFlags: 0
@@ -538,7 +539,7 @@ TerrainCollider:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1423897090}
   m_Material: {fileID: 0}
-  m_Enabled: 1
+  m_Enabled: 0
   m_TerrainData: {fileID: 15600000, guid: 190fd9bc7270c95d795906968b9ddad8, type: 2}
   m_EnableTreeColliders: 1
 --- !u!218 &1423897092
@@ -648,7 +649,7 @@ Camera:
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 2147483647
+    m_Bits: 39
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
@@ -811,6 +812,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 75109a609841dbca89cf807f8528725d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  mSphGPU: {fileID: 0}
   _Shader: {fileID: 7200000, guid: 0fccdd0c65323124590166214ef8a2a3, type: 3}
   mLavaTextureMap: {fileID: 466742551}
   mMaxParticles: 50000
