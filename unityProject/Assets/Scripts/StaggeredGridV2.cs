@@ -16,16 +16,16 @@ public static class StaggeredGridV2 {
     public static int _NbCols, _NbLines;
     public static float _DeltaCols, _DeltaLines;
 
-    private static void InitDimensions(){
+    private static void InitDimensions(TerrainGenerator terrain){
         // get the heightmap from unity terrain
-        TerrainData terrainData = Terrain.activeTerrain.terrainData;
-        int heightmapResolution = terrainData.heightmapResolution;
+        int heightmapResolution = terrain.GetResolution();
+        Vector3 terrainSize = terrain._Size;
 
         // get array dimensions
         _NbCols  = heightmapResolution;
         _NbLines = heightmapResolution;
-        _DeltaCols  = (terrainData.size.x) / (_NbCols-1);
-        _DeltaLines = (terrainData.size.z) / (_NbLines-1);
+        _DeltaCols  = (terrainSize.x) / (_NbCols-1);
+        _DeltaLines = (terrainSize.z) / (_NbLines-1);
 
         // init arrays
         _Heights = new float[_NbLines, _NbCols];
@@ -35,7 +35,7 @@ public static class StaggeredGridV2 {
         _Laplacians = new float[_NbLines-2, _NbCols-2];
     }
 
-    private static void InitHeights(){
+    private static void InitHeights(TerrainGenerator terrain){
         for(int j=0; j<_NbLines; j++){
             for(int i=0; i<_NbCols; i++){
                 float x = _DeltaCols*i;
@@ -43,12 +43,12 @@ public static class StaggeredGridV2 {
                 float xHalf = _DeltaCols*(i+0.5f);
                 float zHalf = _DeltaLines*(j+0.5f);
 
-                _Heights[j,i] = Terrain.activeTerrain.SampleHeight(new Vector3(x, 0.0f, z));
+                _Heights[j,i] = terrain.SampleHeight(new Vector3(x, 0.0f, z));
                 if (i<_NbCols-1){
-                    _HalfHeightsCols[j,i] = Terrain.activeTerrain.SampleHeight(new Vector3(xHalf, 0.0f, z));
+                    _HalfHeightsCols[j,i] = (_Heights[j,i]+_Heights[j,i+1])/2;
                 }
                 if (j<_NbLines-1){
-                    _HalfHeightsLines[j,i] = Terrain.activeTerrain.SampleHeight(new Vector3(x, 0.0f, zHalf));
+                    _HalfHeightsLines[j,i] = (_Heights[j,i]+_Heights[j+1,i])/2;
                 }
             }
         }
@@ -80,9 +80,9 @@ public static class StaggeredGridV2 {
         }
     }
 
-    public static void Init(){
-        InitDimensions();
-        InitHeights();
+    public static void Init(TerrainGenerator terrain){
+        InitDimensions(terrain);
+        InitHeights(terrain);
         InitGradients();
         InitLaplacians();
     }
@@ -126,45 +126,6 @@ public static class StaggeredGridV2 {
         // Assert.IsTrue(ownRes == unityRes);
 
         // return unityRes;
-        return ownRes;
-    }
-
-    public static Vector3 GetGradient(Particle p){
-        Vector3 pos = p.transform.position;
-        int[] indices = GetIndices(pos);
-        int zIdx = indices[0];
-        int xIdx = indices[1];
-
-        float x = pos.x;
-        float z = pos.z;
-
-        // interpolate gradients bilinearly
-        Vector2 upLeft    = (zIdx >=_NbLines-1 || xIdx == 0)         ? Vector2.zero : _Gradients[zIdx-1+1, xIdx-1+0];
-        Vector2 upRight   = (zIdx >=_NbLines-1 || xIdx >= _NbCols-1) ? Vector2.zero : _Gradients[zIdx-1+1, xIdx-1+1];
-        Vector2 downLeft  = (zIdx == 0 || xIdx == 0)                 ? Vector2.zero : _Gradients[zIdx-1+0, xIdx-1+0];
-        Vector2 downRight = (zIdx == 0 || xIdx >= _NbCols-1)         ? Vector2.zero : _Gradients[zIdx-1+0, xIdx-1+1];
-
-        float dx = BilinearInterpolation(x, z, xIdx, zIdx, upLeft.x, upRight.x, downLeft.x, downRight.x) - p.mHeight;
-        float dz = BilinearInterpolation(x, z, xIdx, zIdx, upLeft.y, upRight.y, downLeft.y, downRight.y) - p.mHeight;
-
-        return new Vector3(dx, pos.y, dz);
-    }
-
-    public static float GetLaplacian(Vector3 pos){
-        int[] indices = GetIndices(pos);
-        int zIdx = indices[0];
-        int xIdx = indices[1];
-
-        float x = pos.x;
-        float z = pos.z;
-
-        // interpolate gradients bilinearly
-        float upLeft    = (zIdx >=_NbLines-2 || xIdx <= 1)         ? 0.0f : _Laplacians[zIdx-2+1, xIdx-2+0];
-        float upRight   = (zIdx >=_NbLines-2 || xIdx >= _NbCols-2) ? 0.0f : _Laplacians[zIdx-2+1, xIdx-2+1];
-        float downLeft  = (zIdx <= 1 || xIdx <= 1)                 ? 0.0f : _Laplacians[zIdx-2+0, xIdx-2+0];
-        float downRight = (zIdx <= 1 || xIdx >= _NbCols-1)         ? 0.0f : _Laplacians[zIdx-2+0, xIdx-2+1];
-
-        float ownRes = BilinearInterpolation(x, z, xIdx, zIdx, upLeft, upRight, downLeft, downRight);
         return ownRes;
     }
 }

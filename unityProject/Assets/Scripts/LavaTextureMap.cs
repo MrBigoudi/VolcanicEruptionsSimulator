@@ -16,7 +16,6 @@ public class LavaTextureMap : MonoBehaviour{
     float[] _Heights;
 
     public Material _Material;
-    // private const int _ArraySize = 1023;
     private Mesh _Mesh;
     private MeshFilter _MeshFilter;
 
@@ -31,8 +30,24 @@ public class LavaTextureMap : MonoBehaviour{
     private float[,] _TerrainHeights;
     private float[,] _InitialTerrainHeights;
 
+    public TerrainGenerator _TerrainGenerator;
+
+    private float[,] CopyHeights(float[,] h){
+        int iMax = h.GetLength(0);
+        int jMax = h.GetLength(1);
+        float[,] newH = new float[iMax, jMax];
+
+        for(int i=0; i<iMax; i++){
+            for(int j=0; j<jMax; j++){
+                newH[i,j] = h[i,j];
+            }
+        }
+
+        return newH;
+    }
+
     private void GetTexture(){
-        int res = (Terrain.activeTerrain.terrainData.heightmapResolution / 4) * 4;
+        int res = (_TerrainGenerator.GetResolution() / 4) * 4;
         _RenderTexture = RenderTexture.GetTemporary(res, res);
 
         //transfer image from rendertexture to texture
@@ -58,11 +73,7 @@ public class LavaTextureMap : MonoBehaviour{
 
     private void UpdateTerrainHeights(){
         int len = _Heights.Length;
-        for(int i=0; i<_InitialTerrainHeights.GetLength(0); i++){
-            for(int j=0; j<_InitialTerrainHeights.GetLength(1); j++){
-                _TerrainHeights[i,j] = _InitialTerrainHeights[i,j];
-            }
-        }
+        _TerrainHeights = CopyHeights(_InitialTerrainHeights);
 
         Vector2[,] tmp = new Vector2[_TerrainHeights.GetLength(0),_TerrainHeights.GetLength(1)];
         float maxHeight = 0.0f;
@@ -89,14 +100,14 @@ public class LavaTextureMap : MonoBehaviour{
         }
         
         // NormalizeTerrain(_InitialMaxHeight);
-        Terrain.activeTerrain.terrainData.SetHeights(0, 0, _TerrainHeights);
+        _TerrainGenerator.Updt(_TerrainHeights);
     }
 
 
     /**
      * Init the lava heightmap
     */
-    public void Awake(){
+    public void Init(){
         // init the mesh
         // _Positions = new Vector3[_ArraySize];
         // _Heights = new float[_ArraySize];
@@ -108,9 +119,8 @@ public class LavaTextureMap : MonoBehaviour{
         Renderer renderer = gameObject.AddComponent<MeshRenderer>();
         renderer.material = _Material;
 
-        TerrainData data = Terrain.activeTerrain.terrainData;
-        _TerrainHeights = data.GetHeights(0, 0, data.heightmapResolution, data.heightmapResolution);
-        _InitialTerrainHeights = data.GetHeights(0, 0, data.heightmapResolution, data.heightmapResolution);        
+        _TerrainHeights = CopyHeights(_TerrainGenerator._Heights);
+        _InitialTerrainHeights = CopyHeights(_TerrainGenerator._Heights);        
     }
 
     private void UpdtMesh(){
@@ -152,23 +162,7 @@ public class LavaTextureMap : MonoBehaviour{
     }
 
     public void OnApplicationQuit(){
-        Terrain.activeTerrain.terrainData.SetHeights(0, 0, _InitialTerrainHeights);
+        _TerrainGenerator.Updt(_InitialTerrainHeights);
     }
-
-    // private void FetchPositions(List<ParticleGPU> particles){
-    //     _Positions = new Vector3[_ArraySize];
-    //     for(int i=0; i<particles.Count; i++){
-    //         ParticleGPU p = particles[i];
-    //         _Positions[i] = p._Position;
-    //     }
-    // }
-
-    // private void FetchHeights(List<ParticleGPU> particles){
-    //     _Heights = new float[_ArraySize];
-    //     for(int i=0; i<particles.Count; i++){
-    //         Particle p = particles[i];
-    //         _Heights[i] = p._Height;
-    //     }
-    // }
 
 }

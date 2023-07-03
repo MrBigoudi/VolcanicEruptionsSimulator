@@ -24,7 +24,7 @@ public class FrameRateCounter : MonoBehaviour{
     int _NbParticles;
 
     void GetNbParticles(){
-        _NbParticles = _ParticleGenerator.mSphGPU.mNbCurParticles;
+        _NbParticles = _ParticleGenerator.GetNbCurParticles();
     }
 
     void Update(){
