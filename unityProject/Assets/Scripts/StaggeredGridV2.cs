@@ -26,6 +26,7 @@ public static class StaggeredGridV2 {
         _NbLines = heightmapResolution;
         _DeltaCols  = (terrainSize.x) / (_NbCols-1);
         _DeltaLines = (terrainSize.z) / (_NbLines-1);
+        // Debug.Log(_NbCols + ", " + _NbLines + ", " + _DeltaCols + ", " + _DeltaLines);
 
         // init arrays
         _Heights = new float[_NbLines, _NbCols];
@@ -44,6 +45,7 @@ public static class StaggeredGridV2 {
                 float zHalf = _DeltaLines*(j+0.5f);
 
                 _Heights[j,i] = terrain.SampleHeight(new Vector3(x, 0.0f, z));
+                // Debug.Log("heights[" + j + "," + i + "] = " + _Heights[j,i]);
                 if (i<_NbCols-1){
                     _HalfHeightsCols[j,i] = (_Heights[j,i]+_Heights[j,i+1])/2;
                 }

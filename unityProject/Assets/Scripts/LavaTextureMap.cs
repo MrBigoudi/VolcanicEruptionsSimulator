@@ -22,8 +22,8 @@ public class LavaTextureMap : MonoBehaviour{
     [SerializeField]
     Camera _Camera;
 
-    [SerializeField, Range(1000, 50000)]
-    public int _Spike = 5000;
+    [SerializeField, Range(0, 2)]
+    public float _Spike = 1.0f;
 
     private RenderTexture _RenderTexture;
 
@@ -93,9 +93,10 @@ public class LavaTextureMap : MonoBehaviour{
             int[] indices = StaggeredGridV2.GetIndices(_Positions[i]);
             int zIdx = indices[0];
             int xIdx = indices[1];
-            float v1 = (tmp[zIdx, xIdx].x / tmp[zIdx, xIdx].y) / maxHeight;
+            float v1 = (tmp[zIdx, xIdx].y / tmp[zIdx, xIdx].x);
+            // Debug.Log(v1);
             float v2 = _InitialTerrainHeights[zIdx, xIdx];
-            _TerrainHeights[zIdx, xIdx] = (v1/_Spike + v2);
+            _TerrainHeights[zIdx, xIdx] = (v1*_Spike + v2);
             // _TerrainHeights[zIdx, xIdx] = (_Heights[i] / maxHeight);
         }
         

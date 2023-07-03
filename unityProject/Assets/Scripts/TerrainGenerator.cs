@@ -23,7 +23,9 @@ public class TerrainGenerator : MonoBehaviour{
 
     private int _Resolution;
     public float[,] _Heights;
-    public float[,] _Normals;
+
+    private Vector3[] _Vertices;
+    private int[] _Indices;
 
     [SerializeField]
     public Material _Material;
@@ -47,8 +49,8 @@ public class TerrainGenerator : MonoBehaviour{
         float deltaLines = _Size.z / (_Resolution - 1.0f);
         int i = (int)(pos.x / deltaCols);
         int j = (int)(pos.z / deltaLines);
-        if(i >= _Resolution || j >= _Resolution || i<0 || j<0)
-            Debug.Log(i + ", " + j + ": " + deltaCols + ", " + deltaLines + ", " + _Resolution + _Size);
+        // if(i >= _Resolution || j >= _Resolution || i<0 || j<0)
+        //     Debug.Log(i + ", " + j + ": " + deltaCols + ", " + deltaLines + ", " + _Resolution + _Size);
         return _Heights[j,i];
     }
 
@@ -75,11 +77,19 @@ public class TerrainGenerator : MonoBehaviour{
 
         // Debug.Log(_Resolution + ", " + _Size);
 
+        Vector3 max = Vector3.zero;
         for(int j=0; j<_Resolution; j++){
             for(int i=0; i<_Resolution; i++){
-                _Heights[j,i] = heightmap.GetPixel(i*2, j*2).grayscale;
+                float val =  heightmap.GetPixel(i*2, j*2).grayscale;
+                if(val > max.y) max = new Vector3(j, val, i);
+                _Heights[j,i] = val*_Scale;
             }
         }
+        // Debug.Log(max);
+
+        _Vertices = new Vector3[_Resolution*_Resolution];
+        int nbIndices = (_Resolution-1)*(_Resolution-1)*12;
+        _Indices = new int[nbIndices];
     }
 
     private void InitMesh(){
@@ -89,6 +99,10 @@ public class TerrainGenerator : MonoBehaviour{
         _MeshFilter.mesh = _Mesh;
         Renderer renderer = gameObject.AddComponent<MeshRenderer>();
         renderer.material = _Material;
+
+        SetVertices();
+        SetIndices();
+        _Mesh.UploadMeshData(false);
     }
 
     public void Init(){
@@ -98,61 +112,65 @@ public class TerrainGenerator : MonoBehaviour{
 
     private void SetVertices(){
         // init vertices
-        Vector3[] vertices = new Vector3[_Resolution*_Resolution];
         for(int j=0; j<_Resolution; j++){
             for(int i=0; i<_Resolution; i++){
                 float x = i * _Size.x / _Resolution;
                 float z = j * _Size.z / _Resolution;
-                float y =  _Heights[j,i] * _Scale;
-                vertices[i + j*_Resolution] = new Vector3(x, y, z);
+                float y =  _Heights[j,i];
+                int idx = i + j*_Resolution;
+                _Vertices[idx].x = x;
+                _Vertices[idx].y = y;
+                _Vertices[idx].z = z;
             }
         }
         // Debug.Log(vertices.Length);
-        _Mesh.SetVertices(vertices);
+        _Mesh.SetVertices(_Vertices);
     }
 
     private void SetIndices(){
         // init indices
-        int nbIndices = (_Resolution-1)*(_Resolution-1)*12;
-        int[] indices = new int[nbIndices];
         int idx = 0;
         for(int j=0; j<_Resolution-1; j++){
             for(int i=0; i<_Resolution-1; i++){
+                int id1 = j * _Resolution + i;
+                int id2 = id1 + 1;
+                int id3 = id1 + _Resolution;
+                int id4 = id3 + 1;
                 // first side
                 // first triangle
-                indices[idx++]   = (j * _Resolution + i);
-                indices[idx++] = (j * _Resolution + (i+1));
-                indices[idx++] = ((j+1) * _Resolution + i);
+                _Indices[idx++] = id1;
+                _Indices[idx++] = id2;
+                _Indices[idx++] = id3;
                 // second triangle
-                indices[idx++] = ((j+1) * _Resolution + i);
-                indices[idx++] = (j * _Resolution + (i+1));
-                indices[idx++] = ((j+1) * _Resolution + (i+1));
+                _Indices[idx++] = id3;
+                _Indices[idx++] = id2;
+                _Indices[idx++] = id4;
 
                 // second side
                 // first triangle
-                indices[idx++]   = (j * _Resolution + i);
-                indices[idx++] = ((j+1) * _Resolution + i);
-                indices[idx++] = (j * _Resolution + (i+1));
+                _Indices[idx++] = id1;
+                _Indices[idx++] = id3;
+                _Indices[idx++] = id2;
                 // second triangle
-                indices[idx++] = ((j+1) * _Resolution + i);
-                indices[idx++] = ((j+1) * _Resolution + (i+1));
-                indices[idx++] = (j * _Resolution + (i+1));
+                _Indices[idx++] = id3;
+                _Indices[idx++] = id4;
+                _Indices[idx++] = id2;
             }
         }
         // Debug.Log(vertices.Length + ", " + nbIndices);
-        _Mesh.SetIndices(indices, MeshTopology.Triangles, 0);
+        _Mesh.SetIndices(_Indices, MeshTopology.Triangles, 0);
     }
 
     private void UpdtMesh(){
-        
         SetVertices();
-        SetIndices();
+        // SetIndices();
+        // SetNormals();
         _Mesh.UploadMeshData(false);
     }
 
 
     public void Updt(float[,] newHeights){
-        // _Heights = newHeights;
+        _Heights = newHeights;
         UpdtMesh();
     }
 
