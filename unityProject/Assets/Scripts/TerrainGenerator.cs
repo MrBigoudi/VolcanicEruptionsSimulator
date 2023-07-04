@@ -25,7 +25,9 @@ public class TerrainGenerator : MonoBehaviour{
     public float[,] _Heights;
 
     private Vector3[] _Vertices;
+    private Vector3[] _InitVertices;
     private int[] _Indices;
+    private Vector2[] _UVs;
 
     [SerializeField]
     public Material _Material;
@@ -45,8 +47,8 @@ public class TerrainGenerator : MonoBehaviour{
     }
 
     public float SampleHeight(Vector3 pos){
-        float deltaCols  = _Size.x / (_Resolution - 1.0f);
-        float deltaLines = _Size.z / (_Resolution - 1.0f);
+        float deltaCols  = _Size.x / _Resolution;
+        float deltaLines = _Size.z / _Resolution;
         int i = (int)(pos.x / deltaCols);
         int j = (int)(pos.z / deltaLines);
         // if(i >= _Resolution || j >= _Resolution || i<0 || j<0)
@@ -72,7 +74,7 @@ public class TerrainGenerator : MonoBehaviour{
         }
 
         _Size = new Vector3(512.0f, 0.0f, 512.0f);
-        _Resolution = heightmap.width / 2;
+        _Resolution = heightmap.width;
         _Heights = new float[_Resolution, _Resolution];
 
         // Debug.Log(_Resolution + ", " + _Size);
@@ -80,7 +82,7 @@ public class TerrainGenerator : MonoBehaviour{
         Vector3 max = Vector3.zero;
         for(int j=0; j<_Resolution; j++){
             for(int i=0; i<_Resolution; i++){
-                float val =  heightmap.GetPixel(i*2, j*2).grayscale;
+                float val =  heightmap.GetPixel(i, j).grayscale;
                 if(val > max.y) max = new Vector3(j, val, i);
                 _Heights[j,i] = val*_Scale;
             }
@@ -88,6 +90,8 @@ public class TerrainGenerator : MonoBehaviour{
         // Debug.Log(max);
 
         _Vertices = new Vector3[_Resolution*_Resolution];
+        _InitVertices = new Vector3[_Resolution*_Resolution];
+        _UVs = new Vector2[_Resolution*_Resolution];
         int nbIndices = (_Resolution-1)*(_Resolution-1)*12;
         _Indices = new int[nbIndices];
     }
@@ -100,8 +104,9 @@ public class TerrainGenerator : MonoBehaviour{
         Renderer renderer = gameObject.AddComponent<MeshRenderer>();
         renderer.material = _Material;
 
-        SetVertices();
+        SetAllVertices();
         SetIndices();
+        SetUVs();
         _Mesh.UploadMeshData(false);
     }
 
@@ -110,7 +115,7 @@ public class TerrainGenerator : MonoBehaviour{
         InitMesh();
     }
 
-    private void SetVertices(){
+    private void SetAllVertices(){
         // init vertices
         for(int j=0; j<_Resolution; j++){
             for(int i=0; i<_Resolution; i++){
@@ -121,10 +126,39 @@ public class TerrainGenerator : MonoBehaviour{
                 _Vertices[idx].x = x;
                 _Vertices[idx].y = y;
                 _Vertices[idx].z = z;
+                _InitVertices[idx].x = x;
+                _InitVertices[idx].y = y;
+                _InitVertices[idx].z = z;
             }
         }
         // Debug.Log(vertices.Length);
         _Mesh.SetVertices(_Vertices);
+    }
+
+    private void SetVertices(List<Vector3> updatedIndices){
+        int len = updatedIndices.Count;
+
+        // update needed vertices
+        for(int k=0; k<len; k++){
+            int i = (int)updatedIndices[k].y;
+            int j = (int)updatedIndices[k].x;
+            float x = i * _Size.x / _Resolution;
+            float z = j * _Size.z / _Resolution;
+            float y =  updatedIndices[k].z;
+            int idx = i + j*_Resolution;
+            _Vertices[idx].x = x;
+            _Vertices[idx].y = y;
+            _Vertices[idx].z = z;
+        }
+        _Mesh.SetVertices(_Vertices);
+
+        // reset vertices
+        for(int k=0; k<len; k++){
+            int i = (int)updatedIndices[k].x;
+            int j = (int)updatedIndices[k].y;
+            int idx = i + j*_Resolution;
+            _Vertices[idx] = _InitVertices[idx];
+        }
     }
 
     private void SetIndices(){
@@ -161,17 +195,33 @@ public class TerrainGenerator : MonoBehaviour{
         _Mesh.SetIndices(_Indices, MeshTopology.Triangles, 0);
     }
 
-    private void UpdtMesh(){
-        SetVertices();
+    private void SetUVs(){
+        System.Random rand = new System.Random();
+        // init vertices
+        for(int j=0; j<_Resolution; j++){
+            for(int i=0; i<_Resolution; i++){
+                float y =  _Heights[j,i];
+                int idx = i + j*_Resolution;
+                _UVs[idx].x = (float)rand.NextDouble();
+                _UVs[idx].y = y;
+            }
+        }
+        // Debug.Log(vertices.Length);
+        _Mesh.SetUVs(0, _UVs);
+    }
+
+    private void UpdtMesh(List<Vector3> updatedIndices){
+        // _Heights = newHeights;
+        // SetAllVertices();
+        SetVertices(updatedIndices);
         // SetIndices();
         // SetNormals();
         _Mesh.UploadMeshData(false);
     }
 
 
-    public void Updt(float[,] newHeights){
-        _Heights = newHeights;
-        UpdtMesh();
+    public void Updt(List<Vector3> updatedIndices){
+        UpdtMesh(updatedIndices);
     }
 
 }

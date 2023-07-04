@@ -15,12 +15,12 @@ public class LavaTextureMap : MonoBehaviour{
     Vector3[] _Positions;
     float[] _Heights;
 
-    public Material _Material;
-    private Mesh _Mesh;
-    private MeshFilter _MeshFilter;
+    // public Material _Material;
+    // private Mesh _Mesh;
+    // private MeshFilter _MeshFilter;
 
-    [SerializeField]
-    Camera _Camera;
+    // [SerializeField]
+    // private Camera _Camera;
 
     [SerializeField, Range(0, 2)]
     public float _Spike = 1.0f;
@@ -46,36 +46,37 @@ public class LavaTextureMap : MonoBehaviour{
         return newH;
     }
 
-    private void GetTexture(){
-        int res = (_TerrainGenerator.GetResolution() / 4) * 4;
-        _RenderTexture = RenderTexture.GetTemporary(res, res);
+    // private void GetTexture(){
+    //     int res = (_TerrainGenerator.GetResolution() / 4) * 4;
+    //     _RenderTexture = RenderTexture.GetTemporary(res, res);
 
-        //transfer image from rendertexture to texture
-        Texture2D texture = new Texture2D(res, res, TextureFormat.ARGB32, false);
+    //     //transfer image from rendertexture to texture
+    //     Texture2D texture = new Texture2D(res, res, TextureFormat.ARGB32, false);
 
-        _Camera.targetTexture = _RenderTexture;
-        _Camera.Render();
-        RenderTexture.active = _RenderTexture;
-        texture.ReadPixels(new Rect(Vector2.zero, new Vector2(res, res)), 0, 0);
-        texture.Apply();  // Apply changes to the texture
+    //     _Camera.targetTexture = _RenderTexture;
+    //     _Camera.Render();
+    //     RenderTexture.active = _RenderTexture;
+    //     texture.ReadPixels(new Rect(Vector2.zero, new Vector2(res, res)), 0, 0);
+    //     texture.Apply();  // Apply changes to the texture
 
-        //save texture to file
-        // byte[] png = texture.EncodeToPNG();
-        // File.WriteAllBytes("Assets/test.png", png);
-        // AssetDatabase.Refresh();
+    //     //save texture to file
+    //     // byte[] png = texture.EncodeToPNG();
+    //     // File.WriteAllBytes("Assets/test.png", png);
+    //     // AssetDatabase.Refresh();
         
 
-        //clean up variables
-        RenderTexture.active = null;
-        RenderTexture.ReleaseTemporary(_RenderTexture);
-        DestroyImmediate(texture);
-    }
+    //     //clean up variables
+    //     RenderTexture.active = null;
+    //     RenderTexture.ReleaseTemporary(_RenderTexture);
+    //     DestroyImmediate(texture);
+    // }
 
     private void UpdateTerrainHeights(){
         int len = _Heights.Length;
-        _TerrainHeights = CopyHeights(_InitialTerrainHeights);
+        // _TerrainHeights = CopyHeights(_InitialTerrainHeights);
+        List<Vector3> updatedIndices = new List<Vector3>();
 
-        Vector2[,] tmp = new Vector2[_TerrainHeights.GetLength(0),_TerrainHeights.GetLength(1)];
+        Vector2[,] tmp = new Vector2[_TerrainHeights.GetLength(0),_TerrainHeights.GetLength(1)]; // change it to a smaller list
         float maxHeight = 0.0f;
         for(int i=0; i<len; i++){
             int[] indices = StaggeredGridV2.GetIndices(_Positions[i]);
@@ -96,12 +97,14 @@ public class LavaTextureMap : MonoBehaviour{
             float v1 = (tmp[zIdx, xIdx].y / tmp[zIdx, xIdx].x);
             // Debug.Log(v1);
             float v2 = _InitialTerrainHeights[zIdx, xIdx];
-            _TerrainHeights[zIdx, xIdx] = (v1*_Spike + v2);
-            // _TerrainHeights[zIdx, xIdx] = (_Heights[i] / maxHeight);
+            // _TerrainHeights[zIdx, xIdx] = (v1*_Spike + v2);
+
+            updatedIndices.Add(new Vector3(zIdx, xIdx, (v1*_Spike + v2)));
         }
         
         // NormalizeTerrain(_InitialMaxHeight);
-        _TerrainGenerator.Updt(_TerrainHeights);
+        // _TerrainGenerator.Updt(_TerrainHeights, updatedIndices);
+        _TerrainGenerator.Updt(updatedIndices);
     }
 
 
@@ -113,36 +116,36 @@ public class LavaTextureMap : MonoBehaviour{
         // _Positions = new Vector3[_ArraySize];
         // _Heights = new float[_ArraySize];
 
-        _Mesh = new Mesh();
-        _Mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
-        _MeshFilter = gameObject.AddComponent<MeshFilter>();
-        _MeshFilter.mesh = _Mesh;
-        Renderer renderer = gameObject.AddComponent<MeshRenderer>();
-        renderer.material = _Material;
+        // _Mesh = new Mesh();
+        // _Mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+        // _MeshFilter = gameObject.AddComponent<MeshFilter>();
+        // _MeshFilter.mesh = _Mesh;
+        // Renderer renderer = gameObject.AddComponent<MeshRenderer>();
+        // renderer.material = _Material;
 
         _TerrainHeights = CopyHeights(_TerrainGenerator._Heights);
         _InitialTerrainHeights = CopyHeights(_TerrainGenerator._Heights);        
     }
 
-    private void UpdtMesh(){
-        _Mesh.SetVertices(_Positions);
+    // private void UpdtMesh(){
+    //     _Mesh.SetVertices(_Positions);
 
-        int _ArraySize = _Positions.Length;
+    //     int _ArraySize = _Positions.Length;
 
-        // Generate indices for the points
-        int[] indices = new int[_ArraySize];
-        Vector2[] uvs = new Vector2[_ArraySize];
+    //     // Generate indices for the points
+    //     int[] indices = new int[_ArraySize];
+    //     Vector2[] uvs = new Vector2[_ArraySize];
 
-        for (int i = 0; i < _ArraySize; i++){
-            indices[i] = i;
-            uvs[i] = new Vector2(_Heights[i], 0.0f);
-        }
+    //     for (int i = 0; i < _ArraySize; i++){
+    //         indices[i] = i;
+    //         uvs[i] = new Vector2(_Heights[i], 0.0f);
+    //     }
         
-        _Mesh.SetIndices(indices, MeshTopology.Points, 0);
-        _Mesh.SetUVs(0, uvs);
+    //     _Mesh.SetIndices(indices, MeshTopology.Points, 0);
+    //     _Mesh.SetUVs(0, uvs);
 
-        _Mesh.UploadMeshData(false);
-    }
+    //     _Mesh.UploadMeshData(false);
+    // }
 
     /**
      * Update the lava's heights
@@ -157,13 +160,9 @@ public class LavaTextureMap : MonoBehaviour{
             // if(i==0) 
                 // Debug.Log(i + ": " + heights[i] + ", " + positions[i]);
         }
-        UpdtMesh();
-        GetTexture();
+        // UpdtMesh();
+        // GetTexture();
         UpdateTerrainHeights();
-    }
-
-    public void OnApplicationQuit(){
-        _TerrainGenerator.Updt(_InitialTerrainHeights);
     }
 
 }

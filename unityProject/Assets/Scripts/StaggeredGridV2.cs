@@ -24,8 +24,8 @@ public static class StaggeredGridV2 {
         // get array dimensions
         _NbCols  = heightmapResolution;
         _NbLines = heightmapResolution;
-        _DeltaCols  = (terrainSize.x) / (_NbCols-1);
-        _DeltaLines = (terrainSize.z) / (_NbLines-1);
+        _DeltaCols  = terrainSize.x / _NbCols;
+        _DeltaLines = terrainSize.z / _NbLines;
         // Debug.Log(_NbCols + ", " + _NbLines + ", " + _DeltaCols + ", " + _DeltaLines);
 
         // init arrays
@@ -41,16 +41,23 @@ public static class StaggeredGridV2 {
             for(int i=0; i<_NbCols; i++){
                 float x = _DeltaCols*i;
                 float z = _DeltaLines*j;
+
+                _Heights[j,i] = terrain.SampleHeight(new Vector3(x, 0.0f, z));
+            }
+        }
+
+        for(int j=0; j<_NbLines; j++){
+            for(int i=0; i<_NbCols; i++){
+                float x = _DeltaCols*i;
+                float z = _DeltaLines*j;
                 float xHalf = _DeltaCols*(i+0.5f);
                 float zHalf = _DeltaLines*(j+0.5f);
 
-                _Heights[j,i] = terrain.SampleHeight(new Vector3(x, 0.0f, z));
-                // Debug.Log("heights[" + j + "," + i + "] = " + _Heights[j,i]);
                 if (i<_NbCols-1){
-                    _HalfHeightsCols[j,i] = (_Heights[j,i]+_Heights[j,i+1])/2;
+                    _HalfHeightsCols[j,i] = GetHeight(new Vector3(xHalf, 0.0f, z));
                 }
                 if (j<_NbLines-1){
-                    _HalfHeightsLines[j,i] = (_Heights[j,i]+_Heights[j+1,i])/2;
+                    _HalfHeightsLines[j,i] = GetHeight(new Vector3(x, 0.0f, zHalf));
                 }
             }
         }
@@ -114,6 +121,10 @@ public static class StaggeredGridV2 {
 
         float x = pos.x;
         float z = pos.z;
+
+        if(zIdx >= _NbLines-1 || xIdx >= _NbCols-1){
+            return _Heights[zIdx, xIdx];
+        }
 
         // interpolate height, bilinearly
         float upLeft    = _Heights[zIdx+1, xIdx+0];
