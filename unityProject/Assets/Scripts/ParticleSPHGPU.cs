@@ -22,6 +22,7 @@ public struct ParticleGPU{
  * A class representing an sph solver
 */
 public class ParticleSPHGPU : MonoBehaviour{
+
     public int mNbMaxParticles = 0;
     public int mNbCurParticles = 0;
 
@@ -82,11 +83,11 @@ public class ParticleSPHGPU : MonoBehaviour{
     private ParticleGPU[] _Particles;
 
 
-    public void Create(int maxParticles, ComputeShader shader){
+    public void Create(int maxParticles, ComputeShader shader, TerrainGenerator terrain){
         mNbMaxParticles = maxParticles;
         _Shader = shader;
         // Debug.Log(_Shader);
-        Init();
+        Init(terrain);
     }
 
     private void InitKernelsIds(){
@@ -138,7 +139,7 @@ public class ParticleSPHGPU : MonoBehaviour{
         _Particles = new ParticleGPU[mNbMaxParticles];
     }
 
-    private void InitGpuValues(){
+    private void InitGpuValues(TerrainGenerator terrain){
         _Shader.SetFloat("H", Constants.H);
         _Shader.SetFloat("PI", Constants.PI);
         _Shader.SetFloat("G", Constants.G);
@@ -154,7 +155,7 @@ public class ParticleSPHGPU : MonoBehaviour{
         _Shader.SetInt("MAX_NEIGHBOURS", _MAX_NEIGHBOURS);
         _Shader.SetInt("MAX_PARTICLES", mNbMaxParticles);
 
-        int nbCols = (int)(((int)(Terrain.activeTerrain.terrainData.size.x+1)) / (2*Constants.H));
+        int nbCols = (int)(((int)(terrain._Size.x+1)) / (2*Constants.H));
         _Shader.SetInt("GRID_NB_COLS", nbCols);
     }
 
@@ -307,9 +308,9 @@ public class ParticleSPHGPU : MonoBehaviour{
         _NeighboursBuffer       = SetData(_Neighbours, _NeighboursId);
     }
 
-    private void Init(){
+    private void Init(TerrainGenerator terrain){
         InitIds();
-        InitGpuValues();
+        InitGpuValues(terrain);
         InitBuffersData();
         InitGpuBuffers();
         InitStaggeredGrid();
