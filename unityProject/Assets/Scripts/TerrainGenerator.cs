@@ -7,7 +7,8 @@ using System;
 using UnityEditor;
 
 public enum Volcano {
-    Basic
+    Basic,
+    Fuji
 }
 
 public class TerrainGenerator : MonoBehaviour{
@@ -40,7 +41,7 @@ public class TerrainGenerator : MonoBehaviour{
 
         if (File.Exists(filePath)){
             fileData = File.ReadAllBytes(filePath);
-            tex = new Texture2D(2, 2);
+            tex = new Texture2D(2, 2, TextureFormat.R16, false);
             tex.LoadImage(fileData);
         }
         return tex;
@@ -67,11 +68,15 @@ public class TerrainGenerator : MonoBehaviour{
         switch(_VolcanoImage){
             case Volcano.Basic:
                 path += "/Media/volcano-height-map.png";
-                heightmap = LoadPNG(path);
+                break;
+            case Volcano.Fuji:
+                path += "/Media/testFuji.png";
                 break;
             default:
                 break;
         }
+        heightmap = LoadPNG(path);
+
 
         _Size = new Vector3(512.0f, 0.0f, 512.0f);
         _Resolution = heightmap.width;
