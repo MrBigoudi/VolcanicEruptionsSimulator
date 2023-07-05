@@ -785,7 +785,7 @@ MonoBehaviour:
   mLavaTextureMap: {fileID: 466742551}
   _TerrainGenerator: {fileID: 1379140618}
   mMaxParticles: 50000
-  _Stiffness: 25
+  _Stiffness: 0.1
   mDelta: 1
 --- !u!212 &1708334438
 SpriteRenderer:
@@ -847,7 +847,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1708334436}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 251.89, y: 0.6, z: 299.65}
+  m_LocalPosition: {x: 252, y: 0.6, z: 302.1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

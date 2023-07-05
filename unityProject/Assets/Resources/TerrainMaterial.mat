@@ -69,9 +69,11 @@ Material:
     - _Mode: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.02
+    - _SmoothingStrength: 0
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
+    - _TessellationUniform: 2
     - _UVSec: 0
     - _WireframeWidth: 0.05
     - _ZWrite: 1

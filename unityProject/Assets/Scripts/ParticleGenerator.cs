@@ -28,7 +28,7 @@ public class ParticleGenerator : MonoBehaviour{
     [SerializeField, Range(500, 100000)]
     public int mMaxParticles = 50000;
 
-    [SerializeField, Range(1.0f, 100.0f)]
+    [SerializeField, Range(0.0f, 25.0f)]
     public float _Stiffness = Constants.STIFFNESS;
 
     /**
@@ -46,6 +46,8 @@ public class ParticleGenerator : MonoBehaviour{
     public void Start(){
         _TerrainGenerator.Init();
         StaggeredGridV2.Init(_TerrainGenerator);
+        _TerrainGenerator.GetGradients(StaggeredGridV2._Gradients);
+        _TerrainGenerator.SetNormals();
         mLavaTextureMap.Init();
         mSphGPU = gameObject.AddComponent(typeof(ParticleSPHGPU)) as ParticleSPHGPU;
         mSphGPU.Create(mMaxParticles, _Shader, _TerrainGenerator);

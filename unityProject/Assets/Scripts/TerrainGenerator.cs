@@ -24,11 +24,18 @@ public class TerrainGenerator : MonoBehaviour{
 
     private int _Resolution;
     public float[,] _Heights;
+    public Vector2[,] _Gradients;
 
     private Vector3[] _Vertices;
     private Vector3[] _InitVertices;
+    private Vector3[] _Normals;
     private int[] _Indices;
     private Vector2[] _UVs;
+
+    private float _MaxGradX;
+    private float _MaxGradY;
+    private float _MinGradX;
+    private float _MinGradY;
 
     [SerializeField]
     public Material _Material;
@@ -96,6 +103,8 @@ public class TerrainGenerator : MonoBehaviour{
 
         _Vertices = new Vector3[_Resolution*_Resolution];
         _InitVertices = new Vector3[_Resolution*_Resolution];
+        _Gradients = new Vector2[_Resolution, _Resolution];
+        _Normals = new Vector3[_Resolution*_Resolution];
         _UVs = new Vector2[_Resolution*_Resolution];
         int nbIndices = (_Resolution-1)*(_Resolution-1)*12;
         _Indices = new int[nbIndices];
@@ -138,6 +147,37 @@ public class TerrainGenerator : MonoBehaviour{
         }
         // Debug.Log(vertices.Length);
         _Mesh.SetVertices(_Vertices);
+    }
+
+    public void GetGradients(Vector2[,] grad){
+        int iMax = grad.GetLength(1);
+        int jMax = grad.GetLength(0);
+
+        for(int j=0; j<jMax; j++){
+            for(int i=0; i<iMax; i++){
+                _Gradients[j,i] = grad[j,i];
+            }
+        }
+    }
+
+    public void SetNormals(){
+        // init normals
+        for(int j=0; j<_Resolution; j++){
+            for(int i=0; i<_Resolution; i++){
+                int idx = i + j*_Resolution;
+                if(i==_Resolution-1 || j==_Resolution-1){
+                    _Normals[idx] = Vector3.zero;
+                    continue;
+                }
+                Vector2 grad = _Gradients[j,i];
+                // _Normals[idx] = new Vector3(grad.x, _Heights[j,i]-_Heights[j+1,i], grad.y);
+                _Normals[idx] = new Vector3(grad.x, 0, grad.y);
+                // _Normals[idx] = new Vector3(0, 0, 1-(grad.y-_MinGradY) / (_MaxGradY-_MinGradY));
+                // _Normals[idx] = new Vector3(1-(grad.x-_MinGradX) / (_MaxGradX-_MinGradX), 0, 0);
+            }
+        }
+        // Debug.Log(vertices.Length);
+        _Mesh.SetNormals(_Normals);
     }
 
     private void SetVertices(List<Vector3> updatedIndices){

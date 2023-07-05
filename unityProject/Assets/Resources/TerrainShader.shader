@@ -1,5 +1,6 @@
 Shader "Custom/TerrainShader"{
     Properties {
+        _SmoothingStrength("The smoothing strength", Float) = 0.1
     }
     SubShader{
         Tags {"Queue"="Transparent" "RenderType"="Opaque" "RenderTexture"="True" "LightMode" = "ForwardBase"}
@@ -14,11 +15,13 @@ Shader "Custom/TerrainShader"{
             struct appdata{
                 float4 vertex : POSITION;
                 float2 uv : TEXCOORD0;
+                float3 normal : NORMAL;
             };
 
             struct v2g{
                 float4 vertex : POSITION;
                 float2 uv : TEXCOORD0;
+                float3 normal : NORMAL;
             };
 
             struct g2f{
@@ -27,10 +30,21 @@ Shader "Custom/TerrainShader"{
                 float3 normal : NORMAL;
             };
 
+            float _SmoothingStrength = 0.1;
+
+            float3 SmoothHeight(v2g i[3], int idx){
+                float height = i[idx].vertex.y;
+                float avgHeight = (i[0].vertex.y + i[1].vertex.y + i[2].vertex.y) / 3.0;
+                
+                height = lerp(height, avgHeight, _SmoothingStrength);
+                return float3(i[idx].vertex.x, height, i[idx].vertex.z);
+            }
+
             v2g vert(appdata v){
                 v2g o;
                 o.vertex = v.vertex;
                 o.uv = v.uv;
+                o.normal = v.normal;
                 return o;
             }
 
@@ -40,11 +54,15 @@ Shader "Custom/TerrainShader"{
                 float3 normal = normalize(cross(input[1].vertex - input[0].vertex, input[2].vertex - input[0].vertex));
 
                 for(int i=0; i<3; i++){
-                    o.uv.x = input[i].uv.x;
-                    o.uv.z = input[i].vertex.y;
-                    o.uv.y = input[i].vertex.y - input[i].uv.y;
-                    o.vertex = UnityObjectToClipPos(input[i].vertex);
+                    o.uv.x = input[i].uv.x; // random value
+                    o.uv.z = input[i].vertex.y; // height of the current terrain
+                    o.uv.y = input[i].vertex.y - input[i].uv.y; // difference of height between current terrain and old terrain
+
+                    o.vertex = UnityObjectToClipPos(SmoothHeight(input, i));
+                    // o.vertex = UnityObjectToClipPos(input[i].vertex);
+                    // o.normal = input[i].normal;
                     o.normal = normal;
+                    // o.normal.y = normal.y;
                     triStream.Append(o);
                 }
                 triStream.RestartStrip();
@@ -66,7 +84,15 @@ Shader "Custom/TerrainShader"{
                 }
 
                 fixed light = saturate (dot (normalize(_WorldSpaceLightPos0), i.normal));
-                col.rgb *= light;    
+                col.rgb *= light;  
+
+                // col = fixed4(i.normal * 0.5 + 0.5, 1);
+                // // float r = 0;
+                // float r = i.normal.r > 0 ? 1 : 0;
+                // float g = 0.5;
+                // // float b = 0;
+                // float b = i.normal.b > 0 ? 1 : 0;
+                // col = fixed4(r,g,b,1);
 
                 return col;
             }
