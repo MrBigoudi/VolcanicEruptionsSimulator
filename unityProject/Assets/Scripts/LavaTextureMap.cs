@@ -13,7 +13,11 @@ public class LavaTextureMap : MonoBehaviour{
 
     List<ParticleGPU> _Particles;
     Vector3[] _Positions;
+    Vector2[] _Indices;
     float[] _Heights;
+    List<Vector3> _UpdatedIndices;
+    Vector3[,] _Tmp;
+    int _NbCols;
 
     // public Material _Material;
     // private Mesh _Mesh;
@@ -25,7 +29,7 @@ public class LavaTextureMap : MonoBehaviour{
     [SerializeField, Range(0, 2)]
     public float _Spike = 1.0f;
 
-    private RenderTexture _RenderTexture;
+    // private RenderTexture _RenderTexture;
 
     private float[,] _TerrainHeights;
     private float[,] _InitialTerrainHeights;
@@ -74,37 +78,44 @@ public class LavaTextureMap : MonoBehaviour{
     private void UpdateTerrainHeights(){
         int len = _Heights.Length;
         // _TerrainHeights = CopyHeights(_InitialTerrainHeights);
-        List<Vector3> updatedIndices = new List<Vector3>();
+        // List<Vector3> updatedIndices = new List<Vector3>();
 
-        Vector2[,] tmp = new Vector2[_TerrainHeights.GetLength(0),_TerrainHeights.GetLength(1)]; // change it to a smaller list
-        float maxHeight = 0.0f;
+        // get new position
+        
+        // float maxHeight = 0.0f;
         for(int i=0; i<len; i++){
-            int[] indices = StaggeredGridV2.GetIndices(_Positions[i]);
-            int zIdx = indices[0];
-            int xIdx = indices[1];
+            Vector2 indices = _Indices[i];
+            int zIdx = (int)indices.x;
+            int xIdx = (int)indices.y;
 
-            tmp[zIdx, xIdx] += new Vector2(1, _Heights[i]);
-            if(tmp[zIdx, zIdx].x > maxHeight){
-                maxHeight = tmp[zIdx, xIdx].x;
-            }
+            _Tmp[zIdx, xIdx] += new Vector3(1, _Heights[i], 1); // _Tmp[] = (nbParticles, totalHeight, addedtolist)
+            // if(_Tmp[zIdx, zIdx].x > maxHeight){
+            //     maxHeight = _Tmp[zIdx, xIdx].x;
+            // }
         }
 
         // normalize heights and update terrain
         for(int i=0; i<len; i++){
-            int[] indices = StaggeredGridV2.GetIndices(_Positions[i]);
-            int zIdx = indices[0];
-            int xIdx = indices[1];
-            float v1 = (tmp[zIdx, xIdx].y / tmp[zIdx, xIdx].x);
+            Vector2 indices = _Indices[i];
+            int zIdx = (int)indices.x;
+            int xIdx = (int)indices.y;
+
+            if(_Tmp[zIdx, xIdx].z == 0) continue;
+
+            float v1 = (_Tmp[zIdx, xIdx].y / _Tmp[zIdx, xIdx].x);
             // Debug.Log(v1);
             float v2 = _InitialTerrainHeights[zIdx, xIdx];
             // _TerrainHeights[zIdx, xIdx] = (v1*_Spike + v2);
 
-            updatedIndices.Add(new Vector3(zIdx, xIdx, (v1*_Spike + v2)));
+            _UpdatedIndices.Add(new Vector3(zIdx, xIdx, (v1*_Spike + v2)));
+            _Tmp[zIdx, xIdx] = Vector3.zero;
+
         }
         
         // NormalizeTerrain(_InitialMaxHeight);
         // _TerrainGenerator.Updt(_TerrainHeights, updatedIndices);
-        _TerrainGenerator.Updt(updatedIndices);
+        _TerrainGenerator.Updt(_UpdatedIndices);
+        _UpdatedIndices.Clear();
     }
 
 
@@ -124,7 +135,10 @@ public class LavaTextureMap : MonoBehaviour{
         // renderer.material = _Material;
 
         _TerrainHeights = CopyHeights(_TerrainGenerator._Heights);
-        _InitialTerrainHeights = CopyHeights(_TerrainGenerator._Heights);        
+        _InitialTerrainHeights = CopyHeights(_TerrainGenerator._Heights);
+        _NbCols = _TerrainHeights.GetLength(1);
+        _UpdatedIndices = new List<Vector3>();
+        _Tmp = new Vector3[_TerrainHeights.GetLength(0),_TerrainHeights.GetLength(1)];
     }
 
     // private void UpdtMesh(){
@@ -150,13 +164,15 @@ public class LavaTextureMap : MonoBehaviour{
     /**
      * Update the lava's heights
     */
-    public void Updt(int nbParticles, float[] heights, Vector3[] positions){
+    public void Updt(int nbParticles, float[] heights, Vector3[] positions, Vector2[] indices){
         _Positions = new Vector3[nbParticles];
         _Heights = new float[nbParticles];
+        _Indices = new Vector2[nbParticles];
 
         for(int i=0; i<nbParticles; i++){
             _Positions[i] = positions[i];
             _Heights[i] = heights[i];
+            _Indices[i] = indices[i];
             // if(i==0) 
                 // Debug.Log(i + ": " + heights[i] + ", " + positions[i]);
         }

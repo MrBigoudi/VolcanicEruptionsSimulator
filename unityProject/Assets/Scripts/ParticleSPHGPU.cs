@@ -23,8 +23,8 @@ public struct ParticleGPU{
 */
 public class ParticleSPHGPU : MonoBehaviour{
 
-    public int mNbMaxParticles = 0;
-    public int mNbCurParticles = 0;
+    public int mNbMaxParticles;
+    public int mNbCurParticles;
 
     private static int _MAX_NEIGHBOURS = 1000;
 
@@ -43,12 +43,17 @@ public class ParticleSPHGPU : MonoBehaviour{
     private int _KernelTimeIntegrationId;
     private int _KernelPropagatePositionsId;
 
+    // private int _TestId;
+    // private ComputeBuffer _TestBuffer;
+    // private float[] _Test;
+
     // compute shader buffers
     private int _ParticlesId;
     private int _NeighboursId;
     private int _HeightsId;
     private int _HeightsGradientsId;
     private int _PositionsId;
+    private int _IndicesId;
     private int _VolumesId;
     private int _CellsId;
     private ComputeBuffer _ParticlesBuffer;
@@ -56,6 +61,7 @@ public class ParticleSPHGPU : MonoBehaviour{
     private ComputeBuffer _HeightsBuffer;
     private ComputeBuffer _HeightsGradientsBuffer;
     private ComputeBuffer _PositionsBuffer;
+    private ComputeBuffer _IndicesBuffer;
     private ComputeBuffer _VolumesBuffer;
     private ComputeBuffer _CellsBuffer;
 
@@ -63,12 +69,14 @@ public class ParticleSPHGPU : MonoBehaviour{
     private int _StaggeredGridHeightsId;
     private int _StaggeredGridHalfHeightsColsId;
     private int _StaggeredGridHalfHeightsLinesId;
+    private int _StaggeredGridHalfHeightsId;
     private int _StaggeredGridGradientsId;
     private int _StaggeredGridLaplaciansId;
     private ComputeBuffer _StaggeredGridBuffer;
     private ComputeBuffer _StaggeredGridHeightsBuffer;
     private ComputeBuffer _StaggeredGridHalfHeightsColsBuffer;
     private ComputeBuffer _StaggeredGridHalfHeightsLinesBuffer;
+    private ComputeBuffer _StaggeredGridHalfHeightsBuffer;
     private ComputeBuffer _StaggeredGridGradientsBuffer;
     private ComputeBuffer _StaggeredGridLaplaciansBuffer;
 
@@ -77,6 +85,7 @@ public class ParticleSPHGPU : MonoBehaviour{
     public  float[]   _Heights;
     private Vector3[] _HeightsGradients;
     public  Vector3[] _Positions;
+    public  Vector2[] _Indices;
     private float[]   _Volumes;
     private int[]     _Cells;
 
@@ -85,6 +94,7 @@ public class ParticleSPHGPU : MonoBehaviour{
 
     public void Create(int maxParticles, ComputeShader shader, TerrainGenerator terrain){
         mNbMaxParticles = maxParticles;
+        mNbCurParticles = 0;
         _Shader = shader;
         // Debug.Log(_Shader);
         Init(terrain);
@@ -107,6 +117,7 @@ public class ParticleSPHGPU : MonoBehaviour{
         _StaggeredGridHeightsId          = Shader.PropertyToID("_StaggeredGridHeights");
         _StaggeredGridHalfHeightsColsId  = Shader.PropertyToID("_StaggeredGridHalfHeightsCols");
         _StaggeredGridHalfHeightsLinesId = Shader.PropertyToID("_StaggeredGridHalfHeightsLines");
+        _StaggeredGridHalfHeightsId      = Shader.PropertyToID("_StaggeredGridHalfHeights");
         _StaggeredGridGradientsId        = Shader.PropertyToID("_StaggeredGridGradients");
         _StaggeredGridLaplaciansId       = Shader.PropertyToID("_StaggeredGridLaplacians");
     }
@@ -120,8 +131,11 @@ public class ParticleSPHGPU : MonoBehaviour{
         _HeightsId          = Shader.PropertyToID("_Heights");
         _HeightsGradientsId = Shader.PropertyToID("_HeightsGradients");
         _PositionsId        = Shader.PropertyToID("_Positions");
+        _IndicesId          = Shader.PropertyToID("_Indices");
         _VolumesId          = Shader.PropertyToID("_Volumes");
         _CellsId            = Shader.PropertyToID("_Cells");
+
+        // _TestId = Shader.PropertyToID("_Test");
     }
 
     private void InitIds(){
@@ -134,9 +148,12 @@ public class ParticleSPHGPU : MonoBehaviour{
         _Heights          = new float[mNbMaxParticles];
         _HeightsGradients = new Vector3[mNbMaxParticles];
         _Positions        = new Vector3[mNbMaxParticles];
+        _Indices          = new Vector2[mNbMaxParticles];
         _Volumes          = new float[mNbMaxParticles];
         _Cells            = new int[mNbMaxParticles];
         _Particles = new ParticleGPU[mNbMaxParticles];
+
+        // _Test = new float[1];
     }
 
     private void InitGpuValues(TerrainGenerator terrain){
@@ -282,12 +299,14 @@ public class ParticleSPHGPU : MonoBehaviour{
         float[] heights          = Convert2dArray(StaggeredGridV2._Heights);
         float[] halfHeightsCols  = Convert2dArray(StaggeredGridV2._HalfHeightsCols);
         float[] halfHeightsLines = Convert2dArray(StaggeredGridV2._HalfHeightsLines);
+        float[] halfHeights      = Convert2dArray(StaggeredGridV2._HalfHeights);
         Vector2[] gradients      = Convert2dArray(StaggeredGridV2._Gradients);
         float[] laplacians       = Convert2dArray(StaggeredGridV2._Laplacians);
         // init grid buffers
         _StaggeredGridHeightsBuffer          = SetData(heights, _StaggeredGridHeightsId);
         _StaggeredGridHalfHeightsColsBuffer  = SetData(halfHeightsCols, _StaggeredGridHalfHeightsColsId);
         _StaggeredGridHalfHeightsLinesBuffer = SetData(halfHeightsLines, _StaggeredGridHalfHeightsLinesId);
+        _StaggeredGridHalfHeightsBuffer      = SetData(halfHeights, _StaggeredGridHalfHeightsId);
         _StaggeredGridGradientsBuffer        = SetData(gradients, _StaggeredGridGradientsId);
         _StaggeredGridLaplaciansBuffer       = SetData(laplacians, _StaggeredGridLaplaciansId);
         // release buffers
@@ -301,11 +320,14 @@ public class ParticleSPHGPU : MonoBehaviour{
     private void InitGpuBuffers(){
         _ParticlesBuffer        = SetData(_Particles, _ParticlesId);
         _PositionsBuffer        = SetData(_Positions, _PositionsId);
+        _IndicesBuffer          = SetData(_Indices, _IndicesId);
         _HeightsBuffer          = SetData(_Heights, _HeightsId);
         _HeightsGradientsBuffer = SetData(_HeightsGradients, _HeightsGradientsId);
         _VolumesBuffer          = SetData(_Volumes, _VolumesId);
         _CellsBuffer            = SetData(_Cells, _CellsId);
         _NeighboursBuffer       = SetData(_Neighbours, _NeighboursId);
+
+        // _TestBuffer = SetData(_Test, _TestId);
     }
 
     private void Init(TerrainGenerator terrain){
@@ -318,7 +340,9 @@ public class ParticleSPHGPU : MonoBehaviour{
 
     private void GenerateParticle(Vector3 position, int res){
 
-        if(mNbCurParticles <= mNbMaxParticles){
+        // Debug.Log(mNbCurParticles);
+
+        if(mNbCurParticles < mNbMaxParticles){
             // init CPU part
             mNbCurParticles++;
             _Shader.SetInt("_NbCurParticles", mNbCurParticles);
@@ -356,17 +380,23 @@ public class ParticleSPHGPU : MonoBehaviour{
     private void TimeIntegration(int res){
         _Shader.SetFloat("DT", Time.deltaTime);
         _Shader.Dispatch(_KernelTimeIntegrationId, res, 1, 1);
+
+        // _Test[0] = 0.0f;
+        // _TestBuffer = SetData(_Test, _TestId);
         _Shader.Dispatch(_KernelPropagatePositionsId, res, 1, 1);
+        // _TestBuffer.GetData(_Test);
+        // Debug.Log(_Test[0]);
     }
 
     private void FetchHeigthsAndPositions(){
         _HeightsBuffer.GetData(_Heights);
         _PositionsBuffer.GetData(_Positions);
+        _IndicesBuffer.GetData(_Indices);
     }
 
     public void Updt(Vector3 position, float stiffness){
         _Shader.SetFloat("STIFF", stiffness);
-        int res = mNbMaxParticles / 100;
+        int res = (mNbMaxParticles / 100)+1;
         // generate particle in GPU
         GenerateParticle(position, res);
         // find particles cells in gpu
@@ -395,6 +425,7 @@ public class ParticleSPHGPU : MonoBehaviour{
         _StaggeredGridHeightsBuffer.Dispose();
         _StaggeredGridHalfHeightsColsBuffer.Dispose();
         _StaggeredGridHalfHeightsLinesBuffer.Dispose();
+        _StaggeredGridHalfHeightsBuffer.Dispose();
         _StaggeredGridGradientsBuffer.Dispose();
         _StaggeredGridLaplaciansBuffer.Dispose();
     }

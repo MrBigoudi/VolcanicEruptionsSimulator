@@ -785,7 +785,7 @@ MonoBehaviour:
   mLavaTextureMap: {fileID: 466742551}
   _TerrainGenerator: {fileID: 1379140618}
   mMaxParticles: 50000
-  _Stiffness: 0.1
+  _Stiffness: 0.5
   mDelta: 1
 --- !u!212 &1708334438
 SpriteRenderer:

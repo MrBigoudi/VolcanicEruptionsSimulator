@@ -25,7 +25,7 @@ public class ParticleGenerator : MonoBehaviour{
     /**
      * The maximum number of particles
     */
-    [SerializeField, Range(500, 100000)]
+    [SerializeField, Range(1, 100000)]
     public int mMaxParticles = 50000;
 
     [SerializeField, Range(0.0f, 25.0f)]
@@ -51,6 +51,8 @@ public class ParticleGenerator : MonoBehaviour{
         mLavaTextureMap.Init();
         mSphGPU = gameObject.AddComponent(typeof(ParticleSPHGPU)) as ParticleSPHGPU;
         mSphGPU.Create(mMaxParticles, _Shader, _TerrainGenerator);
+
+        Unity.Collections.LowLevel.Unsafe.UnsafeUtility.SetLeakDetectionMode(Unity.Collections.NativeLeakDetectionMode.EnabledWithStackTrace);
     }
 
     /**
@@ -59,7 +61,7 @@ public class ParticleGenerator : MonoBehaviour{
     public void Update(){
         Vector3 position = GetRandomPosition(mDelta);
         mSphGPU.Updt(position, _Stiffness);
-        mLavaTextureMap.Updt(mSphGPU.mNbCurParticles, mSphGPU._Heights, mSphGPU._Positions);
+        mLavaTextureMap.Updt(mSphGPU.mNbCurParticles, mSphGPU._Heights, mSphGPU._Positions, mSphGPU._Indices);
     }
 
     /**

@@ -86,12 +86,23 @@ Shader "Custom/TerrainShader"{
                 fixed light = saturate (dot (normalize(_WorldSpaceLightPos0), i.normal));
                 col.rgb *= light;  
 
-                // col = fixed4(i.normal * 0.5 + 0.5, 1);
-                // // float r = 0;
-                // float r = i.normal.r > 0 ? 1 : 0;
-                // float g = 0.5;
-                // // float b = 0;
-                // float b = i.normal.b > 0 ? 1 : 0;
+                // // col = fixed4(i.normal * 0.5 + 0.5, 1);
+                // float r = 0;
+                // // float r = i.normal.r > 0 ? 1 : 0;
+                // float g = 0;
+                // float b = 0;
+                // // float b = i.normal.b > 0 ? 1 : 0;
+
+                // if(i.normal.r < 0){
+                //     b = i.normal.r * 0.5 + 0.5;
+                // } else if (i.normal.r > 0){
+                //     r = i.normal.r * 0.5 + 0.5;
+                // } else {
+                //     g = 0.5;
+                // }
+
+                // // r = i.normal.r == 0 ? 1 : 0;
+                // // b = i.normal.b == 0 ? 1 : 0;
                 // col = fixed4(r,g,b,1);
 
                 return col;
