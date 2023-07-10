@@ -10,12 +10,10 @@ public struct StaggeredGridGPU{
 };
 
 public struct ParticleGPU{
-    public int     _Id;
     public Vector3 _Position;
     public float   _Height;
     public Vector3 _HeightGradient;
     public float   _Volume;
-    public int     _Cell;
 };
 
 /**
@@ -23,12 +21,10 @@ public struct ParticleGPU{
 */
 public class ParticleSPHGPU : MonoBehaviour{
 
-    public int mNbMaxParticles;
-    public int mNbCurParticles;
+    private int _NbMaxParticles;
+    private int _NbCurParticles;
 
-    private static int _MAX_NEIGHBOURS = 1000;
-
-    public ComputeShader _Shader;
+    private ComputeShader _Shader;
 
     private int _NbCurParticlesId;
     private int _NewParticleId;
@@ -36,34 +32,23 @@ public class ParticleSPHGPU : MonoBehaviour{
 
     // compute shader functions
     private int _KernelGenerateParticleId;
-    private int _KernelAssignCellId;
-    private int _KernelFillNeighboursListId;
     private int _KernelUpdateHeightsId;
     private int _KernelPropagateHeightsId;
     private int _KernelTimeIntegrationId;
     private int _KernelPropagatePositionsId;
-
-    // private int _TestId;
-    // private ComputeBuffer _TestBuffer;
-    // private float[] _Test;
+    private int _KernelUpdateTerrainHeightsId;
 
     // compute shader buffers
     private int _ParticlesId;
-    private int _NeighboursId;
     private int _HeightsId;
     private int _HeightsGradientsId;
     private int _PositionsId;
-    private int _IndicesId;
     private int _VolumesId;
-    private int _CellsId;
     private ComputeBuffer _ParticlesBuffer;
-    private ComputeBuffer _NeighboursBuffer;
     private ComputeBuffer _HeightsBuffer;
     private ComputeBuffer _HeightsGradientsBuffer;
     private ComputeBuffer _PositionsBuffer;
-    private ComputeBuffer _IndicesBuffer;
     private ComputeBuffer _VolumesBuffer;
-    private ComputeBuffer _CellsBuffer;
 
     private int _StaggeredGridId;
     private int _StaggeredGridHeightsId;
@@ -80,36 +65,47 @@ public class ParticleSPHGPU : MonoBehaviour{
     private ComputeBuffer _StaggeredGridGradientsBuffer;
     private ComputeBuffer _StaggeredGridLaplaciansBuffer;
 
+    private int _TerrainHeightsId;
+    private ComputeBuffer _TerrainHeightsBuffer;
+    private float[] _TerrainHeights;
+
     // future buffer data
-    private int[]     _Neighbours;
-    public  float[]   _Heights;
+    private float[]   _Heights;
     private Vector3[] _HeightsGradients;
-    public  Vector3[] _Positions;
-    public  Vector2[] _Indices;
+    private Vector3[] _Positions;
     private float[]   _Volumes;
-    private int[]     _Cells;
 
     private ParticleGPU[] _Particles;
 
+    // some usefull values
+    private int _TerrainNbCols;
+    private int _TerrainNbLines;
+    private Vector3 _TerrainSize;
+
+    [SerializeField]
+    public Material _Material;
+    private Mesh _Mesh;
+    private MeshFilter _MeshFilter;
+
+    public int GetNbCurParticles(){
+        return _NbCurParticles;
+    }
 
     public void Create(int maxParticles, ComputeShader shader, TerrainGenerator terrain){
-        mNbMaxParticles = maxParticles;
-        mNbCurParticles = 0;
+        _NbMaxParticles = maxParticles;
+        _NbCurParticles = 0;
         _Shader = shader;
-        // Debug.Log(_Shader);
         Init(terrain);
     }
 
     private void InitKernelsIds(){
         // init functions id
-        _KernelGenerateParticleId   = _Shader.FindKernel("GenerateParticle");
-        _KernelAssignCellId         = _Shader.FindKernel("AssignCell");
-        _KernelFillNeighboursListId = _Shader.FindKernel("FillNeighboursList");
-        _KernelUpdateHeightsId      = _Shader.FindKernel("UpdateHeights");
-        _KernelPropagateHeightsId   = _Shader.FindKernel("PropagateHeights");
-        _KernelTimeIntegrationId    = _Shader.FindKernel("TimeIntegration");
-        _KernelPropagatePositionsId = _Shader.FindKernel("PropagatePositions");
-        // Debug.Log(_KernelGenerateParticleId + ", " + _KernelAssignCellId + ", " + _KernelFillNeighboursListId);
+        _KernelGenerateParticleId     = _Shader.FindKernel("GenerateParticle");
+        _KernelUpdateHeightsId        = _Shader.FindKernel("UpdateHeights");
+        _KernelPropagateHeightsId     = _Shader.FindKernel("PropagateHeights");
+        _KernelTimeIntegrationId      = _Shader.FindKernel("TimeIntegration");
+        _KernelPropagatePositionsId   = _Shader.FindKernel("PropagatePositions");
+        _KernelUpdateTerrainHeightsId = _Shader.FindKernel("UpdateTerrainHeights");
     }
 
     private void InitStaggeredGridIds(){
@@ -127,15 +123,12 @@ public class ParticleSPHGPU : MonoBehaviour{
         _NewParticleId      = Shader.PropertyToID("_NewParticle");
 
         _ParticlesId        = Shader.PropertyToID("_Particles");
-        _NeighboursId       = Shader.PropertyToID("_Neighbours");
         _HeightsId          = Shader.PropertyToID("_Heights");
         _HeightsGradientsId = Shader.PropertyToID("_HeightsGradients");
         _PositionsId        = Shader.PropertyToID("_Positions");
-        _IndicesId          = Shader.PropertyToID("_Indices");
         _VolumesId          = Shader.PropertyToID("_Volumes");
-        _CellsId            = Shader.PropertyToID("_Cells");
 
-        // _TestId = Shader.PropertyToID("_Test");
+        _TerrainHeightsId   = Shader.PropertyToID("_TerrainHeights");
     }
 
     private void InitIds(){
@@ -144,16 +137,13 @@ public class ParticleSPHGPU : MonoBehaviour{
     }
 
     private void InitBuffersData(){
-        _Neighbours       = new int[_MAX_NEIGHBOURS*mNbMaxParticles];
-        _Heights          = new float[mNbMaxParticles];
-        _HeightsGradients = new Vector3[mNbMaxParticles];
-        _Positions        = new Vector3[mNbMaxParticles];
-        _Indices          = new Vector2[mNbMaxParticles];
-        _Volumes          = new float[mNbMaxParticles];
-        _Cells            = new int[mNbMaxParticles];
-        _Particles = new ParticleGPU[mNbMaxParticles];
+        _Heights          = new float[_NbMaxParticles];
+        _HeightsGradients = new Vector3[_NbMaxParticles];
+        _Positions        = new Vector3[_NbMaxParticles];
+        _Volumes          = new float[_NbMaxParticles];
 
-        // _Test = new float[1];
+        _Particles = new ParticleGPU[_NbMaxParticles];
+        _TerrainHeights = Convert2dArray(StaggeredGridV2._Heights);
     }
 
     private void InitGpuValues(TerrainGenerator terrain){
@@ -169,11 +159,13 @@ public class ParticleSPHGPU : MonoBehaviour{
         _Shader.SetFloat("ALPHA_VISCOSITY", Constants.ALPHA_VISCOSITY);
         _Shader.SetFloat("ALPHA_VISCOSITY_LAPLACIAN", Constants.ALPHA_VISCOSITY_LAPLACIAN);
 
-        _Shader.SetInt("MAX_NEIGHBOURS", _MAX_NEIGHBOURS);
-        _Shader.SetInt("MAX_PARTICLES", mNbMaxParticles);
+        _Shader.SetFloat("SPIKE", 1.0f);
 
-        int nbCols = (int)(((int)(terrain._Size.x+1)) / (2*Constants.H));
-        _Shader.SetInt("GRID_NB_COLS", nbCols);
+        _Shader.SetInt("MAX_PARTICLES", _NbMaxParticles);
+
+        _TerrainSize    = terrain._Size;
+        _TerrainNbCols  = terrain.GetResolution();
+        _TerrainNbLines = terrain.GetResolution();
     }
 
     private float[] Convert2dArray(float[,] arr){
@@ -227,12 +219,11 @@ public class ParticleSPHGPU : MonoBehaviour{
     private void SendDataToAllKernels(ComputeBuffer buffer, int id){
         // set to every kernel
         _Shader.SetBuffer(_KernelGenerateParticleId, id, buffer);
-        _Shader.SetBuffer(_KernelAssignCellId, id, buffer);
-        _Shader.SetBuffer(_KernelFillNeighboursListId, id, buffer);
         _Shader.SetBuffer(_KernelUpdateHeightsId, id, buffer);
         _Shader.SetBuffer(_KernelPropagateHeightsId, id, buffer);
         _Shader.SetBuffer(_KernelTimeIntegrationId, id, buffer);
         _Shader.SetBuffer(_KernelPropagatePositionsId, id, buffer);
+        _Shader.SetBuffer(_KernelUpdateTerrainHeightsId, id, buffer);
     }
 
     private ComputeBuffer SetData(float[] data, int id){
@@ -264,7 +255,7 @@ public class ParticleSPHGPU : MonoBehaviour{
     }
 
     private ComputeBuffer SetData(ParticleGPU[] data, int id){
-        ComputeBuffer buffer = new ComputeBuffer(data.Length, sizeof(int)*2 + sizeof(float)*8);
+        ComputeBuffer buffer = new ComputeBuffer(data.Length, sizeof(float)*8);
         buffer.SetData(data);
         SendDataToAllKernels(buffer, id);
         return buffer;
@@ -320,14 +311,11 @@ public class ParticleSPHGPU : MonoBehaviour{
     private void InitGpuBuffers(){
         _ParticlesBuffer        = SetData(_Particles, _ParticlesId);
         _PositionsBuffer        = SetData(_Positions, _PositionsId);
-        _IndicesBuffer          = SetData(_Indices, _IndicesId);
         _HeightsBuffer          = SetData(_Heights, _HeightsId);
         _HeightsGradientsBuffer = SetData(_HeightsGradients, _HeightsGradientsId);
         _VolumesBuffer          = SetData(_Volumes, _VolumesId);
-        _CellsBuffer            = SetData(_Cells, _CellsId);
-        _NeighboursBuffer       = SetData(_Neighbours, _NeighboursId);
 
-        // _TestBuffer = SetData(_Test, _TestId);
+        _TerrainHeightsBuffer   = SetData(_TerrainHeights, _TerrainHeightsId);
     }
 
     private void Init(TerrainGenerator terrain){
@@ -336,25 +324,21 @@ public class ParticleSPHGPU : MonoBehaviour{
         InitBuffersData();
         InitGpuBuffers();
         InitStaggeredGrid();
+        InitMesh();
     }
 
     private void GenerateParticle(Vector3 position, int res){
-
-        // Debug.Log(mNbCurParticles);
-
-        if(mNbCurParticles < mNbMaxParticles){
+        if(_NbCurParticles < _NbMaxParticles){
             // init CPU part
-            mNbCurParticles++;
-            _Shader.SetInt("_NbCurParticles", mNbCurParticles);
+            _Shader.SetInt(_NbCurParticlesId, _NbCurParticles);
+            _NbCurParticles++;
 
             // init GPU part
             ParticleGPU p = new ParticleGPU{
-                                    _Id = mNbCurParticles-1,
                                     _Position = position,
                                     _Height = 0.4f,
                                     _HeightGradient = Vector3.zero,
-                                    _Volume = 200.0f/Constants.RHO_0,
-                                    _Cell = 0
+                                    _Volume = 200.0f/Constants.RHO_0
                                 };
             ParticleGPU[] data = new ParticleGPU[1];
             data[0] = p;
@@ -362,14 +346,6 @@ public class ParticleSPHGPU : MonoBehaviour{
 
             _Shader.Dispatch(_KernelGenerateParticleId, res, 1, 1);
         }
-    }
-
-    private void AssignCell(int res){
-        _Shader.Dispatch(_KernelAssignCellId, res, 1, 1);
-    }
-
-    private void FillNeighboursList(int res){
-        _Shader.Dispatch(_KernelFillNeighboursListId, res, 1, 1);
     }
 
     private void UpdateHeights(int res){
@@ -380,46 +356,35 @@ public class ParticleSPHGPU : MonoBehaviour{
     private void TimeIntegration(int res){
         _Shader.SetFloat("DT", Time.deltaTime);
         _Shader.Dispatch(_KernelTimeIntegrationId, res, 1, 1);
-
-        // _Test[0] = 0.0f;
-        // _TestBuffer = SetData(_Test, _TestId);
         _Shader.Dispatch(_KernelPropagatePositionsId, res, 1, 1);
-        // _TestBuffer.GetData(_Test);
-        // Debug.Log(_Test[0]);
     }
 
-    private void FetchHeigthsAndPositions(){
-        _HeightsBuffer.GetData(_Heights);
-        _PositionsBuffer.GetData(_Positions);
-        _IndicesBuffer.GetData(_Indices);
+    private void UpdateTerrainHeights(){
+        int res = (_TerrainNbCols*_TerrainNbLines / 1024) + 1;
+        _Shader.Dispatch(_KernelUpdateTerrainHeightsId, res, 1, 1);
     }
 
     public void Updt(Vector3 position, float stiffness){
         _Shader.SetFloat("STIFF", stiffness);
-        int res = (mNbMaxParticles / 100)+1;
+        int res = (_NbMaxParticles / 128)+1;
         // generate particle in GPU
         GenerateParticle(position, res);
-        // find particles cells in gpu
-        AssignCell(res);
-        // fill neighbour list in gpu
-        FillNeighboursList(res);
         // calculate heights in gpu
         UpdateHeights(res);
         // time integration gpu
         TimeIntegration(res);
-        // get back the heights and the positions
-        FetchHeigthsAndPositions();
+        // update the terrain heights
+        UpdateTerrainHeights();
     }
 
     private void ReleaseBuffers(){
         _ParticlesBuffer.Dispose();
-        _NeighboursBuffer.Dispose();
         _HeightsBuffer.Dispose();
         _HeightsGradientsBuffer.Dispose();
         _PositionsBuffer.Dispose();
         _VolumesBuffer.Dispose();
-        _CellsBuffer.Dispose();
         _NewParticleBuffer.Dispose();
+        _TerrainHeightsBuffer.Dispose();
 
         _StaggeredGridBuffer.Dispose();
         _StaggeredGridHeightsBuffer.Dispose();
@@ -436,6 +401,75 @@ public class ParticleSPHGPU : MonoBehaviour{
     }
 
     public void OnDisable(){
-        ReleaseBuffers();
+        // ReleaseBuffers();
     }
+
+    private void SetMaterialBuffers(){
+        _Material.SetBuffer("_TerrainHeights", _TerrainHeightsBuffer);
+        _Material.SetBuffer("_InitialTerrainHeights", _StaggeredGridHeightsBuffer);
+    }
+
+    private void InitMesh(){
+        _Mesh = new Mesh();
+        _Mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+        _MeshFilter = gameObject.AddComponent<MeshFilter>();
+        _MeshFilter.mesh = _Mesh;
+        Renderer renderer = gameObject.AddComponent<MeshRenderer>();
+        renderer.material = _Material;
+
+        SetMaterialBuffers();
+        SetVertices();
+        SetIndices();
+        _Mesh.UploadMeshData(false);
+    }
+
+    private void SetVertices(){
+        Vector3[] vertices = new Vector3[_TerrainNbLines*_TerrainNbCols];
+        for(int j=0; j<_TerrainNbLines; j++){
+            for(int i=0; i<_TerrainNbCols; i++){
+                float x = i * _TerrainSize.x / _TerrainNbCols;
+                float z = j * _TerrainSize.z / _TerrainNbLines;
+                int idx = i + j*_TerrainNbCols;
+                vertices[idx].x = x;
+                vertices[idx].z = z;
+            }
+        }
+        _Mesh.SetVertices(vertices);
+    }
+
+    private void SetIndices(){
+        // init indices
+        int[] indices = new int[_TerrainNbLines*_TerrainNbCols*12];
+        int idx = 0;
+        for(int j=0; j<_TerrainNbLines-1; j++){
+            for(int i=0; i<_TerrainNbCols-1; i++){
+                int id1 = i + j*_TerrainNbCols;
+                int id2 = id1 + 1;
+                int id3 = id1 + _TerrainNbCols;
+                int id4 = id3 + 1;
+                // first side
+                // first triangle
+                indices[idx++] = id1;
+                indices[idx++] = id2;
+                indices[idx++] = id3;
+                // second triangle
+                indices[idx++] = id3;
+                indices[idx++] = id2;
+                indices[idx++] = id4;
+
+                // second side
+                // first triangle
+                indices[idx++] = id1;
+                indices[idx++] = id3;
+                indices[idx++] = id2;
+                // second triangle
+                indices[idx++] = id3;
+                indices[idx++] = id4;
+                indices[idx++] = id2;
+            }
+        }
+        // Debug.Log(vertices.Length + ", " + nbIndices);
+        _Mesh.SetIndices(indices, MeshTopology.Triangles, 0);
+    }
+
 }
