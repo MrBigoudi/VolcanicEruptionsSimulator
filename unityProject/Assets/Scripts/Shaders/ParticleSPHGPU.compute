@@ -78,7 +78,7 @@ float3 StaggeredGridGetPosition(uint id){
     return float3(x,y,z);
 }
 
-float StaggeredGridBilinearInterpolation(float x, float z, float xIdx, float zIdx, float w21, float w22, float w11, float w12){
+float StaggeredGridBilinearInterpolation(float x, float z, float xIdx, float zIdx, float w11, float w12, float w21, float w22){
     float xLeft  = xIdx*_StaggeredGrid[0]._DeltaCols;
     float xRight = (xIdx+1)*_StaggeredGrid[0]._DeltaCols;
     float zUp    = (zIdx+1)*_StaggeredGrid[0]._DeltaLines;
@@ -106,12 +106,12 @@ float StaggeredGridGetHeight(float3 pos){
     float z = pos.z;
 
     // interpolate height, bilinearly
-    float upRight   = (zIdx >= _StaggeredGrid[0]._NbLines-1 || xIdx >= _StaggeredGrid[0]._NbCols-1) ? 0.0f : _StaggeredGridHalfHeights[StaggeredGridConvertIndices(zIdx, xIdx)];
     float upLeft    = (zIdx >= _StaggeredGrid[0]._NbLines-1 || xIdx <= 0)                           ? 0.0f : _StaggeredGridHalfHeights[StaggeredGridConvertIndices(zIdx, xIdx-1)];
+    float upRight   = (zIdx >= _StaggeredGrid[0]._NbLines-1 || xIdx >= _StaggeredGrid[0]._NbCols-1) ? 0.0f : _StaggeredGridHalfHeights[StaggeredGridConvertIndices(zIdx, xIdx)];
     float downLeft  = (zIdx <= 0 || xIdx <= 0)                                                      ? 0.0f : _StaggeredGridHalfHeights[StaggeredGridConvertIndices(zIdx-1, xIdx-1)];
     float downRight = (zIdx <= 0 || xIdx >= _StaggeredGrid[0]._NbCols-1)                            ? 0.0f : _StaggeredGridHalfHeights[StaggeredGridConvertIndices(zIdx-1, xIdx)];
 
-    float ownRes = StaggeredGridBilinearInterpolation(x, z, xIdx, zIdx, upLeft, upRight, downLeft, downRight);
+    float ownRes = StaggeredGridBilinearInterpolation(x, z, xIdx, zIdx, downLeft, upLeft, downRight, upRight);
     return ownRes;
 }
 
@@ -125,22 +125,23 @@ float3 StaggeredGridGetGradient(ParticleGPU p){
     float z = pos.z;
 
     // interpolate gradients bilinearly
-    float2 upRight   = (zIdx >= _StaggeredGrid[0]._NbLines-1 || xIdx >= _StaggeredGrid[0]._NbCols-1) ? float2(0.0f, 0.0f) : _StaggeredGridGradients[StaggeredGridConvertIndices(zIdx, xIdx)];
     float2 upLeft    = (zIdx >= _StaggeredGrid[0]._NbLines-1 || xIdx <= 0)                           ? float2(0.0f, 0.0f) : _StaggeredGridGradients[StaggeredGridConvertIndices(zIdx, xIdx-1)];
+    float2 upRight   = (zIdx >= _StaggeredGrid[0]._NbLines-1 || xIdx >= _StaggeredGrid[0]._NbCols-1) ? float2(0.0f, 0.0f) : _StaggeredGridGradients[StaggeredGridConvertIndices(zIdx, xIdx)];
     float2 downLeft  = (zIdx <= 0 || xIdx <= 0)                                                      ? float2(0.0f, 0.0f) : _StaggeredGridGradients[StaggeredGridConvertIndices(zIdx-1, xIdx-1)];
     float2 downRight = (zIdx <= 0 || xIdx >= _StaggeredGrid[0]._NbCols-1)                            ? float2(0.0f, 0.0f) : _StaggeredGridGradients[StaggeredGridConvertIndices(zIdx-1, xIdx)];
 
     float dx, dz;
 
-    dx = StaggeredGridBilinearInterpolation(x, z, xIdx, zIdx, upLeft.x, upRight.x, downLeft.x, downRight.x);
-    dz = StaggeredGridBilinearInterpolation(x, z, xIdx, zIdx, upLeft.y, upRight.y, downLeft.y, downRight.y);
-    // if(xIdx >= _StaggeredGrid[0]._NbCols-1 || zIdx >= _StaggeredGrid[0]._NbLines-1){
-    //     dx = 0.0f;
-    //     dz = 0.0f;
-    // } else {
-    //     dx = _StaggeredGridGradients[StaggeredGridConvertIndices(zIdx, xIdx)].x;
-    //     dz = _StaggeredGridGradients[StaggeredGridConvertIndices(zIdx, xIdx)].y;
-    // }
+    dx = StaggeredGridBilinearInterpolation(x, z, xIdx, zIdx, downLeft.x, upLeft.x, downRight.x, upRight.x);
+    dz = StaggeredGridBilinearInterpolation(x, z, xIdx, zIdx, downLeft.y, upLeft.y, downRight.y, upRight.y);
+    // TODO: restore it
+    if(xIdx >= _StaggeredGrid[0]._NbCols-1 || zIdx >= _StaggeredGrid[0]._NbLines-1){
+        dx = 0.0f;
+        dz = 0.0f;
+    } else {
+        dx = _StaggeredGridGradients[StaggeredGridConvertIndices(zIdx, xIdx)].x;
+        dz = _StaggeredGridGradients[StaggeredGridConvertIndices(zIdx, xIdx)].y;
+    }
 
     return float3(dx, pos.y, dz);
 }
@@ -278,7 +279,9 @@ bool AreNeighbours(float3 pi, float3 pj){
 
 
 float3 GetGradientSurface(ParticleGPU pi){
-    return StaggeredGridGetGradient(pi) + pi._HeightGradient;
+    // return StaggeredGridGetGradient(pi) + pi._HeightGradient;
+    // TODO: restore it
+    return float3(StaggeredGridGetGradient(pi).x, 0, 0);
 }
 
 [numthreads(128,1,1)]
@@ -304,7 +307,7 @@ void UpdateTerrainHeights(uint3 id : SV_DispatchThreadID){
         ParticleGPU pj = GetParticle(j);
         if(!AreNeighbours(pos, pj._Position)) continue;
 
-        float  wijHeight = W_POLY6(pos, pj._Position);
+        float wijHeight = W_POLY6(pos, pj._Position);
 
         sumHeights += wijHeight * pj._Volume;
     }
@@ -349,7 +352,9 @@ void TimeIntegration(uint3 id : SV_DispatchThreadID){
     ParticleGPU pi = GetParticle(id);
 
     float3 curPosition = pi._Position;
-    float3 newVelocity = (-G / STIFF)*GetGradientSurface(pi);
+    // TODO: restore it
+    float3 newVelocity = -10*GetGradientSurface(pi);
+    // float3 newVelocity = (-G / STIFF)*GetGradientSurface(pi);
     float3 newPosition = DT*newVelocity + curPosition;
 
     newPosition.y = StaggeredGridGetHeight(newPosition);

@@ -19,11 +19,13 @@ Shader "Custom/TerrainShader"{
             struct appdata{
                 float4 vertex : POSITION;
                 uint id : SV_VertexID;
+                float3 normal : NORMAL;
             };
 
             struct v2g{
                 float4 vertex : POSITION;
                 float id : TEXCOORD0;
+                float3 normal : NORMAL;
             };
 
             struct g2f{
@@ -37,6 +39,7 @@ Shader "Custom/TerrainShader"{
                 o.vertex = v.vertex;
                 o.vertex.y = _TerrainHeights[v.id];
                 o.id = v.id;
+                o.normal = v.normal;
                 return o;
             }
 
@@ -52,6 +55,7 @@ Shader "Custom/TerrainShader"{
                     o.uv = float3(id, deltaY, curHeight);
                     o.vertex = UnityObjectToClipPos(input[i].vertex);
                     o.normal = normal;
+                    // o.normal = input[i].normal;
                     triStream.Append(o);
                 }
                 triStream.RestartStrip();
@@ -78,6 +82,28 @@ Shader "Custom/TerrainShader"{
 
                 fixed light = saturate (dot (normalize(_WorldSpaceLightPos0), i.normal));
                 col.rgb *= light;
+
+                // col = updated ? col : fixed4(i.normal * 0.5 + 0.5, 1);
+
+                // if(!updated){
+                //     // float r = 0;
+                //     float r = i.normal.r > 0 ? i.normal.r : 0;
+                //     float g = i.normal.r > 0 ? 0 : -i.normal.r;
+                //     float b = 0;
+                //     // float b = i.normal.b > 0 ? 1 : 0;
+
+                //     // if(i.normal.r < 0){
+                //     //     b = i.normal.r * 0.5 + 0.5;
+                //     // } else if (i.normal.r > 0){
+                //     //     r = i.normal.r * 0.5 + 0.5;
+                //     // } else {
+                //     //     g = 0.5;
+                //     // }
+
+                //     // r = i.normal.r == 0 ? 1 : 0;
+                //     // b = i.normal.b == 0 ? 1 : 0;
+                //     col = fixed4(r,g,b,1);
+                // }
 
                 return col;
             }

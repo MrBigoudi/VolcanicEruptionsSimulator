@@ -42,10 +42,7 @@ public static class StaggeredGridV2 {
         // init usual heights
         for(int j=0; j<_NbLines; j++){
             for(int i=0; i<_NbCols; i++){
-                float x = _DeltaCols*i;
-                float z = _DeltaLines*j;
-
-                _Heights[j,i] = terrain.SampleHeight(new Vector3(x, 0.0f, z));
+                _Heights[j,i] = terrain.SampleHeight(j, i);
             }
         }
 
@@ -136,7 +133,7 @@ public static class StaggeredGridV2 {
         return new Vector2(posZ, posX);
     }
 
-    private static float BilinearInterpolation(float x, float z, float xIdx, float zIdx, float w21, float w22, float w11, float w12){
+    private static float BilinearInterpolation(float x, float z, float xIdx, float zIdx, float w11, float w12, float w21, float w22){
         float xLeft  = xIdx*_DeltaCols;
         float xRight = (xIdx+1)*_DeltaCols;
         float zUp    = (zIdx+1)*_DeltaLines;
@@ -163,23 +160,14 @@ public static class StaggeredGridV2 {
         float x = pos.x;
         float z = pos.z;
 
-        if(zIdx >= _NbLines-1 || xIdx >= _NbCols-1){
-            return _Heights[zIdx, xIdx];
-        }
-
         // interpolate height, bilinearly
-        float upLeft    = _Heights[zIdx+1, xIdx+0];
-        float upRight   = _Heights[zIdx+1, xIdx+1];
-        float downLeft  = _Heights[zIdx+0, xIdx+0];
-        float downRight = _Heights[zIdx+0, xIdx+1];
+        float upLeft    = (xIdx == 0 || zIdx >= _NbLines - 1)       ? 0.0f : _HalfHeights[zIdx, xIdx-1];
+        float upRight   = (xIdx >= _NbCols-1 || zIdx >= _NbLines-1) ? 0.0f : _HalfHeights[zIdx, xIdx];
+        float downLeft  = (xIdx == 0 || zIdx == 0)                  ? 0.0f : _HalfHeights[zIdx-1, xIdx-1];
+        float downRight = (xIdx >= _NbCols-1 || zIdx == 0)          ? 0.0f : _HalfHeights[zIdx-1, xIdx];
 
-        float ownRes = BilinearInterpolation(x, z, xIdx, zIdx, upLeft, upRight, downLeft, downRight);
+        float ownRes = BilinearInterpolation(x, z, xIdx, zIdx, downLeft, upLeft, downRight, upRight);
 
-        // float unityRes = Terrain.activeTerrain.SampleHeight(pos);
-        // Debug.Log("unity: " + unityRes + ", own: " + ownRes);
-        // Assert.IsTrue(ownRes == unityRes);
-
-        // return unityRes;
         return ownRes;
     }
 }

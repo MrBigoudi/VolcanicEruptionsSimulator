@@ -37,13 +37,7 @@ public class TerrainGenerator : MonoBehaviour{
         return tex;
     }
 
-    public float SampleHeight(Vector3 pos){
-        float deltaCols  = _Size.x / _Resolution;
-        float deltaLines = _Size.z / _Resolution;
-        int i = (int)(pos.x / deltaCols);
-        int j = (int)(pos.z / deltaLines);
-        // if(i >= _Resolution || j >= _Resolution || i<0 || j<0)
-        //     Debug.Log(i + ", " + j + ": " + deltaCols + ", " + deltaLines + ", " + _Resolution + _Size);
+    public float SampleHeight(int j, int i){
         return _Heights[j,i];
     }
 
