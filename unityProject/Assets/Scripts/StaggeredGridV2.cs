@@ -9,6 +9,7 @@ public static class StaggeredGridV2 {
     public static float[,] _Heights;
     public static float[,] _HalfHeightsCols;
     public static float[,] _HalfHeightsLines;
+    public static float[,] _HalfHeights;
 
     public static Vector2[,] _Gradients;
     public static float[,] _Laplacians;
@@ -32,32 +33,61 @@ public static class StaggeredGridV2 {
         _Heights = new float[_NbLines, _NbCols];
         _HalfHeightsCols = new float[_NbLines, _NbCols-1];
         _HalfHeightsLines = new float[_NbLines-1, _NbCols];
+        _HalfHeights = new float[_NbLines-1, _NbCols-1];
         _Gradients = new Vector2[_NbLines-1, _NbCols-1];
         _Laplacians = new float[_NbLines-2, _NbCols-2];
     }
 
     private static void InitHeights(TerrainGenerator terrain){
+        // init usual heights
         for(int j=0; j<_NbLines; j++){
             for(int i=0; i<_NbCols; i++){
-                float x = _DeltaCols*i;
-                float z = _DeltaLines*j;
-
-                _Heights[j,i] = terrain.SampleHeight(new Vector3(x, 0.0f, z));
+                _Heights[j,i] = terrain.SampleHeight(j, i);
             }
         }
 
+        // init half heights
+        for(int j=0; j<_NbLines-1; j++){
+            for(int i=0; i<_NbCols-1; i++){
+                _HalfHeights[j,i] = (_Heights[j,i] + _Heights[j+1,i] + _Heights[j,i+1] + _Heights[j+1, i+1]) * (1.0f/4.0f);
+            }
+        }
+
+        // init half heights inside lines and cols
         for(int j=0; j<_NbLines; j++){
             for(int i=0; i<_NbCols; i++){
-                float x = _DeltaCols*i;
-                float z = _DeltaLines*j;
-                float xHalf = _DeltaCols*(i+0.5f);
-                float zHalf = _DeltaLines*(j+0.5f);
-
+                float up, down, left, right;
+                // update half cols
                 if (i<_NbCols-1){
-                    _HalfHeightsCols[j,i] = GetHeight(new Vector3(xHalf, 0.0f, z));
+                    left = _Heights[j,i];
+                    right = _Heights[j,i+1];
+                    if(j>=_NbLines-1){
+                        up = 0.0f;
+                    } else {
+                        up = _HalfHeights[j,i];
+                    }
+                    if(j==0){
+                        down = 0.0f;
+                    } else {
+                        down = _HalfHeights[j-1,i];
+                    }
+                    _HalfHeightsCols[j,i] = (up+down+left+right)*(1.0f/4.0f);
                 }
+                // update half lines
                 if (j<_NbLines-1){
-                    _HalfHeightsLines[j,i] = GetHeight(new Vector3(x, 0.0f, zHalf));
+                    down = _Heights[j,i];
+                    up = _Heights[j+1,i];
+                    if(i>=_NbCols-1){
+                        right = 0.0f;
+                    } else {
+                        right = _HalfHeights[j,i];
+                    }
+                    if(i==0){
+                        left = 0.0f;
+                    } else {
+                        left = _HalfHeights[j,i-1];
+                    }
+                    _HalfHeightsLines[j,i] = (up+down+left+right)*(1.0f/4.0f);
                 }
             }
         }
@@ -69,6 +99,7 @@ public static class StaggeredGridV2 {
                 float dx = (_HalfHeightsLines[j,i+1]-_HalfHeightsLines[j,i]) / _DeltaCols;
                 float dy = (_HalfHeightsCols[j+1,i]-_HalfHeightsCols[j,i])   / _DeltaLines;
                 _Gradients[j,i] = new Vector2(dx, dy);
+                // Debug.Log(_Gradients[j,i]);
             }
         }
     }
@@ -96,49 +127,47 @@ public static class StaggeredGridV2 {
         InitLaplacians();
     }
 
-    public static int[] GetIndices(Vector3 pos){
-        int posX = (int)(pos.x / _DeltaCols);
-        int posZ = (int)(pos.z / _DeltaLines);
-        int[] array = {posZ, posX};
-        return array;
+    public static Vector2 GetIndices(Vector3 pos){
+        float posX = (pos.x / _DeltaCols);
+        float posZ = (pos.z / _DeltaLines);
+        return new Vector2(posZ, posX);
     }
 
-    private static float BilinearInterpolation(float x, float z, float xIdx, float zIdx, float upLeft, float upRight, float downLeft, float downRight){
+    private static float BilinearInterpolation(float x, float z, float xIdx, float zIdx, float w11, float w12, float w21, float w22){
         float xLeft  = xIdx*_DeltaCols;
         float xRight = (xIdx+1)*_DeltaCols;
         float zUp    = (zIdx+1)*_DeltaLines;
         float zDown  = zIdx*_DeltaLines;
 
-        float res = (downLeft*(xRight-x)*(zUp-z))+(downRight*(x-xLeft)*(zUp-z)
-                        +(upLeft*(xRight-x)*(z-zDown))+(upRight*(x-xLeft)*(z-zDown)));
-        return res /= _DeltaCols*_DeltaLines;
+        float x2_prime = xRight - x;
+        float x1_prime = x - xLeft;
+        float z2_prime = zUp - z;
+        float z1_prime = z - zDown;
+
+        float factor = 1.0f/(_DeltaCols*_DeltaLines);
+
+
+        float res = ((w11*x2_prime + w21*x1_prime)*z2_prime) + ((w12*x2_prime + w22*x1_prime)*z1_prime);
+
+        return res *= factor;
     }
 
     public static float GetHeight(Vector3 pos){
-        int[] indices = GetIndices(pos);
-        int zIdx = indices[0];
-        int xIdx = indices[1];
+        Vector2 indices = GetIndices(pos);
+        int zIdx = (int)indices.x;
+        int xIdx = (int)indices.y;
 
         float x = pos.x;
         float z = pos.z;
 
-        if(zIdx >= _NbLines-1 || xIdx >= _NbCols-1){
-            return _Heights[zIdx, xIdx];
-        }
-
         // interpolate height, bilinearly
-        float upLeft    = _Heights[zIdx+1, xIdx+0];
-        float upRight   = _Heights[zIdx+1, xIdx+1];
-        float downLeft  = _Heights[zIdx+0, xIdx+0];
-        float downRight = _Heights[zIdx+0, xIdx+1];
+        float upLeft    = (xIdx == 0 || zIdx >= _NbLines - 1)       ? 0.0f : _HalfHeights[zIdx, xIdx-1];
+        float upRight   = (xIdx >= _NbCols-1 || zIdx >= _NbLines-1) ? 0.0f : _HalfHeights[zIdx, xIdx];
+        float downLeft  = (xIdx == 0 || zIdx == 0)                  ? 0.0f : _HalfHeights[zIdx-1, xIdx-1];
+        float downRight = (xIdx >= _NbCols-1 || zIdx == 0)          ? 0.0f : _HalfHeights[zIdx-1, xIdx];
 
-        float ownRes = BilinearInterpolation(x, z, xIdx, zIdx, upLeft, upRight, downLeft, downRight);
+        float ownRes = BilinearInterpolation(x, z, xIdx, zIdx, downLeft, upLeft, downRight, upRight);
 
-        // float unityRes = Terrain.activeTerrain.SampleHeight(pos);
-        // Debug.Log("unity: " + unityRes + ", own: " + ownRes);
-        // Assert.IsTrue(ownRes == unityRes);
-
-        // return unityRes;
         return ownRes;
     }
 }

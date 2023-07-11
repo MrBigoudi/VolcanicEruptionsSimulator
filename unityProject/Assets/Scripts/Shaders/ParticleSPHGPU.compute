@@ -1,11 +1,10 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel GenerateParticle
-#pragma kernel AssignCell
-#pragma kernel FillNeighboursList
 #pragma kernel UpdateHeights
 #pragma kernel PropagateHeights
 #pragma kernel TimeIntegration
 #pragma kernel PropagatePositions
+#pragma kernel UpdateTerrainHeights
 
 uniform float H;
 uniform float PI;
@@ -19,10 +18,9 @@ uniform float ALPHA_POLY6_LAPLACIAN;
 uniform float ALPHA_VISCOSITY;
 uniform float ALPHA_VISCOSITY_LAPLACIAN;
 
-uniform uint MAX_NEIGHBOURS;
+uniform float SPIKE;
 uniform uint MAX_PARTICLES;
-
-uniform uint GRID_NB_COLS;
+uniform uint _NbCurParticles;
 
 uniform float DT;
 
@@ -32,31 +30,28 @@ struct StaggeredGridGPU{
 };
 
 struct ParticleGPU{
-    uint   _Id;
     float3 _Position;
     float  _Height;
     float3 _HeightGradient;
     float  _Volume;
-    uint   _Cell;
 };
 
 uniform StructuredBuffer<StaggeredGridGPU> _StaggeredGrid;
 uniform StructuredBuffer<float>  _StaggeredGridHeights;
 uniform StructuredBuffer<float>  _StaggeredGridHalfHeightsCols;
 uniform StructuredBuffer<float>  _StaggeredGridHalfHeightsLines;
+uniform StructuredBuffer<float>  _StaggeredGridHalfHeights;
 uniform StructuredBuffer<float2> _StaggeredGridGradients;
 uniform StructuredBuffer<float>  _StaggeredGridLaplacians;
+
+RWStructuredBuffer<float> _TerrainHeights;
 
 RWStructuredBuffer<ParticleGPU> _Particles;
 RWStructuredBuffer<float3> _Positions;
 RWStructuredBuffer<float>  _Heights;
 RWStructuredBuffer<float3> _HeightsGradients;
 RWStructuredBuffer<float>  _Volumes;
-RWStructuredBuffer<uint>   _Cells;
 
-RWStructuredBuffer<uint>   _Neighbours;
-
-uniform uint _NbCurParticles;
 uniform StructuredBuffer<ParticleGPU> _NewParticle;
 
 // ##################################################################################################################
@@ -72,15 +67,34 @@ uint2 StaggeredGridGetIndices(float3 pos){
     return uint2(posZ, posX);
 };
 
-float StaggeredGridBilinearInterpolation(float x, float z, float xIdx, float zIdx, float upLeft, float upRight, float downLeft, float downRight){
+float3 StaggeredGridGetPosition(uint id){
+    uint yId = id / _StaggeredGrid[0]._NbCols;
+    uint xId = id - yId * _StaggeredGrid[0]._NbCols;
+
+    float x = xId*_StaggeredGrid[0]._DeltaCols;
+    float y = _StaggeredGridHeights[id];
+    float z = yId*_StaggeredGrid[0]._DeltaLines;
+    
+    return float3(x,y,z);
+}
+
+float StaggeredGridBilinearInterpolation(float x, float z, float xIdx, float zIdx, float w11, float w12, float w21, float w22){
     float xLeft  = xIdx*_StaggeredGrid[0]._DeltaCols;
     float xRight = (xIdx+1)*_StaggeredGrid[0]._DeltaCols;
     float zUp    = (zIdx+1)*_StaggeredGrid[0]._DeltaLines;
     float zDown  = zIdx*_StaggeredGrid[0]._DeltaLines;
 
-    float res = (downLeft*(xRight-x)*(zUp-z))+(downRight*(x-xLeft)*(zUp-z)
-                    +(upLeft*(xRight-x)*(z-zDown))+(upRight*(x-xLeft)*(z-zDown)));
-    return res /= _StaggeredGrid[0]._DeltaCols*_StaggeredGrid[0]._DeltaLines;
+    float x2_prime = xRight - x;
+    float x1_prime = x - xLeft;
+    float z2_prime = zUp - z;
+    float z1_prime = z - zDown;
+
+    float factor = 1.0/(_StaggeredGrid[0]._DeltaCols*_StaggeredGrid[0]._DeltaLines);
+
+
+    float res = ((w11*x2_prime + w21*x1_prime)*z2_prime) + ((w12*x2_prime + w22*x1_prime)*z1_prime);
+
+    return res *= factor;
 }
 
 float StaggeredGridGetHeight(float3 pos){
@@ -92,12 +106,12 @@ float StaggeredGridGetHeight(float3 pos){
     float z = pos.z;
 
     // interpolate height, bilinearly
-    float upLeft    = _StaggeredGridHeights[StaggeredGridConvertIndices(zIdx+1, xIdx+0)];
-    float upRight   = _StaggeredGridHeights[StaggeredGridConvertIndices(zIdx+1, xIdx+1)];
-    float downLeft  = _StaggeredGridHeights[StaggeredGridConvertIndices(zIdx+0, xIdx+0)];
-    float downRight = _StaggeredGridHeights[StaggeredGridConvertIndices(zIdx+0, xIdx+1)];
+    float upLeft    = (zIdx >= _StaggeredGrid[0]._NbLines-1 || xIdx <= 0)                           ? 0.0f : _StaggeredGridHalfHeights[StaggeredGridConvertIndices(zIdx, xIdx-1)];
+    float upRight   = (zIdx >= _StaggeredGrid[0]._NbLines-1 || xIdx >= _StaggeredGrid[0]._NbCols-1) ? 0.0f : _StaggeredGridHalfHeights[StaggeredGridConvertIndices(zIdx, xIdx)];
+    float downLeft  = (zIdx <= 0 || xIdx <= 0)                                                      ? 0.0f : _StaggeredGridHalfHeights[StaggeredGridConvertIndices(zIdx-1, xIdx-1)];
+    float downRight = (zIdx <= 0 || xIdx >= _StaggeredGrid[0]._NbCols-1)                            ? 0.0f : _StaggeredGridHalfHeights[StaggeredGridConvertIndices(zIdx-1, xIdx)];
 
-    float ownRes = StaggeredGridBilinearInterpolation(x, z, xIdx, zIdx, upLeft, upRight, downLeft, downRight);
+    float ownRes = StaggeredGridBilinearInterpolation(x, z, xIdx, zIdx, downLeft, upLeft, downRight, upRight);
     return ownRes;
 }
 
@@ -111,13 +125,23 @@ float3 StaggeredGridGetGradient(ParticleGPU p){
     float z = pos.z;
 
     // interpolate gradients bilinearly
-    float2 upLeft    = (zIdx >= _StaggeredGrid[0]._NbLines-1 || xIdx == 0)                           ? float2(0.0f, 0.0f) : _StaggeredGridGradients[StaggeredGridConvertIndices(zIdx-1+1, xIdx-1+0)];
-    float2 upRight   = (zIdx >= _StaggeredGrid[0]._NbLines-1 || xIdx >= _StaggeredGrid[0]._NbCols-1) ? float2(0.0f, 0.0f) : _StaggeredGridGradients[StaggeredGridConvertIndices(zIdx-1+1, xIdx-1+1)];
-    float2 downLeft  = (zIdx == 0 || xIdx == 0)                                                      ? float2(0.0f, 0.0f) : _StaggeredGridGradients[StaggeredGridConvertIndices(zIdx-1+0, xIdx-1+0)];
-    float2 downRight = (zIdx == 0 || xIdx >= _StaggeredGrid[0]._NbCols-1)                            ? float2(0.0f, 0.0f) : _StaggeredGridGradients[StaggeredGridConvertIndices(zIdx-1+0, xIdx-1+1)];
+    float2 upLeft    = (zIdx >= _StaggeredGrid[0]._NbLines-1 || xIdx <= 0)                           ? float2(0.0f, 0.0f) : _StaggeredGridGradients[StaggeredGridConvertIndices(zIdx, xIdx-1)];
+    float2 upRight   = (zIdx >= _StaggeredGrid[0]._NbLines-1 || xIdx >= _StaggeredGrid[0]._NbCols-1) ? float2(0.0f, 0.0f) : _StaggeredGridGradients[StaggeredGridConvertIndices(zIdx, xIdx)];
+    float2 downLeft  = (zIdx <= 0 || xIdx <= 0)                                                      ? float2(0.0f, 0.0f) : _StaggeredGridGradients[StaggeredGridConvertIndices(zIdx-1, xIdx-1)];
+    float2 downRight = (zIdx <= 0 || xIdx >= _StaggeredGrid[0]._NbCols-1)                            ? float2(0.0f, 0.0f) : _StaggeredGridGradients[StaggeredGridConvertIndices(zIdx-1, xIdx)];
 
-    float dx = StaggeredGridBilinearInterpolation(x, z, xIdx, zIdx, upLeft.x, upRight.x, downLeft.x, downRight.x) - p._Height;
-    float dz = StaggeredGridBilinearInterpolation(x, z, xIdx, zIdx, upLeft.y, upRight.y, downLeft.y, downRight.y) - p._Height;
+    float dx, dz;
+
+    dx = StaggeredGridBilinearInterpolation(x, z, xIdx, zIdx, downLeft.x, upLeft.x, downRight.x, upRight.x);
+    dz = StaggeredGridBilinearInterpolation(x, z, xIdx, zIdx, downLeft.y, upLeft.y, downRight.y, upRight.y);
+    // TODO: restore it
+    if(xIdx >= _StaggeredGrid[0]._NbCols-1 || zIdx >= _StaggeredGrid[0]._NbLines-1){
+        dx = 0.0f;
+        dz = 0.0f;
+    } else {
+        dx = _StaggeredGridGradients[StaggeredGridConvertIndices(zIdx, xIdx)].x;
+        dz = _StaggeredGridGradients[StaggeredGridConvertIndices(zIdx, xIdx)].y;
+    }
 
     return float3(dx, pos.y, dz);
 }
@@ -188,11 +212,16 @@ float K_VISCOSITY_Prime(float r){
 }
 
 float KernelDistance(float3 p1, float3 p2){
-    return sqrt((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y) + (p1.z-p2.z)*(p1.z-p2.z));
+    return sqrt((p1.x-p2.x)*(p1.x-p2.x) + (p1.z-p2.z)*(p1.z-p2.z));
 }
 
 float W_POLY6(ParticleGPU p1, ParticleGPU p2){
     float r = KernelDistance(p1._Position, p2._Position) / H;
+    return ALPHA_POLY6 * K_POLY6(r);
+}
+
+float W_POLY6(float3 p1, float3 p2){
+    float r = KernelDistance(p1, p2) / H;
     return ALPHA_POLY6 * K_POLY6(r);
 }
 
@@ -241,27 +270,24 @@ ParticleGPU GetParticle(uint id){
 }
 
 bool AreNeighbours(ParticleGPU pi, ParticleGPU pj){
-    float posX = pi._Position.x - pj._Position.x;
-    float posZ = pi._Position.z - pj._Position.z;
-
-    if(sqrt(posX*posX + posZ*posZ) < H){
-        return true;
-    }
-    return false;
+    return KernelDistance(pi._Position, pj._Position) < H;
 }
 
-void SetNeighbour(uint nbNeighbours, ParticleGPU pi, uint pjIdx){
-    _Neighbours[pi._Id * MAX_NEIGHBOURS + nbNeighbours] = pjIdx;
+bool AreNeighbours(float3 pi, float3 pj){
+    return KernelDistance(pi, pj) < H;
 }
+
 
 float3 GetGradientSurface(ParticleGPU pi){
-    return StaggeredGridGetGradient(pi) + pi._HeightGradient;
+    // return StaggeredGridGetGradient(pi) + pi._HeightGradient;
+    // TODO: restore it
+    return float3(StaggeredGridGetGradient(pi).x, 0, 0);
 }
 
-[numthreads(100,1,1)]
+[numthreads(128,1,1)]
 void GenerateParticle(uint3 id : SV_DispatchThreadID){
     if(id.x == 0){
-        uint i = _NbCurParticles - 1;
+        uint i = _NbCurParticles;
         
         ParticleGPU p = _NewParticle[0];
 
@@ -273,56 +299,34 @@ void GenerateParticle(uint3 id : SV_DispatchThreadID){
     }
 }
 
-[numthreads(100,1,1)]
-void AssignCell(uint3 id : SV_DispatchThreadID){
-    ParticleGPU p = GetParticle(id);
-    uint i = (uint)(p._Position.x / (2*H));
-    uint j = (uint)(p._Position.z / (2*H));
-    uint index = i+j*GRID_NB_COLS;
-    _Cells[id.x] = index;
-    p._Cell = index;
-    _Particles[id.x] = p;
-}
-
-[numthreads(100,1,1)]
-void FillNeighboursList(uint3 id : SV_DispatchThreadID){
-    ParticleGPU pi = GetParticle(id);
-    uint nbNeighbours = 0;
-
+[numthreads(1024,1,1)]
+void UpdateTerrainHeights(uint3 id : SV_DispatchThreadID){
+    float3 pos = StaggeredGridGetPosition(id.x);
+    float sumHeights = 0.0f;
     for(uint j=0; j<_NbCurParticles; j++){
         ParticleGPU pj = GetParticle(j);
-        // check if same cells and if real neighbours
-        if(pj._Cell == pi._Cell && AreNeighbours(pi, pj)){
-            // update neighbour list
-            SetNeighbour(nbNeighbours, pi, pj._Id);
-            // update counter of neighbours and check if max reached
-            if(nbNeighbours++ > MAX_NEIGHBOURS) break;
-        }
+        if(!AreNeighbours(pos, pj._Position)) continue;
+
+        float wijHeight = W_POLY6(pos, pj._Position);
+
+        sumHeights += wijHeight * pj._Volume;
     }
 
-    // fill the rest of the places with -1
-    for(uint i=nbNeighbours; i<MAX_NEIGHBOURS; i++){
-        SetNeighbour(nbNeighbours, pi, -1);
-    }
+    _TerrainHeights[id.x] = SPIKE*sumHeights + pos.y;
+    // _TerrainHeights[id.x] = pos.y + _NbCurParticles;
+    // _TerrainHeights[id.x] = SPIKE*sumHeights + pos.y + 1;
 }
 
-[numthreads(100,1,1)]
+[numthreads(128,1,1)]
 void UpdateHeights(uint3 id : SV_DispatchThreadID){
     ParticleGPU pi = GetParticle(id);
-    uint firstNeighbour = pi._Id * MAX_NEIGHBOURS;
-    uint lastNeighbour  = firstNeighbour + MAX_NEIGHBOURS;
 
     float sumHeights = 0.0f;
     float3 sumGrads  = float3(0.0f, 0.0f, 0.0f);
 
-    // for(uint j=0; j<_NbCurParticles; j++){
-    for(uint j=firstNeighbour; j<lastNeighbour; j++){
-        // check if there are neighbour left
-        if(_Neighbours[j] == -1) break;
-
-        // ParticleGPU pj = _Particles[j];
-        ParticleGPU pj = GetParticle(_Neighbours[j]);
-        if(KernelDistance(pi._Position, pj._Position) >= H) continue;
+    for(uint j=0; j<_NbCurParticles; j++){
+        ParticleGPU pj = GetParticle(j);
+        if(!AreNeighbours(pi,pj)) continue;
 
         float  wijHeight = W_POLY6(pi, pj);
         float3 wijGrad   = W_POLY6_Grad(pi, pj);
@@ -335,7 +339,7 @@ void UpdateHeights(uint3 id : SV_DispatchThreadID){
     _HeightsGradients[id.x] = sumGrads;
 }
 
-[numthreads(100,1,1)]
+[numthreads(128,1,1)]
 void PropagateHeights(uint3 id : SV_DispatchThreadID){
     ParticleGPU pi = GetParticle(id);
     pi._Height = _Heights[id.x];
@@ -343,12 +347,14 @@ void PropagateHeights(uint3 id : SV_DispatchThreadID){
     _Particles[id.x] = pi;
 }
 
-[numthreads(100,1,1)]
+[numthreads(128,1,1)]
 void TimeIntegration(uint3 id : SV_DispatchThreadID){
     ParticleGPU pi = GetParticle(id);
 
     float3 curPosition = pi._Position;
-    float3 newVelocity = (-G / STIFF)*GetGradientSurface(pi);
+    // TODO: restore it
+    float3 newVelocity = -10*GetGradientSurface(pi);
+    // float3 newVelocity = (-G / STIFF)*GetGradientSurface(pi);
     float3 newPosition = DT*newVelocity + curPosition;
 
     newPosition.y = StaggeredGridGetHeight(newPosition);
@@ -356,7 +362,7 @@ void TimeIntegration(uint3 id : SV_DispatchThreadID){
     _Positions[id.x] = newPosition;
 }
 
-[numthreads(100,1,1)]
+[numthreads(128,1,1)]
 void PropagatePositions(uint3 id : SV_DispatchThreadID){
     ParticleGPU pi = GetParticle(id);
     pi._Position = _Positions[id.x];

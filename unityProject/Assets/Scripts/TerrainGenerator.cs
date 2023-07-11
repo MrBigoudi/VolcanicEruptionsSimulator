@@ -7,7 +7,8 @@ using System;
 using UnityEditor;
 
 public enum Volcano {
-    Basic
+    Basic,
+    Fuji
 }
 
 public class TerrainGenerator : MonoBehaviour{
@@ -24,35 +25,19 @@ public class TerrainGenerator : MonoBehaviour{
     private int _Resolution;
     public float[,] _Heights;
 
-    private Vector3[] _Vertices;
-    private Vector3[] _InitVertices;
-    private int[] _Indices;
-    private Vector2[] _UVs;
-
-    [SerializeField]
-    public Material _Material;
-    private Mesh _Mesh;
-    private MeshFilter _MeshFilter;
-
     private Texture2D LoadPNG(string filePath){
         Texture2D tex = null;
         byte[] fileData;
 
         if (File.Exists(filePath)){
             fileData = File.ReadAllBytes(filePath);
-            tex = new Texture2D(2, 2);
+            tex = new Texture2D(2, 2, TextureFormat.R16, false);
             tex.LoadImage(fileData);
         }
         return tex;
     }
 
-    public float SampleHeight(Vector3 pos){
-        float deltaCols  = _Size.x / _Resolution;
-        float deltaLines = _Size.z / _Resolution;
-        int i = (int)(pos.x / deltaCols);
-        int j = (int)(pos.z / deltaLines);
-        // if(i >= _Resolution || j >= _Resolution || i<0 || j<0)
-        //     Debug.Log(i + ", " + j + ": " + deltaCols + ", " + deltaLines + ", " + _Resolution + _Size);
+    public float SampleHeight(int j, int i){
         return _Heights[j,i];
     }
 
@@ -66,12 +51,17 @@ public class TerrainGenerator : MonoBehaviour{
 
         switch(_VolcanoImage){
             case Volcano.Basic:
-                path += "/Media/volcano-height-map.png";
-                heightmap = LoadPNG(path);
+                path += "/Media/new_volcano-height-map.png";
+                break;
+            case Volcano.Fuji:
+                path += "/Media/testFuji.png";
                 break;
             default:
                 break;
         }
+        heightmap = LoadPNG(path);
+        // heightmap = GaussianBlur(heightmap);
+
 
         _Size = new Vector3(512.0f, 0.0f, 512.0f);
         _Resolution = heightmap.width;
@@ -88,140 +78,12 @@ public class TerrainGenerator : MonoBehaviour{
             }
         }
         // Debug.Log(max);
-
-        _Vertices = new Vector3[_Resolution*_Resolution];
-        _InitVertices = new Vector3[_Resolution*_Resolution];
-        _UVs = new Vector2[_Resolution*_Resolution];
-        int nbIndices = (_Resolution-1)*(_Resolution-1)*12;
-        _Indices = new int[nbIndices];
     }
 
-    private void InitMesh(){
-        _Mesh = new Mesh();
-        _Mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
-        _MeshFilter = gameObject.AddComponent<MeshFilter>();
-        _MeshFilter.mesh = _Mesh;
-        Renderer renderer = gameObject.AddComponent<MeshRenderer>();
-        renderer.material = _Material;
-
-        SetAllVertices();
-        SetIndices();
-        SetUVs();
-        _Mesh.UploadMeshData(false);
-    }
+    
 
     public void Init(){
         InitTerrain();
-        InitMesh();
-    }
-
-    private void SetAllVertices(){
-        // init vertices
-        for(int j=0; j<_Resolution; j++){
-            for(int i=0; i<_Resolution; i++){
-                float x = i * _Size.x / _Resolution;
-                float z = j * _Size.z / _Resolution;
-                float y =  _Heights[j,i];
-                int idx = i + j*_Resolution;
-                _Vertices[idx].x = x;
-                _Vertices[idx].y = y;
-                _Vertices[idx].z = z;
-                _InitVertices[idx].x = x;
-                _InitVertices[idx].y = y;
-                _InitVertices[idx].z = z;
-            }
-        }
-        // Debug.Log(vertices.Length);
-        _Mesh.SetVertices(_Vertices);
-    }
-
-    private void SetVertices(List<Vector3> updatedIndices){
-        int len = updatedIndices.Count;
-
-        // update needed vertices
-        for(int k=0; k<len; k++){
-            int i = (int)updatedIndices[k].y;
-            int j = (int)updatedIndices[k].x;
-            float x = i * _Size.x / _Resolution;
-            float z = j * _Size.z / _Resolution;
-            float y =  updatedIndices[k].z;
-            int idx = i + j*_Resolution;
-            _Vertices[idx].x = x;
-            _Vertices[idx].y = y;
-            _Vertices[idx].z = z;
-        }
-        _Mesh.SetVertices(_Vertices);
-
-        // reset vertices
-        for(int k=0; k<len; k++){
-            int i = (int)updatedIndices[k].x;
-            int j = (int)updatedIndices[k].y;
-            int idx = i + j*_Resolution;
-            _Vertices[idx] = _InitVertices[idx];
-        }
-    }
-
-    private void SetIndices(){
-        // init indices
-        int idx = 0;
-        for(int j=0; j<_Resolution-1; j++){
-            for(int i=0; i<_Resolution-1; i++){
-                int id1 = j * _Resolution + i;
-                int id2 = id1 + 1;
-                int id3 = id1 + _Resolution;
-                int id4 = id3 + 1;
-                // first side
-                // first triangle
-                _Indices[idx++] = id1;
-                _Indices[idx++] = id2;
-                _Indices[idx++] = id3;
-                // second triangle
-                _Indices[idx++] = id3;
-                _Indices[idx++] = id2;
-                _Indices[idx++] = id4;
-
-                // second side
-                // first triangle
-                _Indices[idx++] = id1;
-                _Indices[idx++] = id3;
-                _Indices[idx++] = id2;
-                // second triangle
-                _Indices[idx++] = id3;
-                _Indices[idx++] = id4;
-                _Indices[idx++] = id2;
-            }
-        }
-        // Debug.Log(vertices.Length + ", " + nbIndices);
-        _Mesh.SetIndices(_Indices, MeshTopology.Triangles, 0);
-    }
-
-    private void SetUVs(){
-        System.Random rand = new System.Random();
-        // init vertices
-        for(int j=0; j<_Resolution; j++){
-            for(int i=0; i<_Resolution; i++){
-                float y =  _Heights[j,i];
-                int idx = i + j*_Resolution;
-                _UVs[idx].x = (float)rand.NextDouble();
-                _UVs[idx].y = y;
-            }
-        }
-        // Debug.Log(vertices.Length);
-        _Mesh.SetUVs(0, _UVs);
-    }
-
-    private void UpdtMesh(List<Vector3> updatedIndices){
-        // _Heights = newHeights;
-        // SetAllVertices();
-        SetVertices(updatedIndices);
-        // SetIndices();
-        // SetNormals();
-        _Mesh.UploadMeshData(false);
-    }
-
-
-    public void Updt(List<Vector3> updatedIndices){
-        UpdtMesh(updatedIndices);
     }
 
 }

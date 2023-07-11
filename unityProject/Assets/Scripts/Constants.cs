@@ -20,7 +20,7 @@ public static class Constants{
     /**
      * The kernel radius
     */
-    public const float H = 0.5f;
+    public const float H = 2.0f;
 
     /**
      * Factor for poly6 kernel calculations
@@ -50,6 +50,6 @@ public static class Constants{
     /**
      * The stiffness constant
     */
-    public const float STIFFNESS = 25f;
+    public const float STIFFNESS = 50f;
     
 }

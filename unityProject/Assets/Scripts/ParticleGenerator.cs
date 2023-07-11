@@ -7,37 +7,28 @@ using UnityEngine;
 */
 public class ParticleGenerator : MonoBehaviour{
     
-    /**
-     * The sph solver
-    */
-    private ParticleSPHGPU mSphGPU;
+    [SerializeField]
+    public ParticleSPHGPU _SphGPU;
 
+    [SerializeField]
     public ComputeShader _Shader;
-
-    /**
-     * The lava height map
-    */
-    public LavaTextureMap mLavaTextureMap;
 
     [SerializeField]
     public TerrainGenerator _TerrainGenerator;
 
-    /**
-     * The maximum number of particles
-    */
-    [SerializeField, Range(500, 100000)]
-    public int mMaxParticles = 50000;
+    [SerializeField, Range(1, 100000)]
+    public int _MaxParticles = 50000;
 
-    [SerializeField, Range(1.0f, 100.0f)]
+    [SerializeField, Range(0.0f, 25.0f)]
     public float _Stiffness = Constants.STIFFNESS;
 
     /**
      * The variation delta for the particle generation
     */
-    public float mDelta = 1.0f;
+    public float _Delta = 1.0f;
 
     public int GetNbCurParticles(){
-        return mSphGPU.mNbCurParticles;
+        return _SphGPU.GetNbCurParticles();
     }
 
     /**
@@ -46,18 +37,17 @@ public class ParticleGenerator : MonoBehaviour{
     public void Start(){
         _TerrainGenerator.Init();
         StaggeredGridV2.Init(_TerrainGenerator);
-        mLavaTextureMap.Init();
-        mSphGPU = gameObject.AddComponent(typeof(ParticleSPHGPU)) as ParticleSPHGPU;
-        mSphGPU.Create(mMaxParticles, _Shader, _TerrainGenerator);
+        _SphGPU.Create(_MaxParticles, _Shader, _TerrainGenerator);
+
+        Unity.Collections.LowLevel.Unsafe.UnsafeUtility.SetLeakDetectionMode(Unity.Collections.NativeLeakDetectionMode.EnabledWithStackTrace);
     }
 
     /**
      * Update the generator at runtime
     */
     public void Update(){
-        Vector3 position = GetRandomPosition(mDelta);
-        mSphGPU.Updt(position, _Stiffness);
-        mLavaTextureMap.Updt(mSphGPU.mNbCurParticles, mSphGPU._Heights, mSphGPU._Positions);
+        Vector3 position = GetRandomPosition(_Delta);
+        _SphGPU.Updt(position, _Stiffness);
     }
 
     /**
