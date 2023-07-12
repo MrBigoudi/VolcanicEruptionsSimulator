@@ -381,7 +381,7 @@ public class ParticleSPHGPU : MonoBehaviour{
         TimeIntegration(res);
         // update the terrain heights
         UpdateTerrainHeights();
-        // display particles (slower)
+        // display particles
         if(_DisplayParticles){
             UpdateParticleMesh();
         }
@@ -417,26 +417,30 @@ public class ParticleSPHGPU : MonoBehaviour{
         _TerrainMaterial.SetBuffer("_InitialTerrainHeights", _StaggeredGridHeightsBuffer);
     }
 
-    private void InitMesh(){
+    private void InitTerrainMesh(){
         _TerrainMesh = new Mesh();
-
         _TerrainMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
-
         _TerrainMeshFilter = gameObject.AddComponent<MeshFilter>();
-
         _TerrainMeshFilter.mesh = _TerrainMesh;
-
         _TerrainRenderer = gameObject.AddComponent<MeshRenderer>();
         _TerrainRenderer.material = _TerrainMaterial;
-
         UpdateTerrainMesh();
-        // UpdateParticleMesh();
+    }
+
+    private void InitParticlesMesh(){
+        if(_DisplayParticles){
+            // Debug.Log("Particles mesh initialized");
+            _ParticleDisplay.InitMesh(_PositionsBuffer);
+        }
+    }
+
+    private void InitMesh(){
+        InitTerrainMesh();
+        InitParticlesMesh();        
     }
 
     public void UpdateParticleMesh(){
-        // fetch new positions
-        _PositionsBuffer.GetData(_Positions);
-        _ParticleDisplay.UpdateParticleMesh(_Positions, _NbCurParticles);
+        _ParticleDisplay.UpdateParticleMesh(_NbCurParticles);
     }
 
     private void UpdateTerrainMesh(){

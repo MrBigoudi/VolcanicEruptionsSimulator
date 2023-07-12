@@ -354,9 +354,7 @@ void TimeIntegration(uint3 id : SV_DispatchThreadID){
     ParticleGPU pi = GetParticle(id);
 
     float3 curPosition = pi._Position;
-    // TODO: restore it
-    float3 newVelocity = -10*GetGradientSurface(pi);
-    // float3 newVelocity = (-G / STIFF)*GetGradientSurface(pi);
+    float3 newVelocity = (-G / STIFF)*GetGradientSurface(pi);
     float3 newPosition = DT*newVelocity + curPosition;
 
     newPosition.y = StaggeredGridGetHeight(newPosition);

@@ -15,36 +15,52 @@ public class ParticleDisplay : MonoBehaviour{
     private MeshFilter _ParticleMeshFilter;
     private MeshRenderer _ParticleRenderer;
 
-    private void ParticleSetIndices(int nbCurParticles){
-        int[] indices = new int[nbCurParticles];
-        for(int i=0; i<nbCurParticles; i++){
+    private ComputeBuffer _PositionsBuffer;
+
+    private void ParticleSetIndices(int nbMaxParticles){
+        int[] indices = new int[nbMaxParticles];
+        for(int i=0; i<nbMaxParticles; i++){
             indices[i] = i;
         }
         _ParticleMesh.SetIndices(indices, MeshTopology.Points, 0);
     }
 
     
-    private void ParticleSetVertices(Vector3[] positions, int nbCurParticles){
-        Vector3[] vertices = new Vector3[nbCurParticles];
-        for(int i=0; i<nbCurParticles; i++){
-            vertices[i] = positions[i];
+    private void ParticleSetVertices(int nbMaxParticles){
+        Vector3[] vertices = new Vector3[nbMaxParticles];
+        for(int i=0; i<nbMaxParticles; i++){
+            vertices[i] = Vector3.zero;
         }
         _ParticleMesh.SetVertices(vertices);
     }
 
-    public void UpdateParticleMesh(Vector3[] positions, int nbCurParticles){
-        ParticleSetVertices(positions, nbCurParticles);
-        ParticleSetIndices(nbCurParticles);
-        _ParticleMesh.UploadMeshData(false);
+    public void UpdateParticleMesh(int nbCurParticles){
+        // update property
+        // Debug.Log(nbCurParticles);
+        _ParticleMaterial.SetInteger("_NbCurParticles", nbCurParticles);
     }
 
-    public void Awake(){
+    private void InitMeshProperties(){
         _ParticleMesh = new Mesh();
         _ParticleMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
         _ParticleMeshFilter = gameObject.AddComponent<MeshFilter>();
         _ParticleMeshFilter.mesh = _ParticleMesh;
         _ParticleRenderer = gameObject.AddComponent<MeshRenderer>();
         _ParticleRenderer.material = _ParticleMaterial;
+    }
+
+    private void SetMaterialBuffers(ComputeBuffer positionsBuffer){
+        _PositionsBuffer = positionsBuffer;
+        _ParticleMaterial.SetBuffer("_ParticlesPositions", _PositionsBuffer);
+    }
+
+    public void InitMesh(ComputeBuffer positionsBuffer){
+        InitMeshProperties();
+        int nbMaxParticles = positionsBuffer.count;
+        ParticleSetVertices(nbMaxParticles);
+        ParticleSetIndices(nbMaxParticles);
+        SetMaterialBuffers(positionsBuffer);
+        _ParticleMesh.UploadMeshData(false);
     }
 
 }
