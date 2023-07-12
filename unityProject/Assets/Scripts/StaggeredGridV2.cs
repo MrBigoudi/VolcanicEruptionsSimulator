@@ -99,6 +99,9 @@ public static class StaggeredGridV2 {
                 float dx = (_HalfHeightsLines[j,i+1]-_HalfHeightsLines[j,i]) / _DeltaCols;
                 float dy = (_HalfHeightsCols[j+1,i]-_HalfHeightsCols[j,i])   / _DeltaLines;
                 _Gradients[j,i] = new Vector2(dx, dy);
+                // if(i<10 && j>500){
+                //     _Gradients[j,i] = Vector2.one;
+                // }
                 // Debug.Log(_Gradients[j,i]);
             }
         }

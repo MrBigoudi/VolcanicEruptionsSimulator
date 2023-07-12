@@ -21,6 +21,11 @@ public struct ParticleGPU{
 */
 public class ParticleSPHGPU : MonoBehaviour{
 
+    [SerializeField]
+    public bool _DisplayParticles = false;
+    [SerializeField]
+    public ParticleDisplay _ParticleDisplay;
+
     private int _NbMaxParticles;
     private int _NbCurParticles;
 
@@ -52,15 +57,11 @@ public class ParticleSPHGPU : MonoBehaviour{
 
     private int _StaggeredGridId;
     private int _StaggeredGridHeightsId;
-    private int _StaggeredGridHalfHeightsColsId;
-    private int _StaggeredGridHalfHeightsLinesId;
     private int _StaggeredGridHalfHeightsId;
     private int _StaggeredGridGradientsId;
     private int _StaggeredGridLaplaciansId;
     private ComputeBuffer _StaggeredGridBuffer;
     private ComputeBuffer _StaggeredGridHeightsBuffer;
-    private ComputeBuffer _StaggeredGridHalfHeightsColsBuffer;
-    private ComputeBuffer _StaggeredGridHalfHeightsLinesBuffer;
     private ComputeBuffer _StaggeredGridHalfHeightsBuffer;
     private ComputeBuffer _StaggeredGridGradientsBuffer;
     private ComputeBuffer _StaggeredGridLaplaciansBuffer;
@@ -80,12 +81,15 @@ public class ParticleSPHGPU : MonoBehaviour{
     // some usefull values
     private int _TerrainNbCols;
     private int _TerrainNbLines;
+    private float _TerrainDeltaCols;
+    private float _TerrainDeltaLines;
     private Vector3 _TerrainSize;
 
     [SerializeField]
     public Material _TerrainMaterial;
     private Mesh _TerrainMesh;
     private MeshFilter _TerrainMeshFilter;
+    private MeshRenderer _TerrainRenderer;
 
     public int GetNbCurParticles(){
         return _NbCurParticles;
@@ -109,13 +113,11 @@ public class ParticleSPHGPU : MonoBehaviour{
     }
 
     private void InitStaggeredGridIds(){
-        _StaggeredGridId                 = Shader.PropertyToID("_StaggeredGrid");
-        _StaggeredGridHeightsId          = Shader.PropertyToID("_StaggeredGridHeights");
-        _StaggeredGridHalfHeightsColsId  = Shader.PropertyToID("_StaggeredGridHalfHeightsCols");
-        _StaggeredGridHalfHeightsLinesId = Shader.PropertyToID("_StaggeredGridHalfHeightsLines");
-        _StaggeredGridHalfHeightsId      = Shader.PropertyToID("_StaggeredGridHalfHeights");
-        _StaggeredGridGradientsId        = Shader.PropertyToID("_StaggeredGridGradients");
-        _StaggeredGridLaplaciansId       = Shader.PropertyToID("_StaggeredGridLaplacians");
+        _StaggeredGridId            = Shader.PropertyToID("_StaggeredGrid");
+        _StaggeredGridHeightsId     = Shader.PropertyToID("_StaggeredGridHeights");
+        _StaggeredGridHalfHeightsId = Shader.PropertyToID("_StaggeredGridHalfHeights");
+        _StaggeredGridGradientsId   = Shader.PropertyToID("_StaggeredGridGradients");
+        _StaggeredGridLaplaciansId  = Shader.PropertyToID("_StaggeredGridLaplacians");
     }
 
     private void InitParticlesIds(){
@@ -163,14 +165,13 @@ public class ParticleSPHGPU : MonoBehaviour{
 
         _Shader.SetInt("MAX_PARTICLES", _NbMaxParticles);
 
-        _TerrainSize    = terrain._Size;
-        _TerrainNbCols  = terrain.GetResolution();
-        _TerrainNbLines = terrain.GetResolution();
     }
 
     private float[] Convert2dArray(float[,] arr){
         int nbLines = arr.GetLength(0);
         int nbCols  = arr.GetLength(1);
+        // Debug.Log(nbLines + ", " + nbCols + ", " + arr.GetLength(0) + ", " + arr.GetLength(1));
+        // Assert.IsTrue(_TerrainNbCols == arr.GetLength(0) && _TerrainNbLines == arr.GetLength(1));
 
         float[] res = new float[nbLines*nbCols];
         float val;
@@ -187,6 +188,8 @@ public class ParticleSPHGPU : MonoBehaviour{
     private Vector2[] Convert2dArray(Vector2[,] arr){
         int nbLines = arr.GetLength(0);
         int nbCols  = arr.GetLength(1);
+        // Debug.Log(nbLines + ", " + nbCols + ", " + arr.GetLength(0) + ", " + arr.GetLength(1));
+        // Assert.IsTrue(_TerrainNbCols == arr.GetLength(0) && _TerrainNbLines == arr.GetLength(1));
 
         Vector2[] res = new Vector2[nbLines*nbCols];
         Vector2 val;
@@ -203,6 +206,8 @@ public class ParticleSPHGPU : MonoBehaviour{
     private Vector3[] Convert2dArray(Vector3[,] arr){
         int nbLines = arr.GetLength(0);
         int nbCols  = arr.GetLength(1);
+        // Debug.Log(nbLines + ", " + nbCols + ", " + arr.GetLength(0) + ", " + arr.GetLength(1));
+        // Assert.IsTrue(_TerrainNbCols == arr.GetLength(0) && _TerrainNbLines == arr.GetLength(1));
 
         Vector3[] res = new Vector3[nbLines*nbCols];
         Vector3 val;
@@ -287,25 +292,15 @@ public class ParticleSPHGPU : MonoBehaviour{
         InitStaggeredGridIds();
         InitStaggeredGridAttributes();
         // init grid data
-        float[] heights          = Convert2dArray(StaggeredGridV2._Heights);
-        float[] halfHeightsCols  = Convert2dArray(StaggeredGridV2._HalfHeightsCols);
-        float[] halfHeightsLines = Convert2dArray(StaggeredGridV2._HalfHeightsLines);
-        float[] halfHeights      = Convert2dArray(StaggeredGridV2._HalfHeights);
-        Vector2[] gradients      = Convert2dArray(StaggeredGridV2._Gradients);
-        float[] laplacians       = Convert2dArray(StaggeredGridV2._Laplacians);
+        float[] heights     = Convert2dArray(StaggeredGridV2._Heights);
+        float[] halfHeights = Convert2dArray(StaggeredGridV2._HalfHeights);
+        Vector2[] gradients = Convert2dArray(StaggeredGridV2._Gradients);
+        float[] laplacians  = Convert2dArray(StaggeredGridV2._Laplacians);
         // init grid buffers
-        _StaggeredGridHeightsBuffer          = SetData(heights, _StaggeredGridHeightsId);
-        _StaggeredGridHalfHeightsColsBuffer  = SetData(halfHeightsCols, _StaggeredGridHalfHeightsColsId);
-        _StaggeredGridHalfHeightsLinesBuffer = SetData(halfHeightsLines, _StaggeredGridHalfHeightsLinesId);
-        _StaggeredGridHalfHeightsBuffer      = SetData(halfHeights, _StaggeredGridHalfHeightsId);
-        _StaggeredGridGradientsBuffer        = SetData(gradients, _StaggeredGridGradientsId);
-        _StaggeredGridLaplaciansBuffer       = SetData(laplacians, _StaggeredGridLaplaciansId);
-        // release buffers
-        // _StaggeredGridHeightsBuffer.Dispose();
-        // _StaggeredGridHalfHeightsColsBuffer.Dispose();
-        // _StaggeredGridHalfHeightsLinesBuffer.Dispose();
-        // _StaggeredGridGradientsBuffer.Dispose();
-        // _StaggeredGridLaplaciansBuffer.Dispose();
+        _StaggeredGridHeightsBuffer     = SetData(heights, _StaggeredGridHeightsId);
+        _StaggeredGridHalfHeightsBuffer = SetData(halfHeights, _StaggeredGridHalfHeightsId);
+        _StaggeredGridGradientsBuffer   = SetData(gradients, _StaggeredGridGradientsId);
+        _StaggeredGridLaplaciansBuffer  = SetData(laplacians, _StaggeredGridLaplaciansId);
     }
 
     private void InitGpuBuffers(){
@@ -318,7 +313,18 @@ public class ParticleSPHGPU : MonoBehaviour{
         _TerrainHeightsBuffer   = SetData(_TerrainHeights, _TerrainHeightsId);
     }
 
+    private void GetTerrainValues(TerrainGenerator terrain){
+        _TerrainSize    = terrain._Size;
+        _TerrainNbCols  = terrain.GetResolution();
+        _TerrainNbLines = terrain.GetResolution();
+
+        Vector3 terrainSize = terrain._Size;
+        _TerrainDeltaCols  = terrainSize.x / _TerrainNbCols;
+        _TerrainDeltaLines = terrainSize.z / _TerrainNbLines;
+    }
+
     private void Init(TerrainGenerator terrain){
+        GetTerrainValues(terrain);
         InitIds();
         InitGpuValues(terrain);
         InitBuffersData();
@@ -375,6 +381,10 @@ public class ParticleSPHGPU : MonoBehaviour{
         TimeIntegration(res);
         // update the terrain heights
         UpdateTerrainHeights();
+        // display particles (slower)
+        if(_DisplayParticles){
+            UpdateParticleMesh();
+        }
     }
 
     private void ReleaseBuffers(){
@@ -388,8 +398,6 @@ public class ParticleSPHGPU : MonoBehaviour{
 
         _StaggeredGridBuffer.Dispose();
         _StaggeredGridHeightsBuffer.Dispose();
-        _StaggeredGridHalfHeightsColsBuffer.Dispose();
-        _StaggeredGridHalfHeightsLinesBuffer.Dispose();
         _StaggeredGridHalfHeightsBuffer.Dispose();
         _StaggeredGridGradientsBuffer.Dispose();
         _StaggeredGridLaplaciansBuffer.Dispose();
@@ -411,38 +419,52 @@ public class ParticleSPHGPU : MonoBehaviour{
 
     private void InitMesh(){
         _TerrainMesh = new Mesh();
-        _TerrainMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
-        _TerrainMeshFilter = gameObject.AddComponent<MeshFilter>();
-        _TerrainMeshFilter.mesh = _TerrainMesh;
-        Renderer renderer = gameObject.AddComponent<MeshRenderer>();
-        renderer.material = _TerrainMaterial;
 
+        _TerrainMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+
+        _TerrainMeshFilter = gameObject.AddComponent<MeshFilter>();
+
+        _TerrainMeshFilter.mesh = _TerrainMesh;
+
+        _TerrainRenderer = gameObject.AddComponent<MeshRenderer>();
+        _TerrainRenderer.material = _TerrainMaterial;
+
+        UpdateTerrainMesh();
+        // UpdateParticleMesh();
+    }
+
+    public void UpdateParticleMesh(){
+        // fetch new positions
+        _PositionsBuffer.GetData(_Positions);
+        _ParticleDisplay.UpdateParticleMesh(_Positions, _NbCurParticles);
+    }
+
+    private void UpdateTerrainMesh(){
         SetMaterialBuffers();
-        SetVertices();
-        SetIndices();
-        SetNormals();
+        TerrainSetVertices();
+        TerrainSetIndices();
+        TerrainSetNormals();
         _TerrainMesh.UploadMeshData(false);
     }
 
-    private void SetNormals(){
+    private void TerrainSetNormals(){
         Vector3[] normals = new Vector3[_TerrainNbLines*_TerrainNbCols];
         for(int j=1; j<_TerrainNbLines; j++){
             for(int i=1; i<_TerrainNbCols; i++){
                 int idx = i + j*_TerrainNbCols;
                 normals[idx].x = StaggeredGridV2._Gradients[j-1,i-1].x;
                 normals[idx].z = StaggeredGridV2._Gradients[j-1,i-1].y;
-                // normals[idx].x = StaggeredGridV2._Heights[j,i]/100;
             }
         }
         _TerrainMesh.SetNormals(normals);
     }
 
-    private void SetVertices(){
+    private void TerrainSetVertices(){
         Vector3[] vertices = new Vector3[_TerrainNbLines*_TerrainNbCols];
         for(int j=0; j<_TerrainNbLines; j++){
             for(int i=0; i<_TerrainNbCols; i++){
-                float x = i * _TerrainSize.x / _TerrainNbCols;
-                float z = j * _TerrainSize.z / _TerrainNbLines;
+                float x = i * _TerrainDeltaCols;
+                float z = j * _TerrainDeltaLines;
                 int idx = i + j*_TerrainNbCols;
                 vertices[idx].x = x;
                 vertices[idx].z = z;
@@ -451,7 +473,7 @@ public class ParticleSPHGPU : MonoBehaviour{
         _TerrainMesh.SetVertices(vertices);
     }
 
-    private void SetIndices(){
+    private void TerrainSetIndices(){
         // init indices
         int[] indices = new int[_TerrainNbLines*_TerrainNbCols*12];
         int idx = 0;
