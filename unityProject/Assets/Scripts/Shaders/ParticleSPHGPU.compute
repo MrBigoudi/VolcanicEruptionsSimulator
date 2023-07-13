@@ -305,6 +305,7 @@ void GenerateParticle(uint3 id : SV_DispatchThreadID){
 void UpdateTerrainHeights(uint3 id : SV_DispatchThreadID){
     float3 pos = StaggeredGridGetPosition(id.x);
     float sumHeights = 0.0f;
+
     for(uint j=0; j<_NbCurParticles; j++){
         ParticleGPU pj = GetParticle(j);
         if(!AreNeighbours(pos, pj._Position)) continue;
@@ -337,6 +338,7 @@ void UpdateHeights(uint3 id : SV_DispatchThreadID){
         sumGrads   += wijGrad * pj._Volume;
     }
 
+    // if(sumHeights == 0) sumHeights = 100;
     _Heights[id.x] = sumHeights;
     _HeightsGradients[id.x] = sumGrads;
 }
