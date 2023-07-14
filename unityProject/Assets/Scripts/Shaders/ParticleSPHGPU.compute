@@ -50,7 +50,8 @@ RWStructuredBuffer<float>  _Heights;
 RWStructuredBuffer<float3> _HeightsGradients;
 RWStructuredBuffer<float>  _Volumes;
 
-uniform StructuredBuffer<ParticleGPU> _NewParticle;
+uniform StructuredBuffer<ParticleGPU> _NewParticles;
+uniform uint _NbNewParticles;
 
 // ##################################################################################################################
 // ################################### STAGGERED GRID ###############################################################
@@ -286,12 +287,12 @@ float3 GetGradientSurface(ParticleGPU pi){
     // return float3(StaggeredGridGetGradient(pi).x, 0, 0);
 }
 
-[numthreads(128,1,1)]
+[numthreads(8,1,1)]
 void GenerateParticle(uint3 id : SV_DispatchThreadID){
-    if(id.x == 0){
-        uint i = _NbCurParticles;
+    if(id.x < _NbNewParticles){
+        uint i = _NbCurParticles+id.x;
         
-        ParticleGPU p = _NewParticle[0];
+        ParticleGPU p = _NewParticles[id.x];
 
         _Particles[i]        = p;
         _Positions[i]        = p._Position;

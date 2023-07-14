@@ -589,6 +589,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _DisplayParticles: 1
   _ParticleDisplay: {fileID: 1247292228}
+  _DT: 0.01
   _TerrainMaterial: {fileID: 2100000, guid: 0b901cc2122fd9341aa07dd71c397bff, type: 2}
 --- !u!4 &1429939088
 Transform:
