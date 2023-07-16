@@ -288,7 +288,7 @@ MonoBehaviour:
   targetObjects: []
   winWidth: 350
   winHeight: 500
-  expanded: 0
+  expanded: 1
 --- !u!4 &316218905
 Transform:
   m_ObjectHideFlags: 0
@@ -588,7 +588,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e60fff26d2c143142abc317cd318d87d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _VolcanoImage: 1
+  _VolcanoImage: 2
   _Size: {x: 0, y: 0, z: 0}
   _Scale: 64
 --- !u!4 &1379140619
@@ -640,9 +640,9 @@ MonoBehaviour:
   _GaussianBlur: 0
   _DT: 0.1
   _Spike: 1
-  _KernelRadius: 2
+  _KernelRadius: 5
   _Stiffness: 1
-  _ParticleInitialHeight: 1
+  _ParticleInitialHeight: 10
   _TerrainMaterial: {fileID: 2100000, guid: 0b901cc2122fd9341aa07dd71c397bff, type: 2}
 --- !u!4 &1429939088
 Transform:
@@ -883,7 +883,7 @@ MonoBehaviour:
   _SphGPU: {fileID: 1429939087}
   _Shader: {fileID: 7200000, guid: 0fccdd0c65323124590166214ef8a2a3, type: 3}
   _TerrainGenerator: {fileID: 1379140618}
-  _MaxParticles: 50000
+  _MaxParticles: 1
   _InitialPositionDelta: 1
 --- !u!212 &1708334438
 SpriteRenderer:

@@ -298,41 +298,6 @@ float3 GetGradientSurface(ParticleGPU pi){
     // return float3(StaggeredGridGetGradient(pi).x, 0, 0);
 }
 
-[numthreads(8,1,1)]
-void GenerateParticle(uint3 id : SV_DispatchThreadID){
-    if(id.x < _NbNewParticles){
-        uint i = _NbCurParticles+id.x;
-        
-        ParticleGPU p = _NewParticles[id.x];
-
-        _Particles[i]        = p;
-        _Positions[i]        = p._Position;
-        _Heights[i]          = p._Height;
-        _HeightsGradients[i] = p._HeightGradient;
-        _Volumes[i]          = p._Volume;
-    }
-}
-
-[numthreads(1024,1,1)]
-void UpdateTerrainHeights(uint3 id : SV_DispatchThreadID){
-    float3 pos = StaggeredGridGetPosition(id.x);
-    float sumHeights = 0.0f;
-
-    for(uint j=0; j<_NbCurParticles; j++){
-        ParticleGPU pj = GetParticle(j);
-        if(!AreNeighbours(pos, pj._Position)) continue;
-
-        float wijHeight = W_POLY6(pos, pj._Position);
-
-        sumHeights += wijHeight * pj._Volume;
-    }
-
-    _TerrainHeightsTmp[id.x] = SPIKE*sumHeights + pos.y;
-    if(!GaussianBlur) _TerrainHeights[id.x] = SPIKE*sumHeights + pos.y;
-    // _TerrainHeights[id.x] = pos.y + _NbCurParticles;
-    // _TerrainHeights[id.x] = SPIKE*sumHeights + pos.y + 1;
-}
-
 bool IsUpTerrainBorder(uint3 id : SV_DispatchThreadID){
     return id.x >= _StaggeredGrid[0]._NbCols * (_StaggeredGrid[0]._NbLines - 1);
 }
@@ -395,14 +360,53 @@ void GaussianBlurTerrainHeights(uint3 id : SV_DispatchThreadID){
                 + w21*GaussMatrix[3]*GaussFactor + w22*GaussMatrix[4]*GaussFactor + w23*GaussMatrix[5]*GaussFactor
                 + w31*GaussMatrix[6]*GaussFactor + w32*GaussMatrix[7]*GaussFactor + w33*GaussMatrix[8]*GaussFactor;
 
-    // if(w11 == 0 || w12 == 0 || w13 == 0 || w21 == 0 || w22 == 0 || w23 == 0 || w31 == 0 || w32 == 0 || w33 == 0)
-    //     res = w22;
-
     if(GaussFactor == 0.0f)
         res = w22;
 
     if(FirstTimeBlur) _InitialTerrainHeights[id.x] = res;
     _TerrainHeights[id.x] = res;
+}
+
+[numthreads(8,1,1)]
+void GenerateParticle(uint3 id : SV_DispatchThreadID){
+    if(id.x < _NbNewParticles){
+        uint i = _NbCurParticles+id.x;
+        
+        ParticleGPU p = _NewParticles[id.x];
+
+        _Particles[i]        = p;
+        _Positions[i]        = p._Position;
+        _Heights[i]          = p._Height;
+        _HeightsGradients[i] = p._HeightGradient;
+        _Volumes[i]          = p._Volume;
+    }
+}
+
+[numthreads(1024,1,1)]
+void UpdateTerrainHeights(uint3 id : SV_DispatchThreadID){
+    float3 pos = StaggeredGridGetPosition(id.x);
+    float sumHeights = 0.0f;
+    float sumWeights = 0.0f;
+
+    for(uint j=0; j<_NbCurParticles; j++){
+        ParticleGPU pj = GetParticle(j);
+        if(!AreNeighbours(pos, pj._Position)) continue;
+
+        float wijHeight = W_POLY6(pos, pj._Position);
+
+        sumHeights += wijHeight * pj._Volume * pj._Height;
+        // sumWeights += wijHeight;
+        sumWeights++;
+    }
+
+    // TODO:
+    // float newHeight = sumWeights != 0.0f ? SPIKE*sumHeights / sumWeights + pos.y : _TerrainHeights[id.x];
+    float newHeight = sumWeights > 0.0f ? _InitialTerrainHeights[id.x] : -100.0f;
+    // float newHeight = _NbCurParticles > 0 ? _InitialTerrainHeights[id.x] : -100.0f;
+    _TerrainHeightsTmp[id.x] = newHeight;
+    if(!GaussianBlur) _TerrainHeights[id.x] = newHeight;
+    // _TerrainHeights[id.x] = pos.y + _NbCurParticles;
+    // _TerrainHeights[id.x] = SPIKE*sumHeights + pos.y + 1;
 }
 
 
@@ -460,6 +464,8 @@ void UpdateHeights(uint3 id : SV_DispatchThreadID){
     ParticleGPU pi = GetParticle(id);
 
     float sumHeights = 0.0f;
+    float sumWeights = 0.0f;
+    
     float3 sumGrads  = float3(0.0f, 0.0f, 0.0f);
 
     for(uint j=0; j<_NbCurParticles; j++){
@@ -469,12 +475,14 @@ void UpdateHeights(uint3 id : SV_DispatchThreadID){
         float  wijHeight = W_POLY6(pi, pj);
         float3 wijGrad   = W_POLY6_Grad(pi, pj);
 
-        sumHeights += wijHeight * pj._Volume;
+        sumHeights += wijHeight * pj._Volume * pj._Height;
         sumGrads   += wijGrad * pj._Volume;
+        sumWeights += wijHeight;
     }
 
     // if(sumHeights == 0) sumHeights = 100;
-    _Heights[id.x] = sumHeights;
+    // TODO:
+    _Heights[id.x] = sumWeights > 0.0f ? sumHeights / sumWeights : -10.0f; // shouldn't be possible
     _HeightsGradients[id.x] = sumGrads;
 }
 
@@ -488,5 +496,7 @@ void TimeIntegration(uint3 id : SV_DispatchThreadID){
 
     newPosition.y = StaggeredGridGetHeight(newPosition);
 
+    // TODO:
+    // if(curPosition.x <= 1e-6 && curPosition.z <= 1e-6) newPosition = float3(256, StaggeredGridGetHeight(float3(256, 0, 256)), 256);
     _Positions[id.x] = newPosition;
 }

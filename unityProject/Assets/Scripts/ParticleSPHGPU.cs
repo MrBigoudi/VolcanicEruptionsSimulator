@@ -404,14 +404,15 @@ public class ParticleSPHGPU : MonoBehaviour{
         _ElapsedTime += Time.deltaTime;
         if(_NbCurParticles < _NbMaxParticles && _ElapsedTime > _DT){
             int delta = (int)(_ElapsedTime / _DT);
+            int cpt = 0;
             // Debug.Log(_ElapsedTime + ", " + _DT + ", " + delta);
-
-            _Shader.SetInt(_NbCurParticlesId, _NbCurParticles);
             ParticleGPU[] data = new ParticleGPU[delta];
 
             // put new particles in buffer
             for(int i=0; i<delta; i++){
+                if(_NbCurParticles >= _NbMaxParticles) break;
                 _NbCurParticles++;
+                cpt ++;
 
                 float radius = (_ParticleInitialHeight / 2.0f);
                 float volume = (4.0f/3.0f)*Constants.PI*radius*radius*radius; // 4/3 * pi * r^3
@@ -430,14 +431,13 @@ public class ParticleSPHGPU : MonoBehaviour{
             }
 
             // update gpu side
-            int res = delta / 8 + 1;
-            _Shader.SetInt(_NbNewParticlesId, delta);
+            int res = cpt / 8 + 1;
+            _Shader.SetInt(_NbNewParticlesId, cpt);
             _NewParticlesBuffer = SetData(data, _NewParticlesId);
-            _Shader.Dispatch(_KernelGenerateParticleId, res, 1, 1);
-
             // restore correct values
-            _Shader.SetInt(_NbCurParticlesId, _NbCurParticles-1);
+            _Shader.SetInt(_NbCurParticlesId, _NbCurParticles);
             _ElapsedTime -= (delta*_DT);
+            _Shader.Dispatch(_KernelGenerateParticleId, res, 1, 1);
         }
     }
 
