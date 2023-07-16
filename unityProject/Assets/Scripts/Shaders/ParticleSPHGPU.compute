@@ -1,9 +1,10 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel GenerateParticle
+#pragma kernel UpdateDensities
+#pragma kernel UpdateMassesAndVolumes
+#pragma kernel PropagateParticleUpdate
 #pragma kernel UpdateHeights
-#pragma kernel PropagateHeights
 #pragma kernel TimeIntegration
-#pragma kernel PropagatePositions
 #pragma kernel UpdateTerrainHeights
 
 uniform float H;
@@ -33,6 +34,8 @@ struct ParticleGPU{
     float3 _Position;
     float  _Height;
     float3 _HeightGradient;
+    float   _Density;
+    float   _Mass;
     float  _Volume;
 };
 
@@ -49,6 +52,8 @@ RWStructuredBuffer<float3> _Positions;
 RWStructuredBuffer<float>  _Heights;
 RWStructuredBuffer<float3> _HeightsGradients;
 RWStructuredBuffer<float>  _Volumes;
+RWStructuredBuffer<float>  _Densities;
+RWStructuredBuffer<float>  _Masses;
 
 uniform StructuredBuffer<ParticleGPU> _NewParticles;
 uniform uint _NbNewParticles;
@@ -322,6 +327,55 @@ void UpdateTerrainHeights(uint3 id : SV_DispatchThreadID){
 }
 
 [numthreads(128,1,1)]
+void UpdateDensities(uint3 id : SV_DispatchThreadID){
+    ParticleGPU pi = GetParticle(id);
+
+    float sumMasses = 0.0f;
+
+    for(uint j=0; j<_NbCurParticles; j++){
+        ParticleGPU pj = GetParticle(j);
+        if(!AreNeighbours(pi,pj)) continue;
+
+        float  wijMass = W_POLY6(pi, pj);
+        sumMasses += wijMass * pj._Mass;
+    }
+
+    _Densities[id.x] = sumMasses;
+}
+
+[numthreads(128,1,1)]
+void PropagateParticleUpdate(uint3 id : SV_DispatchThreadID){
+    ParticleGPU pi = GetParticle(id);
+
+    pi._Position       = _Positions[id.x];
+    pi._Height         = _Heights[id.x];
+    pi._HeightGradient = _HeightsGradients[id.x];
+    pi._Density        = _Densities[id.x];
+    pi._Mass           = _Masses[id.x];
+    pi._Volume         = _Volumes[id.x];
+    _Particles[id.x] = pi;
+}
+
+
+[numthreads(128,1,1)]
+void UpdateMassesAndVolumes(uint3 id : SV_DispatchThreadID){
+    ParticleGPU pi = GetParticle(id);
+
+    float sumMasses = 0.0f;
+
+    for(uint j=0; j<_NbCurParticles; j++){
+        ParticleGPU pj = GetParticle(j);
+        if(!AreNeighbours(pi,pj)) continue;
+
+        float  wijMass = W_POLY6(pi, pj);
+        sumMasses += wijMass * pj._Volume * pj._Mass;
+    }
+
+    _Masses[id.x]  = sumMasses;
+    _Volumes[id.x] = sumMasses / _Densities[id.x];
+}
+
+[numthreads(128,1,1)]
 void UpdateHeights(uint3 id : SV_DispatchThreadID){
     ParticleGPU pi = GetParticle(id);
 
@@ -345,14 +399,6 @@ void UpdateHeights(uint3 id : SV_DispatchThreadID){
 }
 
 [numthreads(128,1,1)]
-void PropagateHeights(uint3 id : SV_DispatchThreadID){
-    ParticleGPU pi = GetParticle(id);
-    pi._Height = _Heights[id.x];
-    pi._HeightGradient = _HeightsGradients[id.x];
-    _Particles[id.x] = pi;
-}
-
-[numthreads(128,1,1)]
 void TimeIntegration(uint3 id : SV_DispatchThreadID){
     ParticleGPU pi = GetParticle(id);
 
@@ -363,11 +409,4 @@ void TimeIntegration(uint3 id : SV_DispatchThreadID){
     newPosition.y = StaggeredGridGetHeight(newPosition);
 
     _Positions[id.x] = newPosition;
-}
-
-[numthreads(128,1,1)]
-void PropagatePositions(uint3 id : SV_DispatchThreadID){
-    ParticleGPU pi = GetParticle(id);
-    pi._Position = _Positions[id.x];
-    _Particles[id.x] = pi;
 }
