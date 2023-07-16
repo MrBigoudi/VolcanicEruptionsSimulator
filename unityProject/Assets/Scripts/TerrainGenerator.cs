@@ -8,7 +8,9 @@ using UnityEditor;
 
 public enum Volcano {
     Basic,
-    Fuji
+    Fuji,
+    Flat,
+    Slope,
 }
 
 public class TerrainGenerator : MonoBehaviour{
@@ -55,6 +57,12 @@ public class TerrainGenerator : MonoBehaviour{
                 break;
             case Volcano.Fuji:
                 path += "/Media/testFuji.png";
+                break;
+            case Volcano.Flat:
+                path += "/Media/Flat.png";
+                break;
+            case Volcano.Slope:
+                path += "/Media/Slope.png";
                 break;
             default:
                 break;
