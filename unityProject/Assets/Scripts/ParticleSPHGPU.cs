@@ -27,6 +27,8 @@ public class ParticleSPHGPU : MonoBehaviour{
     public bool _DisplayParticles = false;
     [SerializeField]
     public ParticleDisplay _ParticleDisplay;
+    [SerializeField]
+    public bool _GaussianBlur = false;
 
     private int _NbMaxParticles;
     private int _NbCurParticles;
@@ -222,6 +224,7 @@ public class ParticleSPHGPU : MonoBehaviour{
     private void InitGpuValues(){
         SendConstantsToGPU();
         _Shader.SetBool("FirstTimeBlur", true);
+        _Shader.SetBool("GaussianBlur", _GaussianBlur);
         UpdateGPUValues();        
     }
 
@@ -452,8 +455,11 @@ public class ParticleSPHGPU : MonoBehaviour{
     private void UpdateTerrainHeights(){
         int res = (_TerrainNbCols*_TerrainNbLines / 1024) + 1;
         _Shader.Dispatch(_KernelUpdateTerrainHeightsId, res, 1, 1);
-        _Shader.Dispatch(_KernelGaussianBlurTerrainHeightsId, res, 1, 1);
-        _Shader.SetBool("FirstTimeBlur", false);
+
+        if(_GaussianBlur){
+            _Shader.Dispatch(_KernelGaussianBlurTerrainHeightsId, res, 1, 1);
+            _Shader.SetBool("FirstTimeBlur", false);
+        }
     }
 
     private void UpdateGPUValues(){

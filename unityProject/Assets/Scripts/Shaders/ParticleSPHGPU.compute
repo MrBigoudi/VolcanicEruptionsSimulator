@@ -13,6 +13,7 @@ uniform float PI;
 uniform float G;
 
 uniform bool FirstTimeBlur;
+uniform bool GaussianBlur;
 
 uniform float STIFF;
 uniform float RHO_0;
@@ -327,6 +328,7 @@ void UpdateTerrainHeights(uint3 id : SV_DispatchThreadID){
     }
 
     _TerrainHeightsTmp[id.x] = SPIKE*sumHeights + pos.y;
+    if(!GaussianBlur) _TerrainHeights[id.x] = SPIKE*sumHeights + pos.y;
     // _TerrainHeights[id.x] = pos.y + _NbCurParticles;
     // _TerrainHeights[id.x] = SPIKE*sumHeights + pos.y + 1;
 }
