@@ -637,9 +637,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _DisplayParticles: 1
   _ParticleDisplay: {fileID: 1247292228}
+  _GaussianBlur: 0
   _DT: 0.1
   _Spike: 1
-  _H: 2
+  _KernelRadius: 2
   _Stiffness: 1
   _ParticleInitialHeight: 1
   _TerrainMaterial: {fileID: 2100000, guid: 0b901cc2122fd9341aa07dd71c397bff, type: 2}
