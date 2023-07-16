@@ -53,7 +53,7 @@ public class UnityTweakGUI : MonoBehaviour {
         // Search all objects in scene by default if none are specified
         if (targetObjects == null || targetObjects.Length == 0)
         {
-            Debug.Log("No target transform set for TweakGUI, using all in scene.");
+            // Debug.Log("No target transform set for TweakGUI, using all in scene.");
             targetObjects = FindAllRootTransformsInScene().ToArray();
         }
 

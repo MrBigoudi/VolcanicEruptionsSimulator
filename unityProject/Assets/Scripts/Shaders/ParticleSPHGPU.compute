@@ -6,10 +6,13 @@
 #pragma kernel UpdateHeights
 #pragma kernel TimeIntegration
 #pragma kernel UpdateTerrainHeights
+#pragma kernel GaussianBlurTerrainHeights
 
 uniform float H;
 uniform float PI;
 uniform float G;
+
+uniform bool FirstTimeBlur;
 
 uniform float STIFF;
 uniform float RHO_0;
@@ -45,7 +48,9 @@ uniform StructuredBuffer<float>  _StaggeredGridHalfHeights;
 uniform StructuredBuffer<float2> _StaggeredGridGradients;
 uniform StructuredBuffer<float>  _StaggeredGridLaplacians;
 
+RWStructuredBuffer<float> _TerrainHeightsTmp;
 RWStructuredBuffer<float> _TerrainHeights;
+RWStructuredBuffer<float> _InitialTerrainHeights;
 
 RWStructuredBuffer<ParticleGPU> _Particles;
 RWStructuredBuffer<float3> _Positions;
@@ -321,10 +326,83 @@ void UpdateTerrainHeights(uint3 id : SV_DispatchThreadID){
         sumHeights += wijHeight * pj._Volume;
     }
 
-    _TerrainHeights[id.x] = SPIKE*sumHeights + pos.y;
+    _TerrainHeightsTmp[id.x] = SPIKE*sumHeights + pos.y;
     // _TerrainHeights[id.x] = pos.y + _NbCurParticles;
     // _TerrainHeights[id.x] = SPIKE*sumHeights + pos.y + 1;
 }
+
+bool IsUpTerrainBorder(uint3 id : SV_DispatchThreadID){
+    return id.x >= _StaggeredGrid[0]._NbCols * (_StaggeredGrid[0]._NbLines - 1);
+}
+bool IsDownTerrainBorder(uint3 id : SV_DispatchThreadID){
+    return id.x < _StaggeredGrid[0]._NbCols;
+}
+bool IsLeftTerrainBorder(uint3 id : SV_DispatchThreadID){
+    return id.x % _StaggeredGrid[0]._NbCols == 0;
+}
+bool IsRightTerrainBorder(uint3 id : SV_DispatchThreadID){
+    return id.x % _StaggeredGrid[0]._NbCols == _StaggeredGrid[0]._NbCols - 1;
+}
+
+uint GetUpLeftTerrain(uint3 id : SV_DispatchThreadID){
+    return id.x + _StaggeredGrid[0]._NbCols - 1;
+}
+uint GetUpMiddleTerrain(uint3 id : SV_DispatchThreadID){
+    return id.x + _StaggeredGrid[0]._NbCols;
+}
+uint GetUpRightTerrain(uint3 id : SV_DispatchThreadID){
+    return id.x + _StaggeredGrid[0]._NbCols + 1;
+}
+
+uint GetMiddleLeftTerrain(uint3 id : SV_DispatchThreadID){
+    return id.x - 1;
+}
+uint GetMiddleMiddleTerrain(uint3 id : SV_DispatchThreadID){
+    return id.x;
+}
+uint GetMiddleRightTerrain(uint3 id : SV_DispatchThreadID){
+    return id.x + 1;
+}
+
+uint GetDownLeftTerrain(uint3 id : SV_DispatchThreadID){
+    return id.x - _StaggeredGrid[0]._NbCols - 1;
+}
+uint GetDownMiddleTerrain(uint3 id : SV_DispatchThreadID){
+    return id.x - _StaggeredGrid[0]._NbCols;
+}
+uint GetDownRightTerrain(uint3 id : SV_DispatchThreadID){
+    return id.x - _StaggeredGrid[0]._NbCols + 1;
+}
+
+[numthreads(1024,1,1)]
+void GaussianBlurTerrainHeights(uint3 id : SV_DispatchThreadID){
+    float w11 = IsUpTerrainBorder(id) || IsLeftTerrainBorder(id) ? 0.0f : _TerrainHeightsTmp[GetUpLeftTerrain(id)];
+    float w12 = IsUpTerrainBorder(id) ? 0.0f : _TerrainHeightsTmp[GetUpMiddleTerrain(id)];
+    float w13 = IsUpTerrainBorder(id) || IsRightTerrainBorder(id) ? 0.0f : _TerrainHeightsTmp[GetUpRightTerrain(id)];
+    float w21 = IsLeftTerrainBorder(id) ? 0.0f : _TerrainHeightsTmp[GetMiddleLeftTerrain(id)];
+    float w22 = _TerrainHeightsTmp[GetMiddleMiddleTerrain(id)];
+    float w23 = IsRightTerrainBorder(id) ? 0.0f : _TerrainHeightsTmp[GetMiddleRightTerrain(id)];
+    float w31 = IsDownTerrainBorder(id) || IsLeftTerrainBorder(id)  ? 0.0f : _TerrainHeightsTmp[GetDownLeftTerrain(id)];
+    float w32 = IsDownTerrainBorder(id) || IsLeftTerrainBorder(id)  ? 0.0f : _TerrainHeightsTmp[GetDownMiddleTerrain(id)];
+    float w33 = IsDownTerrainBorder(id) || IsLeftTerrainBorder(id)  ? 0.0f : _TerrainHeightsTmp[GetDownRightTerrain(id)];
+
+    float GaussFactor = 1.0f/16.0f;
+    float GaussMatrix[9] = {1, 2, 1, 2, 4, 2, 1, 2, 1};
+
+    float res =   w11*GaussMatrix[0]*GaussFactor + w12*GaussMatrix[1]*GaussFactor + w13*GaussMatrix[2]*GaussFactor
+                + w21*GaussMatrix[3]*GaussFactor + w22*GaussMatrix[4]*GaussFactor + w23*GaussMatrix[5]*GaussFactor
+                + w31*GaussMatrix[6]*GaussFactor + w32*GaussMatrix[7]*GaussFactor + w33*GaussMatrix[8]*GaussFactor;
+
+    // if(w11 == 0 || w12 == 0 || w13 == 0 || w21 == 0 || w22 == 0 || w23 == 0 || w31 == 0 || w32 == 0 || w33 == 0)
+    //     res = w22;
+
+    if(GaussFactor == 0.0f)
+        res = w22;
+
+    if(FirstTimeBlur) _InitialTerrainHeights[id.x] = res;
+    _TerrainHeights[id.x] = res;
+}
+
 
 [numthreads(128,1,1)]
 void UpdateDensities(uint3 id : SV_DispatchThreadID){
