@@ -19,13 +19,8 @@ public class ParticleGenerator : MonoBehaviour{
     [SerializeField, Range(1, 100000)]
     public int _MaxParticles = 50000;
 
-    [SerializeField, Range(0.0f, 25.0f)]
-    public float _Stiffness = Constants.STIFFNESS;
-
-    /**
-     * The variation delta for the particle generation
-    */
-    public float _Delta = 1.0f;
+    [TweakableMember, Range(0.0f, 10.0f)]
+    public float _InitialPositionDelta = 1.0f;
 
     public int GetNbCurParticles(){
         return _SphGPU.GetNbCurParticles();
@@ -46,8 +41,8 @@ public class ParticleGenerator : MonoBehaviour{
      * Update the generator at runtime
     */
     public void Update(){
-        Vector3 position = GetRandomPosition(_Delta);
-        _SphGPU.Updt(position, _Stiffness);
+        Vector3 position = GetRandomPosition(_InitialPositionDelta);
+        _SphGPU.Updt(position);
     }
 
     /**

@@ -21,7 +21,7 @@ public struct ParticleGPU{
 */
 public class ParticleSPHGPU : MonoBehaviour{
 
-    [SerializeField]
+    [TweakableMember]
     public bool _DisplayParticles = false;
     [SerializeField]
     public ParticleDisplay _ParticleDisplay;
@@ -79,9 +79,22 @@ public class ParticleSPHGPU : MonoBehaviour{
 
     private ParticleGPU[] _Particles;
 
-    [SerializeField]
-    private float _DT = 0.1f;
+    [TweakableMember, Range(0.0f, 0.2f)]
+    public float _DT = 0.1f;
     private float _ElapsedTime;
+
+    [TweakableMember]
+    public float _Spike = 1.0f;
+    [TweakableMember, Range(0.0f, 10.0f)]
+    public float _H = 2.0f;
+    [TweakableMember, Range(0.0f, 2.0f)]
+    public float _Stiffness = 1.0f;
+
+    private float _AlphaPoly6;
+    private float _AlphaPoly6Laplacian;
+    private float _AlphaViscosity;
+    private float _AlphaViscosityLaplacian;
+
 
     // some usefull values
     private int _TerrainNbCols;
@@ -98,6 +111,13 @@ public class ParticleSPHGPU : MonoBehaviour{
 
     public int GetNbCurParticles(){
         return _NbCurParticles;
+    }
+
+    private void UpdateKernelFactors(){
+        _AlphaPoly6              = 4.0f  / (Constants.PI*_H*_H*_H*_H*_H*_H*_H*_H);
+        _AlphaPoly6Laplacian     = 32.0f / (Constants.PI*_H*_H*_H*_H*_H*_H*_H*_H);
+        _AlphaViscosity          = 10.0f / (9.0f*Constants.PI*_H*_H*_H*_H*_H);
+        _AlphaViscosityLaplacian = 40.0f / (Constants.PI*_H*_H*_H*_H*_H);
     }
 
     public void Create(int maxParticles, ComputeShader shader, TerrainGenerator terrain){
@@ -155,24 +175,25 @@ public class ParticleSPHGPU : MonoBehaviour{
         _TerrainHeights = Convert2dArray(StaggeredGridV2._Heights);
     }
 
-    private void InitGpuValues(TerrainGenerator terrain){
-        _Shader.SetFloat("H", Constants.H);
+    private void SendKernelFactorsToGPU(){
+        UpdateKernelFactors();
+        _Shader.SetFloat("ALPHA_POLY6", _AlphaPoly6);
+        _Shader.SetFloat("ALPHA_POLY6_LAPLACIAN", _AlphaPoly6Laplacian);
+        _Shader.SetFloat("ALPHA_VISCOSITY", _AlphaViscosity);
+        _Shader.SetFloat("ALPHA_VISCOSITY_LAPLACIAN", _AlphaViscosityLaplacian);
+    }
+
+    private void SendConstantsToGPU(){
+        _Shader.SetFloat("DT", _DT);
+        _Shader.SetInt("MAX_PARTICLES", _NbMaxParticles);
         _Shader.SetFloat("PI", Constants.PI);
         _Shader.SetFloat("G", Constants.G);
-
-        _Shader.SetFloat("STIFF", Constants.STIFFNESS);
         _Shader.SetFloat("RHO_0", Constants.RHO_0);
+    }
 
-        _Shader.SetFloat("ALPHA_POLY6", Constants.ALPHA_POLY6);
-        _Shader.SetFloat("ALPHA_POLY6_LAPLACIAN", Constants.ALPHA_POLY6_LAPLACIAN);
-        _Shader.SetFloat("ALPHA_VISCOSITY", Constants.ALPHA_VISCOSITY);
-        _Shader.SetFloat("ALPHA_VISCOSITY_LAPLACIAN", Constants.ALPHA_VISCOSITY_LAPLACIAN);
-
-        _Shader.SetFloat("SPIKE", 1.0f);
-        _Shader.SetFloat("DT", _DT);
-
-        _Shader.SetInt("MAX_PARTICLES", _NbMaxParticles);
-
+    private void InitGpuValues(){
+        SendConstantsToGPU();
+        UpdateGPUValues();        
     }
 
     private float[] Convert2dArray(float[,] arr){
@@ -334,7 +355,7 @@ public class ParticleSPHGPU : MonoBehaviour{
     private void Init(TerrainGenerator terrain){
         GetTerrainValues(terrain);
         InitIds();
-        InitGpuValues(terrain);
+        InitGpuValues();
         InitBuffersData();
         InitGpuBuffers();
         InitStaggeredGrid();
@@ -391,8 +412,15 @@ public class ParticleSPHGPU : MonoBehaviour{
         _Shader.Dispatch(_KernelUpdateTerrainHeightsId, res, 1, 1);
     }
 
-    public void Updt(Vector3 position, float stiffness){
-        _Shader.SetFloat("STIFF", stiffness);
+    private void UpdateGPUValues(){
+        SendKernelFactorsToGPU();
+        _Shader.SetFloat("STIFF", _Stiffness);
+        _Shader.SetFloat("H", _H);
+        _Shader.SetFloat("SPIKE", _Spike);
+    }
+
+    public void Updt(Vector3 position){
+        UpdateGPUValues();        
         int res = (_NbMaxParticles / 128)+1;
         // generate particle in GPU
         GenerateParticle(position);
