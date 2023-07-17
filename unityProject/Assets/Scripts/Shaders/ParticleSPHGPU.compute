@@ -1,12 +1,14 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel GenerateParticle
 #pragma kernel UpdateDensities
-#pragma kernel UpdateMassesAndVolumes
-#pragma kernel PropagateParticleUpdate
 #pragma kernel UpdateHeights
 #pragma kernel TimeIntegration
 #pragma kernel UpdateTerrainHeights
 #pragma kernel GaussianBlurTerrainHeights
+#pragma kernel PropagateDensityUpdate
+#pragma kernel PropagateHeightUpdate
+#pragma kernel PropagatePositionUpdate
+
 
 uniform float H;
 uniform float PI;
@@ -231,44 +233,45 @@ float KernelDistance(float3 p1, float3 p2){
 }
 
 float W_POLY6(ParticleGPU p1, ParticleGPU p2){
-    float r = KernelDistance(p1._Position, p2._Position) / H;
+    float r = KernelDistance(p1._Position, p2._Position);
     return ALPHA_POLY6 * K_POLY6(r);
 }
 
 float W_POLY6(float3 p1, float3 p2){
-    float r = KernelDistance(p1, p2) / H;
+    float r = KernelDistance(p1, p2);
     return ALPHA_POLY6 * K_POLY6(r);
 }
 
 float3 W_POLY6_Grad(ParticleGPU p1, ParticleGPU p2){
-    float r = KernelDistance(p1._Position, p2._Position) / H;
-    return ALPHA_POLY6 * K_POLY6_Prime(r) * (p1._Position - p2._Position);
+    float r = KernelDistance(p1._Position, p2._Position);
+    if(r==0) return float3(0,0,0);
+    return ALPHA_POLY6 * K_POLY6_Prime(r) * (p1._Position - p2._Position) / r;
 }
 
 float W_POLY6_Derivated(ParticleGPU p1, ParticleGPU p2){
-    float r = KernelDistance(p1._Position, p2._Position) / H;
+    float r = KernelDistance(p1._Position, p2._Position);
     return ALPHA_POLY6 * K_POLY6_Prime(r);
 }
 
 float W_POLY6_Lap(ParticleGPU p1, ParticleGPU p2){
-    float r = KernelDistance(p1._Position, p2._Position) / H;
+    float r = KernelDistance(p1._Position, p2._Position);
     return ALPHA_POLY6_LAPLACIAN * K_POLY6_Lap(r);
 }
 
 float W_VISCOSITY(ParticleGPU p1, ParticleGPU p2){
-    float r = KernelDistance(p1._Position, p2._Position) / H;
+    float r = KernelDistance(p1._Position, p2._Position);
     return ALPHA_VISCOSITY * K_VISCOSITY(r);
 }
 
 float3 W_VISCOSITY_Grad(ParticleGPU p1, ParticleGPU p2){
-    float r = KernelDistance(p1._Position, p2._Position) / H;
+    float r = KernelDistance(p1._Position, p2._Position);
     float prime = K_VISCOSITY_Prime(r);
     float3 pos = (p1._Position - p2._Position);
     return ALPHA_VISCOSITY * prime * pos;
 }
 
 float W_VISCOSITY_Lap(ParticleGPU p1, ParticleGPU p2){
-    float r = KernelDistance(p1._Position, p2._Position) / H;
+    float r = KernelDistance(p1._Position, p2._Position);
     float l = H;
     return ALPHA_VISCOSITY_LAPLACIAN*(l-r);
 }
@@ -370,7 +373,7 @@ void GaussianBlurTerrainHeights(uint3 id : SV_DispatchThreadID){
 [numthreads(8,1,1)]
 void GenerateParticle(uint3 id : SV_DispatchThreadID){
     if(id.x < _NbNewParticles){
-        uint i = _NbCurParticles+id.x;
+        uint i = (_NbCurParticles-1)+id.x;
         
         ParticleGPU p = _NewParticles[id.x];
 
@@ -386,7 +389,7 @@ void GenerateParticle(uint3 id : SV_DispatchThreadID){
 void UpdateTerrainHeights(uint3 id : SV_DispatchThreadID){
     float3 pos = StaggeredGridGetPosition(id.x);
     float sumHeights = 0.0f;
-    float sumWeights = 0.0f;
+    // float sumWeights = 0.0f;
 
     for(uint j=0; j<_NbCurParticles; j++){
         ParticleGPU pj = GetParticle(j);
@@ -396,12 +399,13 @@ void UpdateTerrainHeights(uint3 id : SV_DispatchThreadID){
 
         sumHeights += wijHeight * pj._Volume * pj._Height;
         // sumWeights += wijHeight;
-        sumWeights++;
     }
 
     // TODO:
-    // float newHeight = sumWeights != 0.0f ? SPIKE*sumHeights / sumWeights + pos.y : _TerrainHeights[id.x];
-    float newHeight = sumWeights > 0.0f ? _InitialTerrainHeights[id.x] : -100.0f;
+    // float newHeight = sumWeights >= 0.0001f ? SPIKE*sumHeights / sumWeights + pos.y : _InitialTerrainHeights[id.x];
+    // float newHeight = sumWeights >= 0.0001f ? SPIKE*sumHeights + pos.y : _InitialTerrainHeights[id.x];
+    float newHeight = SPIKE*sumHeights + pos.y;
+    // float newHeight = sumWeights > 0.0f ? _InitialTerrainHeights[id.x] : -100.0f;
     // float newHeight = _NbCurParticles > 0 ? _InitialTerrainHeights[id.x] : -100.0f;
     _TerrainHeightsTmp[id.x] = newHeight;
     if(!GaussianBlur) _TerrainHeights[id.x] = newHeight;
@@ -412,9 +416,11 @@ void UpdateTerrainHeights(uint3 id : SV_DispatchThreadID){
 
 [numthreads(128,1,1)]
 void UpdateDensities(uint3 id : SV_DispatchThreadID){
+    if(id.x >= _NbCurParticles) return;
     ParticleGPU pi = GetParticle(id);
 
     float sumMasses = 0.0f;
+    // int cpt = 0;
 
     for(uint j=0; j<_NbCurParticles; j++){
         ParticleGPU pj = GetParticle(j);
@@ -422,49 +428,48 @@ void UpdateDensities(uint3 id : SV_DispatchThreadID){
 
         float  wijMass = W_POLY6(pi, pj);
         sumMasses += wijMass * pj._Mass;
+        // TODO:
+        // _Positions[id.x] = wijMass > 0.99 && wijMass < 1.01 ? _Positions[id.x] : float3(0,0,0);
+        // cpt++;
     }
 
     _Densities[id.x] = sumMasses;
+    _Volumes[id.x] = pi._Mass / sumMasses;
 }
 
 [numthreads(128,1,1)]
-void PropagateParticleUpdate(uint3 id : SV_DispatchThreadID){
+void PropagateDensityUpdate(uint3 id : SV_DispatchThreadID){
+    if(id.x >= _NbCurParticles) return;
     ParticleGPU pi = GetParticle(id);
-
-    pi._Position       = _Positions[id.x];
-    pi._Height         = _Heights[id.x];
-    pi._HeightGradient = _HeightsGradients[id.x];
     pi._Density        = _Densities[id.x];
-    pi._Mass           = _Masses[id.x];
     pi._Volume         = _Volumes[id.x];
     _Particles[id.x] = pi;
 }
 
+[numthreads(128,1,1)]
+void PropagateHeightUpdate(uint3 id : SV_DispatchThreadID){
+    if(id.x >= _NbCurParticles) return;
+    ParticleGPU pi = GetParticle(id);
+    pi._Height         = _Heights[id.x];
+    pi._HeightGradient = _HeightsGradients[id.x];
+    _Particles[id.x] = pi;
+}
 
 [numthreads(128,1,1)]
-void UpdateMassesAndVolumes(uint3 id : SV_DispatchThreadID){
+void PropagatePositionUpdate(uint3 id : SV_DispatchThreadID){
+    if(id.x >= _NbCurParticles) return;
     ParticleGPU pi = GetParticle(id);
-
-    float sumMasses = 0.0f;
-
-    for(uint j=0; j<_NbCurParticles; j++){
-        ParticleGPU pj = GetParticle(j);
-        if(!AreNeighbours(pi,pj)) continue;
-
-        float  wijMass = W_POLY6(pi, pj);
-        sumMasses += wijMass * pj._Volume * pj._Mass;
-    }
-
-    _Masses[id.x]  = sumMasses;
-    _Volumes[id.x] = sumMasses / _Densities[id.x];
+    pi._Position = _Positions[id.x];
+    _Particles[id.x] = pi;
 }
 
 [numthreads(128,1,1)]
 void UpdateHeights(uint3 id : SV_DispatchThreadID){
+    if(id.x >= _NbCurParticles) return;
     ParticleGPU pi = GetParticle(id);
 
     float sumHeights = 0.0f;
-    float sumWeights = 0.0f;
+    // float sumWeights = 0.0f;
     
     float3 sumGrads  = float3(0.0f, 0.0f, 0.0f);
 
@@ -476,18 +481,21 @@ void UpdateHeights(uint3 id : SV_DispatchThreadID){
         float3 wijGrad   = W_POLY6_Grad(pi, pj);
 
         sumHeights += wijHeight * pj._Volume * pj._Height;
-        sumGrads   += wijGrad * pj._Volume;
-        sumWeights += wijHeight;
+        sumGrads   += wijGrad * pj._Volume * pj._Height;
+        // sumWeights += wijHeight;
     }
 
     // if(sumHeights == 0) sumHeights = 100;
     // TODO:
-    _Heights[id.x] = sumWeights > 0.0f ? sumHeights / sumWeights : -10.0f; // shouldn't be possible
+    // _Heights[id.x] = sumWeights >= 0.0001f ? sumHeights / sumWeights : -10.0f; // shouldn't be possible
+    // _Heights[id.x] = pi._Height;
+    _Heights[id.x] = sumHeights;
     _HeightsGradients[id.x] = sumGrads;
 }
 
 [numthreads(128,1,1)]
 void TimeIntegration(uint3 id : SV_DispatchThreadID){
+    if(id.x >= _NbCurParticles) return;
     ParticleGPU pi = GetParticle(id);
 
     float3 curPosition = pi._Position;
@@ -499,4 +507,5 @@ void TimeIntegration(uint3 id : SV_DispatchThreadID){
     // TODO:
     // if(curPosition.x <= 1e-6 && curPosition.z <= 1e-6) newPosition = float3(256, StaggeredGridGetHeight(float3(256, 0, 256)), 256);
     _Positions[id.x] = newPosition;
+    // _Positions[id.x] = curPosition;
 }
