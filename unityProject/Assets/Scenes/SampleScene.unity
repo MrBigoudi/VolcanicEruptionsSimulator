@@ -635,13 +635,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d80461e065b7b7e44b0dcc9c5da60739, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _DisplayParticles: 0
+  _DisplayParticles: 1
   _ParticleDisplay: {fileID: 1247292228}
   _GaussianBlur: 0
-  _DT: 0.2
+  _DT: 0.001
   _Spike: 1
   _KernelRadius: 5
-  _Stiffness: 2
+  _Stiffness: 1
   _ParticleInitialHeight: 2
   _TerrainMaterial: {fileID: 2100000, guid: 0b901cc2122fd9341aa07dd71c397bff, type: 2}
 --- !u!4 &1429939088
@@ -883,8 +883,8 @@ MonoBehaviour:
   _SphGPU: {fileID: 1429939087}
   _Shader: {fileID: 7200000, guid: 0fccdd0c65323124590166214ef8a2a3, type: 3}
   _TerrainGenerator: {fileID: 1379140618}
-  _MaxParticles: 50000
-  _InitialPositionDelta: 1
+  _MaxParticles: 2
+  _InitialPositionDelta: 5
 --- !u!212 &1708334438
 SpriteRenderer:
   m_ObjectHideFlags: 0

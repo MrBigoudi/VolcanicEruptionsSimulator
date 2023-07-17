@@ -419,7 +419,6 @@ public class ParticleSPHGPU : MonoBehaviour{
                 _NbCurParticles++;
                 cpt++;
 
-                float radius = (_ParticleInitialHeight / 2.0f);
                 float density = Constants.RHO_0;
                 float mass = _KernelRadius*_KernelRadius*_KernelRadius*Constants.RHO_0; // Ihmsen et al 2013
                 float volume = mass / density;
@@ -437,10 +436,9 @@ public class ParticleSPHGPU : MonoBehaviour{
             }
 
             // update gpu side
-            int res = cpt / 8 + 1;
+            int res = cpt / 128 + 1;
             _Shader.SetInt(_NbNewParticlesId, cpt);
             _NewParticlesBuffer = SetData(data, _NewParticlesId);
-            // restore correct values
             _Shader.SetInt(_NbCurParticlesId, _NbCurParticles);
             _ElapsedTime -= (delta*_DT);
             _Shader.Dispatch(_KernelGenerateParticleId, res, 1, 1);
