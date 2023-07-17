@@ -417,7 +417,7 @@ public class ParticleSPHGPU : MonoBehaviour{
             for(int i=0; i<delta; i++){
                 if(_NbCurParticles >= _NbMaxParticles) break;
                 _NbCurParticles++;
-                cpt ++;
+                cpt++;
 
                 float radius = (_ParticleInitialHeight / 2.0f);
                 float density = Constants.RHO_0;

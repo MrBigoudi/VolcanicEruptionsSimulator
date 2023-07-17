@@ -389,7 +389,7 @@ void GenerateParticle(uint3 id : SV_DispatchThreadID){
 void UpdateTerrainHeights(uint3 id : SV_DispatchThreadID){
     float3 pos = StaggeredGridGetPosition(id.x);
     float sumHeights = 0.0f;
-    // float sumWeights = 0.0f;
+    float sumWeights = 0.0f;
 
     for(uint j=0; j<_NbCurParticles; j++){
         ParticleGPU pj = GetParticle(j);
@@ -398,13 +398,14 @@ void UpdateTerrainHeights(uint3 id : SV_DispatchThreadID){
         float wijHeight = W_POLY6(pos, pj._Position);
 
         sumHeights += wijHeight * pj._Volume * pj._Height;
-        // sumWeights += wijHeight;
+        sumWeights += wijHeight;
     }
 
     // TODO:
     // float newHeight = sumWeights >= 0.0001f ? SPIKE*sumHeights / sumWeights + pos.y : _InitialTerrainHeights[id.x];
     // float newHeight = sumWeights >= 0.0001f ? SPIKE*sumHeights + pos.y : _InitialTerrainHeights[id.x];
-    float newHeight = SPIKE*sumHeights + pos.y;
+    float newHeight = sumWeights != 0.0f ? SPIKE*sumHeights + _InitialTerrainHeights[id.x] : _InitialTerrainHeights[id.x];
+    // float newHeight =  _InitialTerrainHeights[id.x];
     // float newHeight = sumWeights > 0.0f ? _InitialTerrainHeights[id.x] : -100.0f;
     // float newHeight = _NbCurParticles > 0 ? _InitialTerrainHeights[id.x] : -100.0f;
     _TerrainHeightsTmp[id.x] = newHeight;
