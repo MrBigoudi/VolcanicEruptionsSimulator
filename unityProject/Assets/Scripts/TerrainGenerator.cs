@@ -16,16 +16,21 @@ public enum Volcano {
 public class TerrainGenerator : MonoBehaviour{
 
     [SerializeField]
-    public Volcano _VolcanoImage = Volcano.Basic;
+    public Tweakable _Fields;
 
-    [SerializeField]
-    public Vector3 _Size = Vector3.zero;
-
-    [SerializeField, Range(32.0f, 1024.0f)]
-    public float _Scale = 32.0f;
+    private Volcano _VolcanoImage;
+    public Vector3 _Size;
+    private float _Scale;
 
     private int _Resolution;
     public float[,] _Heights;
+
+
+    public void Awake(){
+        _VolcanoImage = _Fields._VolcanoImage;
+        _Size = _Fields._Size;
+        _Scale = _Fields._Scale;
+    }
 
     private Texture2D LoadPNG(string filePath){
         Texture2D tex = null;
@@ -47,9 +52,22 @@ public class TerrainGenerator : MonoBehaviour{
         return _Resolution;
     }
 
+    public Texture2D CreateSlope(){
+        Texture2D texture = new Texture2D(512, 512);
+        for (int x = 0; x < texture.width; x++){
+            float v = x/512.0f;
+            Color color = new Color(v,v,v,1);
+            for (int y = 0; y < texture.height; y++){
+                texture.SetPixel(x, y, color);
+            }
+        }
+        return texture;
+    }
+
     private void InitTerrain(){
         Texture2D heightmap = null;
         string path = Application.dataPath;
+        bool pathValid = true;
 
         switch(_VolcanoImage){
             case Volcano.Basic:
@@ -62,16 +80,18 @@ public class TerrainGenerator : MonoBehaviour{
                 path += "/Media/Flat.png";
                 break;
             case Volcano.Slope:
-                path += "/Media/Slope.png";
+                pathValid = false;
+                heightmap = CreateSlope();
                 break;
             default:
                 break;
         }
-        heightmap = LoadPNG(path);
-        // heightmap = GaussianBlur(heightmap);
+        if(pathValid){
+            heightmap = LoadPNG(path);
+            // heightmap = GaussianBlur(heightmap);
+        }
 
 
-        _Size = new Vector3(512.0f, 0.0f, 512.0f);
         _Resolution = heightmap.width;
         _Heights = new float[_Resolution, _Resolution];
 

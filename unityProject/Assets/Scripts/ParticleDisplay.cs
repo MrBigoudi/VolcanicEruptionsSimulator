@@ -10,12 +10,18 @@ using UnityEditor;
 public class ParticleDisplay : MonoBehaviour{
 
     [SerializeField]
-    public Material _ParticleMaterial;
+    public Tweakable _Fields;
+
+    private Material _ParticleMaterial;
     private Mesh _ParticleMesh;
     private MeshFilter _ParticleMeshFilter;
     private MeshRenderer _ParticleRenderer;
 
     private ComputeBuffer _PositionsBuffer;
+
+    public void Awake(){
+        _ParticleMaterial = _Fields._ParticleMaterial;
+    }
 
     private void ParticleSetIndices(int nbMaxParticles){
         int[] indices = new int[nbMaxParticles];
