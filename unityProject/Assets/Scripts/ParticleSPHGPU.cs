@@ -23,22 +23,24 @@ public struct ParticleGPU{
 */
 public class ParticleSPHGPU : MonoBehaviour{
 
-    [TweakableMember]
-    public bool _DisplayParticles = false;
     [SerializeField]
-    public ParticleDisplay _ParticleDisplay;
-    [SerializeField]
-    public bool _GaussianBlur = false;
+    public Tweakable _Fields;
+
+    private bool _DisplayParticles;
+    private ParticleDisplay _ParticleDisplay;
+    private bool _GaussianBlur;
 
     private int _NbMaxParticles;
     private int _NbCurParticles;
+    private float _InitialPositionDelta;
 
     private ComputeShader _Shader;
 
     private int _NbCurParticlesId;
-    private int _NewParticlesId;
     private int _NbNewParticlesId;
-    private ComputeBuffer _NewParticlesBuffer;
+    private int _NewPositionId;
+    private int _ParticleInitialHeightId;
+    private int _RandId;
 
     // compute shader functions
     private int _KernelGenerateParticleId;
@@ -98,18 +100,13 @@ public class ParticleSPHGPU : MonoBehaviour{
 
     private ParticleGPU[] _Particles;
 
-    [TweakableMember, Range(0.0f, 0.2f)]
-    public float _DT = 0.1f;
+    private float _DT;
     private float _ElapsedTime;
 
-    [TweakableMember, Range(0.0f, 10.0f)]
-    public float _Spike = 2.0f;
-    [TweakableMember, Range(0.0f, 10.0f)]
-    public float _KernelRadius = 2.0f;
-    [TweakableMember, Range(0.0f, 2.0f)]
-    public float _Stiffness = 1.0f;
-    [TweakableMember, Range(0.0f, 10.0f)]
-    public float _ParticleInitialHeight = 1.0f;
+    private float _Spike;
+    private float _KernelRadius;
+    private float _Stiffness;
+    private float _ParticleInitialHeight;
 
     private float _AlphaPoly6;
     private float _AlphaPoly6Laplacian;
@@ -124,11 +121,32 @@ public class ParticleSPHGPU : MonoBehaviour{
     private float _TerrainDeltaLines;
     private Vector3 _TerrainSize;
 
-    [SerializeField]
-    public Material _TerrainMaterial;
+    private Material _TerrainMaterial;
     private Mesh _TerrainMesh;
     private MeshFilter _TerrainMeshFilter;
     private MeshRenderer _TerrainRenderer;
+
+    public void UpdateTweakableFields(){
+        _DisplayParticles = _Fields._DisplayParticles;
+        _GaussianBlur = _Fields._GaussianBlur;
+        _NbMaxParticles = _Fields._NbMaxParticles;
+        _InitialPositionDelta = _Fields._InitialPositionDelta;
+        _DT = _Fields._DT;
+        _Spike = _Fields._Spike;
+        _KernelRadius = _Fields._KernelRadius;
+        _Stiffness = _Fields._Stiffness;
+        _ParticleInitialHeight = _Fields._ParticleInitialHeight;
+    }
+
+    public void Awake(){
+        _ParticleDisplay = _Fields._ParticleDisplay;
+        _TerrainMaterial = _Fields._TerrainMaterial;
+        UpdateTweakableFields();
+    }
+
+    public void Update(){
+        UpdateTweakableFields();
+    }
 
     public int GetNbCurParticles(){
         return _NbCurParticles;
@@ -141,8 +159,7 @@ public class ParticleSPHGPU : MonoBehaviour{
         _AlphaViscosityLaplacian = 40.0f / (Constants.PI*_KernelRadius*_KernelRadius*_KernelRadius*_KernelRadius*_KernelRadius);
     }
 
-    public void Create(int maxParticles, ComputeShader shader, TerrainGenerator terrain){
-        _NbMaxParticles = maxParticles;
+    public void Create(ComputeShader shader, TerrainGenerator terrain){
         _NbCurParticles = 0;
         _Shader = shader;
         _ElapsedTime = 0.0f;
@@ -173,8 +190,9 @@ public class ParticleSPHGPU : MonoBehaviour{
 
     private void InitParticlesIds(){
         _NbCurParticlesId   = Shader.PropertyToID("_NbCurParticles");
-        _NewParticlesId     = Shader.PropertyToID("_NewParticles");
         _NbNewParticlesId   = Shader.PropertyToID("_NbNewParticles");
+        _NewPositionId      = Shader.PropertyToID("_NewPosition");
+        _ParticleInitialHeightId = Shader.PropertyToID("_ParticleInitialHeightId");
 
         _ParticlesId        = Shader.PropertyToID("_Particles");
         _HeightsId          = Shader.PropertyToID("_Heights");
@@ -183,6 +201,8 @@ public class ParticleSPHGPU : MonoBehaviour{
         _VolumesId          = Shader.PropertyToID("_Volumes");
         _DensitiesId        = Shader.PropertyToID("_Densities");
         _MassesId           = Shader.PropertyToID("_Masses");
+
+        _RandId           = Shader.PropertyToID("RAND");
 
         _InitialTerrainHeightsId = Shader.PropertyToID("_InitialTerrainHeights");
         _TerrainHeightsId        = Shader.PropertyToID("_TerrainHeights");
@@ -407,39 +427,26 @@ public class ParticleSPHGPU : MonoBehaviour{
 
     private void GenerateParticle(Vector3 position){
         _ElapsedTime += Time.deltaTime;
+
         if(_NbCurParticles < _NbMaxParticles && _ElapsedTime > _DT){
             int delta = (int)(_ElapsedTime / _DT);
+            delta = Double.IsNaN(delta) ? 10 : delta;
             int cpt = 0;
-            // Debug.Log(_ElapsedTime + ", " + _DT + ", " + delta);
-            ParticleGPU[] data = new ParticleGPU[delta];
 
             // put new particles in buffer
             for(int i=0; i<delta; i++){
                 if(_NbCurParticles >= _NbMaxParticles) break;
                 _NbCurParticles++;
                 cpt++;
-
-                float density = Constants.RHO_0;
-                float mass = _KernelRadius*_KernelRadius*_KernelRadius*Constants.RHO_0; // Ihmsen et al 2013
-                float volume = mass / density;
-
-                ParticleGPU p = new ParticleGPU{
-                                        _Position = position,
-                                        _Height = _ParticleInitialHeight,
-                                        _HeightGradient = Vector3.zero,
-                                        _Density = density,
-                                        _Mass = mass,
-                                        _Volume = volume
-                                    };
-                // Debug.Log(position);
-                data[i] = p;
             }
 
             // update gpu side
-            int res = cpt / 128 + 1;
+            int res = _NbMaxParticles / 128 + 1;
+            // _Shader.SetFloat("DT", Time.deltaTime);
             _Shader.SetInt(_NbNewParticlesId, cpt);
-            _NewParticlesBuffer = SetData(data, _NewParticlesId);
             _Shader.SetInt(_NbCurParticlesId, _NbCurParticles);
+            _Shader.SetVector(_NewPositionId, position);
+
             _ElapsedTime -= (delta*_DT);
             _Shader.Dispatch(_KernelGenerateParticleId, res, 1, 1);
         }
@@ -473,6 +480,8 @@ public class ParticleSPHGPU : MonoBehaviour{
         // _KernelRadius = 2/Mathf.Sqrt(Constants.PI);
         _Shader.SetFloat("H", _KernelRadius);
         _Shader.SetFloat("SPIKE", _Spike);
+        _Shader.SetFloat(_RandId, GetRandomValue(_InitialPositionDelta));
+        _Shader.SetFloat(_ParticleInitialHeightId, _ParticleInitialHeight);
     }
 
     private void UpdateVolumes(int res){
@@ -508,7 +517,6 @@ public class ParticleSPHGPU : MonoBehaviour{
         _DensitiesBuffer.Dispose();
         _MassesBuffer.Dispose();
 
-        _NewParticlesBuffer.Dispose();
         _InitialTerrainHeightsBuffer.Dispose();
         _TerrainHeightsBuffer.Dispose();
         _TerrainHeightsTmpBuffer.Dispose();
@@ -627,6 +635,11 @@ public class ParticleSPHGPU : MonoBehaviour{
         }
         // Debug.Log(vertices.Length + ", " + nbIndices);
         _TerrainMesh.SetIndices(indices, MeshTopology.Triangles, 0);
+    }
+
+    private float GetRandomValue(float delta){
+        float v = UnityEngine.Random.value*2*delta - delta;
+        return v;
     }
 
 }

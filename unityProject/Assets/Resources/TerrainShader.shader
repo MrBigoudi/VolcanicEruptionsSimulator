@@ -43,6 +43,8 @@ Shader "Custom/TerrainShader"{
                 return o;
             }
 
+            uniform float _MaxDelta = 1.0f;
+
             [maxvertexcount(3)]
             void geom(triangle v2g input[3], inout TriangleStream<g2f> triStream){
                 g2f o;
@@ -51,7 +53,9 @@ Shader "Custom/TerrainShader"{
                 for(int i=0; i<3; i++){
                     float id = input[i].id;
                     float deltaY = input[i].vertex.y - _InitialTerrainHeights[(uint)input[i].id];
+                    _MaxDelta = deltaY > _MaxDelta ? deltaY : _MaxDelta;
                     float curHeight = input[i].vertex.y;
+
                     o.uv = float3(id, deltaY, curHeight);
                     o.vertex = UnityObjectToClipPos(input[i].vertex);
                     o.normal = normal;
@@ -68,7 +72,8 @@ Shader "Custom/TerrainShader"{
 
                 fixed4 green = fixed4(0.69, 0.86, 0.47, 1);
                 fixed4 brown = fixed4(131.0/255, 101.0/255, 57.0/255, 1);
-                fixed4 red   = fixed4(1, deltaY, 0, 1);
+
+                fixed4 red = fixed4(1.0, deltaY, 0, 1.0);
 
                 // get color
                 fixed4 col = green;
@@ -81,7 +86,9 @@ Shader "Custom/TerrainShader"{
                 }
 
                 fixed light = saturate (dot (normalize(_WorldSpaceLightPos0), i.normal));
-                col.rgb *= light;
+                if(!updated){
+                    col.rgb *= light;
+                }
 
                 // col = updated ? col : fixed4(i.normal * 0.5 + 0.5, 1);
 
