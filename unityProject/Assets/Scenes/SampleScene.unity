@@ -158,18 +158,20 @@ MonoBehaviour:
   _ParticleDisplay: {fileID: 1247292228}
   _ParticleMaterial: {fileID: 2100000, guid: 6f71bd793732e5747a434c444c9fd1e8, type: 2}
   _TerrainMaterial: {fileID: 2100000, guid: 0b901cc2122fd9341aa07dd71c397bff, type: 2}
-  _VolcanoImage: 2
+  _VolcanoImage: 1
   _Size: {x: 512, y: 0, z: 512}
   _Scale: 64
-  _DisplayParticles: 0
+  _DisplayParticles: 1
   _GaussianBlur: 0
-  _NbMaxParticles: 10
-  _InitialPositionDelta: 1
-  _DT: 0.001
+  _NbMaxParticles: 50000
+  _InitialPositionDelta: 10
+  _DT: 0.01
   _Spike: 0.1
   _KernelRadius: 5
-  _Stiffness: 1
+  _Stiffness: 6.03
   _ParticleInitialHeight: 2
+  _TerrainDensityMax: 100
+  _TerrainDensityMin: 30
 --- !u!4 &298545280
 Transform:
   m_ObjectHideFlags: 0
@@ -475,8 +477,8 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1494811405}
-  m_LocalRotation: {x: 0.07571236, y: -0.92418975, z: 0.2716648, w: 0.25756413}
-  m_LocalPosition: {x: 263.3672, y: 5.0258484, z: 275.67578}
+  m_LocalRotation: {x: -0.28510034, y: 0.32709524, z: -0.10416535, w: -0.89491683}
+  m_LocalPosition: {x: 310.9752, y: 110.556244, z: 226.49225}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

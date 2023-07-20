@@ -46,9 +46,13 @@ public class Tweakable : MonoBehaviour{
     public float _Spike = 0.1f;
     [SerializeField, Range(0.0f, 10.0f)]
     public float _KernelRadius = 5.0f;
-    [SerializeField, Range(0.0f, 5.0f)]
+    [SerializeField, Range(0.0f, 10.0f)]
     public float _Stiffness = 3.0f;
     [SerializeField, Range(0.0f, 100.0f)]
     public float _ParticleInitialHeight = 2.0f;
+    [SerializeField, Range(1, 200)]
+    public float _TerrainDensityMax = 150;
+    [SerializeField, Range(1, 200)]
+    public float _TerrainDensityMin = 30;
 
 }

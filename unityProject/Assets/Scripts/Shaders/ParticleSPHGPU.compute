@@ -6,6 +6,8 @@
 #pragma kernel PropagateHeightUpdate
 #pragma kernel TimeIntegration
 #pragma kernel PropagatePositionUpdate
+#pragma kernel UpdateTerrainDensities
+#pragma kernel UpdateTerrainDensitiesStar
 #pragma kernel UpdateTerrainHeights
 #pragma kernel GaussianBlurTerrainHeights
 
@@ -55,6 +57,13 @@ uniform StructuredBuffer<float>  _StaggeredGridLaplacians;
 RWStructuredBuffer<float> _TerrainHeightsTmp;
 RWStructuredBuffer<float> _TerrainHeights;
 RWStructuredBuffer<float> _InitialTerrainHeights;
+
+RWStructuredBuffer<float> _TerrainDensities;
+RWStructuredBuffer<float> _TerrainDensitiesHat;
+RWStructuredBuffer<float> _TerrainDensitiesStar;
+RWStructuredBuffer<float2> _TerrainDensitiesMinMax;
+uniform float _TerrainDensityMax;
+uniform float _TerrainDensityMin;
 
 RWStructuredBuffer<ParticleGPU> _Particles;
 RWStructuredBuffer<float3> _Positions;
@@ -433,41 +442,111 @@ void GenerateParticle(uint3 id : SV_DispatchThreadID){
     }
 }
 
+void UpdateTerrainDensitiesMinMax(uint id, uint maxIdx){
+    float3 pos = StaggeredGridGetPosition(id);
+
+    // get number of cells arround me that are inside kernel
+    int nbCells = H / _StaggeredGrid[0]._DeltaCols;
+
+    float densityMin = -1.0f;
+    float densityMax = -1.0f;
+
+    // check cells inside radius
+    for(int j=-nbCells; j<nbCells; j++){
+        for(int i=-nbCells; i<nbCells; i++){
+            int curCell = id + i + (j*_StaggeredGrid[0]._NbCols);
+            
+            // do not count cells outside the grid
+            if(curCell < 0 || curCell >= (int)maxIdx) continue;
+
+            // update min and max densities
+            float curDensity = _TerrainDensities[(uint)curCell];
+            if(densityMin < 0 || curDensity < densityMin){
+                densityMin = curDensity;
+            }
+            if(densityMax < 0 || curDensity > densityMax){
+                densityMax = curDensity;
+            }
+        }
+    }
+
+    _TerrainDensitiesMinMax[id] = float2(densityMin, densityMax);
+}
+
+void UpdateDensitiesStar(uint id){
+    float density    = _TerrainDensities[id];
+    float densityHat = _TerrainDensitiesHat[id];
+    float densityMin = _TerrainDensitiesMinMax[id].x;
+    float densityMax = _TerrainDensitiesMinMax[id].y;
+    
+    if(densityMax == densityMin){
+        _TerrainDensitiesStar[id] = 0.0f;
+        return;
+    }
+
+    float alpha = (density-densityMin) / (densityMax-densityMin);
+    // if((density-densityMin)<0) alpha = 0;
+    float densityStar = alpha*densityHat + (1-alpha)*density;
+
+    _TerrainDensitiesStar[id] = densityStar;
+}
+
 [numthreads(1024,1,1)]
-void UpdateTerrainHeights(uint3 id : SV_DispatchThreadID){
+void UpdateTerrainDensitiesStar(uint3 id : SV_DispatchThreadID){
+    uint maxIdx = _StaggeredGrid[0]._NbCols * _StaggeredGrid[0]._NbLines;
+    if(id.x >= maxIdx) return;
+    UpdateTerrainDensitiesMinMax(id.x, maxIdx);
+    UpdateDensitiesStar(id.x);
+}
+
+float W_POLY6_Densities(float3 p1, float3 p2, float h){
+    float r = KernelDistance(p1, p2);
+    if(r<0 || r>h) return 0.0f;
+    float alpha = 4/(PI*h*h*h*h*h*h*h*h);
+    float tmp = (h*h - r*r);
+    return alpha*tmp*tmp*tmp;
+}
+
+float GetKernelRadius(float density){
+    if(density < _TerrainDensityMin || density > _TerrainDensityMax) return H;
+    float a = 2*H / (_TerrainDensityMax - _TerrainDensityMin);
+    float b = H - ((_TerrainDensityMax - _TerrainDensityMin) / (2*H*_TerrainDensityMin));
+    return a*density + b;
+}
+
+[numthreads(1024,1,1)]
+void UpdateTerrainDensities(uint3 id : SV_DispatchThreadID){
     if(id.x >= _StaggeredGrid[0]._NbCols * _StaggeredGrid[0]._NbLines) return;
     float3 pos = StaggeredGridGetPosition(id.x);
-    float sumHeights = 0.0f;
+
+    float sumDensities = 0.0f;
     float sumWeights = 0.0f;
-    uint cpt = 0;
+
+    // float kernelRadius = GetKernelRadius(_TerrainDensities[id.x]);
+    float kernelRadius = H;
 
     for(uint j=0; j<_NbCurParticles; j++){
         ParticleGPU pj = GetParticle(j);
         if(!AreNeighbours(pos, pj._Position)) continue;
 
-        float wijHeight = W_POLY6(pos, pj._Position);
+        float wij = W_POLY6_Densities(pos, pj._Position, kernelRadius);
 
-        sumHeights += wijHeight * pj._Volume;
-        sumWeights += wijHeight;
-        cpt++;
+        sumDensities += pj._Density*wij;
+        sumWeights  += wij;
     }
 
-    // TODO:
-    // float newHeight = sumWeights >= 0.0001f ? SPIKE*sumHeights / sumWeights + pos.y : _InitialTerrainHeights[id.x];
-    // float newHeight = sumWeights >= 0.0001f ? SPIKE*sumHeights + pos.y : _InitialTerrainHeights[id.x];
-    float newHeight = SPIKE*sumHeights + _InitialTerrainHeights[id.x];
-    // if(cpt == 1) newHeight = -10;
-    // if(sumWeights<1 && sumWeights>0){
-    //     newHeight = -10;
-    // }
-    // float newHeight = sumWeights != 0.0f ? SPIKE*sumHeights + _InitialTerrainHeights[id.x] : _InitialTerrainHeights[id.x];
-    // float newHeight =  _InitialTerrainHeights[id.x];
-    // float newHeight = sumWeights > 0.0f ? _InitialTerrainHeights[id.x] : -100.0f;
-    // float newHeight = _NbCurParticles > 0 ? _InitialTerrainHeights[id.x] : -100.0f;
+    _TerrainDensities[id.x] = sumDensities;
+    _TerrainDensitiesHat[id.x] = sumWeights < 0.0001f ? 0.0f : sumDensities / sumWeights;
+}
+
+[numthreads(1024,1,1)]
+void UpdateTerrainHeights(uint3 id : SV_DispatchThreadID){
+    if(id.x >= _StaggeredGrid[0]._NbCols * _StaggeredGrid[0]._NbLines) return;
+    
+    float newHeight = SPIKE*(_TerrainDensitiesStar[id.x] / RHO_0) + _InitialTerrainHeights[id.x];
+    
     _TerrainHeightsTmp[id.x] = newHeight;
     if(!GaussianBlur) _TerrainHeights[id.x] = newHeight;
-    // _TerrainHeights[id.x] = pos.y + _NbCurParticles;
-    // _TerrainHeights[id.x] = SPIKE*sumHeights + pos.y + 1;
 }
 
 
