@@ -614,6 +614,7 @@ public class ParticleSPHGPU : MonoBehaviour{
 
     public void UpdateParticleMesh(){
         _ParticleDisplay.UpdateParticleMesh(_NbCurParticles);
+        _ParticleDisplay.UpdateParticleHeight();
     }
 
     private void UpdateTerrainMesh(){

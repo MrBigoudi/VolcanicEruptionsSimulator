@@ -378,7 +378,7 @@ void GaussianBlurTerrainHeights(uint3 id : SV_DispatchThreadID){
         res = w22;
 
     if(FirstTimeBlur) _InitialTerrainHeights[id.x] = res;
-    _TerrainHeights[id.x] = res;
+    // _TerrainHeights[id.x] = res;
 }
 
 [numthreads(128,1,1)]
@@ -546,7 +546,8 @@ void UpdateTerrainHeights(uint3 id : SV_DispatchThreadID){
     float newHeight = SPIKE*(_TerrainDensitiesStar[id.x] / RHO_0) + _InitialTerrainHeights[id.x];
     
     _TerrainHeightsTmp[id.x] = newHeight;
-    if(!GaussianBlur) _TerrainHeights[id.x] = newHeight;
+    _TerrainHeights[id.x] = newHeight;
+    // if(!GaussianBlur) _TerrainHeights[id.x] = newHeight;
 }
 
 

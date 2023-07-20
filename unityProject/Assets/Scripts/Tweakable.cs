@@ -55,4 +55,7 @@ public class Tweakable : MonoBehaviour{
     [SerializeField, Range(1, 200)]
     public float _TerrainDensityMin = 30;
 
+    [SerializeField, Range(0.0f, 5.0f)]
+    public float _ParticlesMeshHeights = 0.1f;
+
 }

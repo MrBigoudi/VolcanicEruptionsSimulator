@@ -172,6 +172,7 @@ MonoBehaviour:
   _ParticleInitialHeight: 2
   _TerrainDensityMax: 100
   _TerrainDensityMin: 30
+  _ParticlesMeshHeights: 0.1
 --- !u!4 &298545280
 Transform:
   m_ObjectHideFlags: 0
@@ -477,8 +478,8 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1494811405}
-  m_LocalRotation: {x: -0.28510034, y: 0.32709524, z: -0.10416535, w: -0.89491683}
-  m_LocalPosition: {x: 310.9752, y: 110.556244, z: 226.49225}
+  m_LocalRotation: {x: -0.064659595, y: 0.932076, z: -0.20832707, w: -0.28922892}
+  m_LocalPosition: {x: 275.95236, y: 89.60298, z: 294.64258}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

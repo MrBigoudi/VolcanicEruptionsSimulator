@@ -19,8 +19,16 @@ public class ParticleDisplay : MonoBehaviour{
 
     private ComputeBuffer _PositionsBuffer;
 
+    private float _ParticlesMeshHeights;
+
     public void Awake(){
         _ParticleMaterial = _Fields._ParticleMaterial;
+        _ParticlesMeshHeights = _Fields._ParticlesMeshHeights;
+    }
+
+    public void UpdateParticleHeight(){
+        _ParticlesMeshHeights = _Fields._ParticlesMeshHeights;
+        _ParticleMaterial.SetFloat("_ParticlesMeshHeights", _ParticlesMeshHeights);
     }
 
     private void ParticleSetIndices(int nbMaxParticles){
