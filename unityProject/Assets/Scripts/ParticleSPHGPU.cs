@@ -27,6 +27,7 @@ public class ParticleSPHGPU : MonoBehaviour{
     public Tweakable _Fields;
 
     private bool _DisplayParticles;
+    private bool _DisplayLava;
     private ParticleDisplay _ParticleDisplay;
     private bool _GaussianBlur;
 
@@ -145,6 +146,7 @@ public class ParticleSPHGPU : MonoBehaviour{
 
     public void UpdateTweakableFields(){
         _DisplayParticles = _Fields._DisplayParticles;
+        _DisplayLava = _Fields._DisplayLava;
         _GaussianBlur = _Fields._GaussianBlur;
         _NbMaxParticles = _Fields._NbMaxParticles;
         _InitialPositionDelta = _Fields._InitialPositionDelta;
@@ -525,6 +527,8 @@ public class ParticleSPHGPU : MonoBehaviour{
 
         _Shader.SetFloat("_TerrainDensityMax", _TerrainDensityMax);
         _Shader.SetFloat("_TerrainDensityMin", _TerrainDensityMin);
+
+        _Shader.SetBool("_DisplayLava", _DisplayLava);
     }
 
     private void UpdateVolumes(int res){
@@ -546,9 +550,7 @@ public class ParticleSPHGPU : MonoBehaviour{
         // update the terrain heights
         UpdateTerrainHeights();
         // display particles
-        if(_DisplayParticles){
-            UpdateParticleMesh();
-        }
+        UpdateParticleMesh();
     }
 
     private void ReleaseBuffers(){
@@ -601,10 +603,10 @@ public class ParticleSPHGPU : MonoBehaviour{
     }
 
     private void InitParticlesMesh(){
-        if(_DisplayParticles){
+        // if(_DisplayParticles){
             // Debug.Log("Particles mesh initialized");
             _ParticleDisplay.InitMesh(_PositionsBuffer);
-        }
+        // }
     }
 
     private void InitMesh(){
@@ -613,7 +615,7 @@ public class ParticleSPHGPU : MonoBehaviour{
     }
 
     public void UpdateParticleMesh(){
-        _ParticleDisplay.UpdateParticleMesh(_NbCurParticles);
+        _ParticleDisplay.UpdateParticleMesh(_NbCurParticles, _DisplayParticles);
         _ParticleDisplay.UpdateParticleHeight();
     }
 

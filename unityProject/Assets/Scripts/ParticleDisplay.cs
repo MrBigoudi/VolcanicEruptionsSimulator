@@ -48,10 +48,11 @@ public class ParticleDisplay : MonoBehaviour{
         _ParticleMesh.SetVertices(vertices);
     }
 
-    public void UpdateParticleMesh(int nbCurParticles){
+    public void UpdateParticleMesh(int nbCurParticles, bool displayParticles){
         // update property
         // Debug.Log(nbCurParticles);
         _ParticleMaterial.SetInteger("_NbCurParticles", nbCurParticles);
+        _ParticleMaterial.SetInteger("_DisplayParticles", displayParticles ? 1 : 0);
     }
 
     private void InitMeshProperties(){

@@ -35,6 +35,8 @@ public class Tweakable : MonoBehaviour{
     [SerializeField]
     public bool _DisplayParticles = false;
     [SerializeField]
+    public bool _DisplayLava = true;
+    [SerializeField]
     public bool _GaussianBlur = false;
     [SerializeField, Range(1, 100000)]
     public int _NbMaxParticles = 50000;

@@ -13,6 +13,7 @@ Shader "Custom/ParticleShader"{
             StructuredBuffer<float3> _ParticlesPositions;
             int _NbCurParticles;
             float _ParticlesMeshHeights;
+            int _DisplayParticles;
 
             struct appdata {
                 float4 vertex : POSITION;
@@ -109,7 +110,7 @@ Shader "Custom/ParticleShader"{
 
             fixed4 frag(g2f i) : SV_Target {
                 // bool toDiscard = false;
-                bool toDiscard = i.id >= _NbCurParticles;
+                bool toDiscard = i.id >= _NbCurParticles || _DisplayParticles == 0;
                 if(toDiscard){
                     discard;
                 }

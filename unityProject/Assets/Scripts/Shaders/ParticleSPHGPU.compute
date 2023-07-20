@@ -18,6 +18,7 @@ uniform float G;
 
 uniform bool FirstTimeBlur;
 uniform bool GaussianBlur;
+uniform bool _DisplayLava;
 
 uniform float STIFF;
 uniform float RHO_0;
@@ -547,6 +548,7 @@ void UpdateTerrainHeights(uint3 id : SV_DispatchThreadID){
     
     _TerrainHeightsTmp[id.x] = newHeight;
     _TerrainHeights[id.x] = newHeight;
+    if(!_DisplayLava) _TerrainHeights[id.x] = _InitialTerrainHeights[id.x];
     // if(!GaussianBlur) _TerrainHeights[id.x] = newHeight;
 }
 
