@@ -19,8 +19,16 @@ public class ParticleDisplay : MonoBehaviour{
 
     private ComputeBuffer _PositionsBuffer;
 
+    private float _ParticlesMeshHeights;
+
     public void Awake(){
         _ParticleMaterial = _Fields._ParticleMaterial;
+        _ParticlesMeshHeights = _Fields._ParticlesMeshHeights;
+    }
+
+    public void UpdateParticleHeight(){
+        _ParticlesMeshHeights = _Fields._ParticlesMeshHeights;
+        _ParticleMaterial.SetFloat("_ParticlesMeshHeights", _ParticlesMeshHeights);
     }
 
     private void ParticleSetIndices(int nbMaxParticles){
@@ -40,10 +48,11 @@ public class ParticleDisplay : MonoBehaviour{
         _ParticleMesh.SetVertices(vertices);
     }
 
-    public void UpdateParticleMesh(int nbCurParticles){
+    public void UpdateParticleMesh(int nbCurParticles, bool displayParticles){
         // update property
         // Debug.Log(nbCurParticles);
         _ParticleMaterial.SetInteger("_NbCurParticles", nbCurParticles);
+        _ParticleMaterial.SetInteger("_DisplayParticles", displayParticles ? 1 : 0);
     }
 
     private void InitMeshProperties(){
