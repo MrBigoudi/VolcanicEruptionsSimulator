@@ -1,5 +1,7 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel GenerateParticle
+#pragma kernel ResetNeighboursCounter
+#pragma kernel UpdateNeighbours
 #pragma kernel UpdateDensities
 #pragma kernel PropagateDensityUpdate
 #pragma kernel UpdateHeights
@@ -40,13 +42,21 @@ struct StaggeredGridGPU{
     float _DeltaCols, _DeltaLines;
 };
 
+struct NeighbourGridGPU{
+    uint _NbCols, _NbLines;
+    float _DeltaCols, _DeltaLines;
+    uint _NbMaxNeighbours;
+};
+
 struct ParticleGPU{
     float3 _Position;
     float  _Height;
     float3 _HeightGradient;
-    float   _Density;
-    float   _Mass;
+    float  _Density;
+    float  _Mass;
     float  _Volume;
+    uint   _Cell;
+    uint   _Id;
 };
 
 uniform StructuredBuffer<StaggeredGridGPU> _StaggeredGrid;
@@ -54,6 +64,10 @@ uniform StructuredBuffer<float>  _StaggeredGridHeights;
 uniform StructuredBuffer<float>  _StaggeredGridHalfHeights;
 uniform StructuredBuffer<float2> _StaggeredGridGradients;
 uniform StructuredBuffer<float>  _StaggeredGridLaplacians;
+
+uniform StructuredBuffer<NeighbourGridGPU> _NeighbourGrid;
+RWStructuredBuffer<float> _NeighbourGridCells;
+RWStructuredBuffer<uint> _NeighbourGridCellsCounter;
 
 RWStructuredBuffer<float> _TerrainHeightsTmp;
 RWStructuredBuffer<float> _TerrainHeights;
@@ -323,7 +337,7 @@ bool IsLeftTerrainBorder(uint3 id : SV_DispatchThreadID){
     return id.x % _StaggeredGrid[0]._NbCols == 0;
 }
 bool IsRightTerrainBorder(uint3 id : SV_DispatchThreadID){
-    return id.x % _StaggeredGrid[0]._NbCols == _StaggeredGrid[0]._NbCols - 1;
+    return id.x % _StaggeredGrid[0]._NbCols == _StaggeredGrid[0]._NbLines - 1;
 }
 
 uint GetUpLeftTerrain(uint3 id : SV_DispatchThreadID){
@@ -382,6 +396,87 @@ void GaussianBlurTerrainHeights(uint3 id : SV_DispatchThreadID){
     // _TerrainHeights[id.x] = res;
 }
 
+float3 GenRandomPos(float3 pos, uint id){
+    return float3(sin(RAND + id)+pos.x, pos.y, -cos(RAND+id)+pos.z);
+}
+
+
+
+// ##################################################################################################################
+// ############################################ Neighbours FUNCTIONS #######################################################
+// ##################################################################################################################
+
+uint GetCell(float3 pos){
+    uint posX = (uint)(pos.x / _NeighbourGrid[0]._DeltaCols);
+    uint posZ = (uint)(pos.z / _NeighbourGrid[0]._DeltaLines);
+    return ((posZ*_NeighbourGrid[0]._NbCols + posX)*_NeighbourGrid[0]._NbMaxNeighbours);
+}
+
+uint CellIdToCellCountId(uint cellId){
+    uint j = (uint)(cellId/(_NeighbourGrid[0]._NbMaxNeighbours*_NeighbourGrid[0]._NbCols));
+    uint i = (uint)((cellId-_NeighbourGrid[0]._NbMaxNeighbours*j*_NeighbourGrid[0]._NbCols)/_NeighbourGrid[0]._NbMaxNeighbours);
+    return j*_NeighbourGrid[0]._NbCols + i;
+}
+
+uint GetCellCount(uint cellId){
+    return _NeighbourGridCellsCounter[CellIdToCellCountId(cellId)];
+}
+
+bool IsUpNeighbourBorder(uint cellId){
+    return cellId >= (_NeighbourGrid[0]._NbCols * (_NeighbourGrid[0]._NbLines - 1))*_NeighbourGrid[0]._NbMaxNeighbours;
+}
+bool IsDownNeighbourBorder(uint cellId){
+    return cellId < (_NeighbourGrid[0]._NbCols)*_NeighbourGrid[0]._NbMaxNeighbours;
+}
+bool IsLeftNeighbourBorder(uint cellId){
+    return cellId % (_NeighbourGrid[0]._NbCols*_NeighbourGrid[0]._NbMaxNeighbours) == 0;
+}
+bool IsRightNeighbourBorder(uint cellId){
+    return cellId % (_NeighbourGrid[0]._NbCols*_NeighbourGrid[0]._NbMaxNeighbours) == (_NeighbourGrid[0]._NbLines - 1)*_NeighbourGrid[0]._NbMaxNeighbours;
+}
+
+int GetUpLeftNeighbour(uint id){
+    if(IsUpNeighbourBorder(id) || IsLeftNeighbourBorder(id)) return -1;
+    return id + (_NeighbourGrid[0]._NbCols - 1)*_NeighbourGrid[0]._NbMaxNeighbours;
+}
+int GetUpMiddleNeighbour(uint id){
+    if(IsUpNeighbourBorder(id)) return -1;
+    return id + (_NeighbourGrid[0]._NbCols)*_NeighbourGrid[0]._NbMaxNeighbours;
+}
+int GetUpRightNeighbour(uint id){
+    if(IsUpNeighbourBorder(id) || IsRightNeighbourBorder(id)) return -1;
+    return id + (_NeighbourGrid[0]._NbCols + 1)*_NeighbourGrid[0]._NbMaxNeighbours;
+}
+
+int GetMiddleLeftNeighbour(uint id){
+    if(IsLeftNeighbourBorder(id)) return -1;
+    return id - (1)*_NeighbourGrid[0]._NbMaxNeighbours;
+}
+int GetMiddleMiddleNeighbour(uint id){
+    return id;
+}
+int GetMiddleRightNeighbour(uint id){
+    if(IsRightNeighbourBorder(id)) return -1;
+    return id + (1)*_NeighbourGrid[0]._NbMaxNeighbours;
+}
+
+int GetDownLeftNeighbour(uint id){
+    if(IsDownNeighbourBorder(id) || IsLeftNeighbourBorder(id)) return -1;
+    return id - (_NeighbourGrid[0]._NbCols - 1)*_NeighbourGrid[0]._NbMaxNeighbours;
+}
+int GetDownMiddleNeighbour(uint id){
+    if(IsDownNeighbourBorder(id)) return -1;
+    return id - (_NeighbourGrid[0]._NbCols)*_NeighbourGrid[0]._NbMaxNeighbours;
+}
+int GetDownRightNeighbour(uint id){
+    if(IsDownNeighbourBorder(id) || IsRightNeighbourBorder(id)) return -1;
+    return id - (_NeighbourGrid[0]._NbCols + 1)*_NeighbourGrid[0]._NbMaxNeighbours;
+}
+
+
+// ##################################################################################################################
+// ############################################ Kernel FUNCTIONS #######################################################
+// ##################################################################################################################
 [numthreads(128,1,1)]
 void PropagateDensityUpdate(uint3 id : SV_DispatchThreadID){
     if(id.x >= _NbCurParticles) return;
@@ -404,12 +499,35 @@ void PropagateHeightUpdate(uint3 id : SV_DispatchThreadID){
 void PropagatePositionUpdate(uint3 id : SV_DispatchThreadID){
     if(id.x >= _NbCurParticles) return;
     ParticleGPU pi = GetParticle(id);
-    pi._Position = _Positions[id.x];
+    float3 newPosition = _Positions[id.x];
+    pi._Position = newPosition;
+    pi._Cell = GetCell(newPosition);
     _Particles[id.x] = pi;
 }
 
-float3 GenRandomPos(float3 pos, uint id){
-    return float3(sin(RAND + id)+pos.x, pos.y, -cos(RAND+id)+pos.z);
+[numthreads(1024,1,1)]
+void ResetNeighboursCounter(uint3 id : SV_DispatchThreadID){\
+    if(id.x>=_NeighbourGrid[0]._NbLines*_NeighbourGrid[0]._NbCols) return;
+    _NeighbourGridCellsCounter[id.x] = 0;
+}
+
+[numthreads(1024,1,1)]
+void UpdateNeighbours(uint3 id : SV_DispatchThreadID){
+    if(id.x >= _NeighbourGrid[0]._NbCols*_NeighbourGrid[0]._NbLines) return;
+    
+    uint cpt = 0;
+    uint cellId = id.x*_NeighbourGrid[0]._NbMaxNeighbours;
+
+    for(uint j=0; j<_NbCurParticles; j++){
+        ParticleGPU pj = GetParticle(j);
+        uint idx = pj._Cell;
+
+        if(idx == cellId){
+            _NeighbourGridCells[cellId+cpt] = pj._Id;
+            cpt++;
+        } 
+    }
+    _NeighbourGridCellsCounter[id.x] = cpt;
 }
 
 [numthreads(128,1,1)]
@@ -426,22 +544,26 @@ void GenerateParticle(uint3 id : SV_DispatchThreadID){
         float radius = pow(abs((3*volume / (4*PI))), (1.0f/3.0f));
 
         ParticleGPU p; 
-        p._Position = GenRandomPos(_NewPosition, id.x);
+        float3 pos = GenRandomPos(_NewPosition, id.x);
+        p._Position = pos;
         // p._Height = radius / 2.0f;
         p._Height = _ParticleInitialHeight,
         p._HeightGradient = float3(0,0,0);
         p._Density = density;
         p._Mass = mass;
         p._Volume = volume;
+        // p._Cell = 0;
+        p._Cell = GetCell(pos);
+        p._Id = i;
         
         _Positions[i]        = p._Position;
         _Heights[i]          = p._Height;
         _HeightsGradients[i] = p._HeightGradient;
         _Volumes[i]          = p._Volume;
         _Particles[i]        = p;
-
     }
 }
+
 
 void UpdateTerrainDensitiesMinMax(uint id, uint maxIdx){
     float3 pos = StaggeredGridGetPosition(id);
@@ -525,15 +647,38 @@ void UpdateTerrainDensities(uint3 id : SV_DispatchThreadID){
 
     // float kernelRadius = GetKernelRadius(_TerrainDensities[id.x]);
     float kernelRadius = H;
+    
+    uint cellIdx = GetCell(pos);
+    int w11 = GetUpLeftNeighbour(cellIdx);
+    int w12 = GetUpMiddleNeighbour(cellIdx);
+    int w13 = GetUpRightNeighbour(cellIdx);
+    int w21 = GetMiddleLeftNeighbour(cellIdx);
+    int w22 = GetMiddleMiddleNeighbour(cellIdx);
+    int w23 = GetMiddleRightNeighbour(cellIdx);
+    int w31 = GetDownLeftNeighbour(cellIdx);
+    int w32 = GetDownMiddleNeighbour(cellIdx);
+    int w33 = GetDownRightNeighbour(cellIdx);
+    int cells[9] = {w11, w12, w13,
+                    w21, w22, w23,
+                    w31, w32, w33};
 
-    for(uint j=0; j<_NbCurParticles; j++){
-        ParticleGPU pj = GetParticle(j);
-        if(!AreNeighbours(pos, pj._Position)) continue;
+    for(uint i=0; i<9; i++){
+        int idx = cells[i];
+        // int idx = cellIdx;
+        if(idx <= -1) continue;
+        // uint cpt = 1;
+        uint cpt = GetCellCount(idx);
 
-        float wij = W_POLY6_Densities(pos, pj._Position, kernelRadius);
+        for(uint j=0; j<cpt; j++){
+            ParticleGPU pj = GetParticle(_NeighbourGridCells[idx+j]);
+            // ParticleGPU pj = GetParticle(0);
+            if(!AreNeighbours(pos, pj._Position)) continue;
 
-        sumDensities += pj._Density*wij;
-        sumWeights  += wij;
+            float wij = W_POLY6_Densities(pos, pj._Position, kernelRadius);
+
+            sumDensities += pj._Density*wij;
+            sumWeights  += wij;
+        }
     }
 
     _TerrainDensities[id.x] = sumDensities;
@@ -586,22 +731,40 @@ void UpdateHeights(uint3 id : SV_DispatchThreadID){
     
     float3 sumGrads  = float3(0.0f, 0.0f, 0.0f);
 
-    for(uint j=0; j<_NbCurParticles; j++){
-        ParticleGPU pj = GetParticle(j);
-        if(!AreNeighbours(pi,pj)) continue;
+    uint cellIdx = GetCell(pi._Position);
+    int w11 = GetUpLeftNeighbour(cellIdx);
+    int w12 = GetUpMiddleNeighbour(cellIdx);
+    int w13 = GetUpRightNeighbour(cellIdx);
+    int w21 = GetMiddleLeftNeighbour(cellIdx);
+    int w22 = GetMiddleMiddleNeighbour(cellIdx);
+    int w23 = GetMiddleRightNeighbour(cellIdx);
+    int w31 = GetDownLeftNeighbour(cellIdx);
+    int w32 = GetDownMiddleNeighbour(cellIdx);
+    int w33 = GetDownRightNeighbour(cellIdx);
+    int cells[9] = {w11, w12, w13,
+                    w21, w22, w23,
+                    w31, w32, w33};
 
-        float  wijHeight = W_POLY6(pi, pj);
-        float3 wijGrad   = W_POLY6_Grad(pi, pj);
+    for(uint i=0; i<9; i++){
+        int idx = cells[i];
+        // int idx = cellIdx;
+        if(idx <= -1) continue;
+        // uint cpt = 1;
+        uint cpt = GetCellCount(idx);
 
-        sumHeights += wijHeight * pj._Volume;
-        sumGrads   += wijGrad * pj._Volume;
-        // sumWeights += wijHeight;
+        for(uint j=0; j<cpt; j++){
+            ParticleGPU pj = GetParticle(_NeighbourGridCells[idx+j]);
+            if(!AreNeighbours(pi,pj)) continue;
+
+            float  wijHeight = W_POLY6(pi, pj);
+            float3 wijGrad   = W_POLY6_Grad(pi, pj);
+
+            sumHeights += wijHeight * pj._Volume;
+            sumGrads   += wijGrad * pj._Volume;
+            // sumWeights += wijHeight;
+        }
     }
 
-    // if(sumHeights == 0) sumHeights = 100;
-    // TODO:
-    // _Heights[id.x] = sumWeights >= 0.0001f ? sumHeights / sumWeights : -10.0f; // shouldn't be possible
-    // _Heights[id.x] = pi._Height;
     _Heights[id.x] = sumHeights;
     _HeightsGradients[id.x] = sumGrads;
 }
