@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np 
 import math
     
-xdata = [i/100.0 for i in range(-200, 201, 1)] 
+xdata = [i/100.0 for i in range(0, 201, 1)] 
 ydataPos = [4.72124, 4.02846, 3.62353, 3.33654, 
             3.11423, 2.93288, 2.77982, 2.64749, 
             2.53102, 2.42707, 2.33327, 2.24786, 
@@ -54,8 +54,8 @@ ydataPos = [4.72124, 4.02846, 3.62353, 3.33654,
             0.124151, 0.122627, 0.121123, 0.119638, 
             0.118174, 0.116728, 0.115302, 0.113894]
 
-ydataNeg = [ydataPos[len(ydataPos)-i-1] for i in range(len(ydataPos))]
-ydata = ydataNeg + [1000] + ydataPos
+# ydataNeg = [ydataPos[len(ydataPos)-i-1] for i in range(len(ydataPos))]
+ydata = [1000] + ydataPos
 
 # print(len(xdata))
 # print(len(ydata))
@@ -65,14 +65,18 @@ def wPoly6(r, h):
     if (0<=r and r<=h):
         return (4/(math.pi*h**8))*((h*h-r*r)**3)
     return 0
-ypoly6 = [wPoly6(i/100.0, 1) for i in range(-200, 201, 1)]
+ypoly6 = [wPoly6(i/100.0, 1) for i in range(0, 201, 1)]
+ypoly6_2 = [wPoly6(i/100.0, 2) for i in range(0, 201, 1)]
+ypoly6_3 = [wPoly6(i/100.0, 0.5) for i in range(0, 201, 1)]
 
 # wspiky
 def wSpiky(r, h):
     if (0<=r and r<=h):
         return (10/(math.pi*h**5))*((h-r)**3)
     return 0
-yspiky = [wSpiky(i/100.0, 1) for i in range(-200, 201, 1)]
+yspiky = [wSpiky(i/100.0, 1) for i in range(0, 201, 1)]
+yspiky_2 = [wSpiky(i/100.0, 2) for i in range(0, 201, 1)]
+yspiky_3 = [wSpiky(i/100.0, 0.5) for i in range(0, 201, 1)]
 
 # wvisc
 def wVisc(r, h):
@@ -80,22 +84,44 @@ def wVisc(r, h):
         tmp = 4*r**3 + 9*r**2*h - 5*h**3 + 6*h**3*(math.log(h) - math.log(r)) 
         return (10/(9*math.pi*h**5))*tmp
     return 0
-yvisc = [wVisc(i/100.0, 1) for i in range(-200, 201, 1)]
+yvisc = [wVisc(i/100.0, 1) for i in range(0, 201, 1)]
+yvisc_2 = [wVisc(i/100.0, 2) for i in range(0, 201, 1)]
+yvisc_3 = [wVisc(i/100.0, 0.5) for i in range(0, 201, 1)]
+
+def besselSerie(r, h):
+    if(r<=0):
+        return 0
+    gamma = 0.577216
+    return (2/(math.pi*h**2))*((-math.log(r)-gamma+math.log(2)) + (1/4.0)*r**2*(-math.log(r)-gamma+1+math.log(2)))# + (1/128.0)*r**4*(-2*math.log(r)-2*gamma+3+math.log(4)))
+yserie = [besselSerie(i/100.0, 1) for i in range(0, 201, 1)]
+yserie_2 = [besselSerie(i/100.0, 2) for i in range(0, 201, 1)]
+yserie_3 = [besselSerie(i/100.0, 0.5) for i in range(0, 201, 1)]
 
 # print(yspiky)
     
 # plot the data 
-plt.plot(xdata, ydata, color ='tab:blue')
-plt.plot(xdata, ypoly6, color ='tab:purple')
-plt.plot(xdata, yspiky, color ='tab:green')
-plt.plot(xdata, yvisc, color ='tab:red')
+# plt.plot(xdata, ydata, color ='tab:blue')
+plt.plot(xdata, yserie, color ='tab:purple')
+plt.plot(xdata, yserie_2, color ='tab:orange')
+plt.plot(xdata, yserie_3, color ='tab:green')
+# plt.plot(xdata, ypoly6, color ='tab:purple')
+# plt.plot(xdata, ypoly6_2, color ='tab:orange')
+# plt.plot(xdata, ypoly6_3, color ='tab:green')
+# plt.plot(xdata, yspiky, color ='tab:purple')
+# plt.plot(xdata, yspiky_2, color ='tab:orange')
+# plt.plot(xdata, yspiky_3, color ='tab:green')
+# plt.plot(xdata, yvisc, color ='tab:purple')
+# plt.plot(xdata, yvisc_2, color ='tab:orange')
+# plt.plot(xdata, yvisc_3, color ='tab:green')
+
+plt.legend(["h=1", "h=2", "h=0.5"], loc ="lower right")
     
     
 # set the limits 
-plt.xlim([-2.0, 2.0]) 
+plt.xlim([0.0, 2.0]) 
 plt.ylim([0.0, 5.0]) 
   
-plt.title('matplotlib.pyplot.plot() example 2') 
+# plt.title('matplotlib.pyplot.plot() example 2') 
     
 # display the plot 
 plt.show()
