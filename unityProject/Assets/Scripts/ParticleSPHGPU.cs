@@ -9,6 +9,12 @@ public struct StaggeredGridGPU{
     public float _DeltaCols, _DeltaLines;    
 };
 
+public struct NeighbourGridGPU{
+    public int _NbCols, _NbLines;
+    public float _DeltaCols, _DeltaLines;    
+    public int _NbMaxNeighbours;
+};
+
 public struct ParticleGPU{
     public Vector3 _Position;
     public float   _Height;
@@ -16,6 +22,8 @@ public struct ParticleGPU{
     public float   _Density;
     public float   _Mass;
     public float   _Volume;
+    public int     _Cell;
+    public int     _Id;
 };
 
 /**
@@ -45,6 +53,8 @@ public class ParticleSPHGPU : MonoBehaviour{
 
     // compute shader functions
     private int _KernelGenerateParticleId;
+    private int _KernelResetNeighboursCounterId;
+    private int _KernelUpdateNeighboursId;
     private int _KernelUpdateDensitiesId;
     private int _KernelPropagateDensityUpdateId;
     private int _KernelPropagateHeightUpdateId;
@@ -82,6 +92,18 @@ public class ParticleSPHGPU : MonoBehaviour{
     private ComputeBuffer _StaggeredGridHalfHeightsBuffer;
     private ComputeBuffer _StaggeredGridGradientsBuffer;
     private ComputeBuffer _StaggeredGridLaplaciansBuffer;
+
+    private int _NeighbourGridId;
+    private int _NeighbourGridCellsId;
+    private int _NeighbourGridCellsCounterId;
+    private ComputeBuffer _NeighbourGridBuffer;
+    private ComputeBuffer _NeighbourGridCellsBuffer;
+    private ComputeBuffer _NeighbourGridCellsCounterBuffer;
+    private float[] _NeighbourGridCells;
+    private int[] _NeighbourGridCellsCounter;
+    private int _NeighbourGridNbCols;
+    private int _NeighbourGridNbLines;
+    private int _NeighbourGridNbMaxNeighbours;
 
     private int _InitialTerrainHeightsId;
     private int _TerrainHeightsId;
@@ -190,6 +212,8 @@ public class ParticleSPHGPU : MonoBehaviour{
     private void InitKernelsIds(){
         // init functions id
         _KernelGenerateParticleId           = _Shader.FindKernel("GenerateParticle");
+        _KernelResetNeighboursCounterId     = _Shader.FindKernel("ResetNeighboursCounter");
+        _KernelUpdateNeighboursId           = _Shader.FindKernel("UpdateNeighbours");
         _KernelUpdateDensitiesId            = _Shader.FindKernel("UpdateDensities");
         _KernelUpdateHeightsId              = _Shader.FindKernel("UpdateHeights");
         _KernelTimeIntegrationId            = _Shader.FindKernel("TimeIntegration");
@@ -209,6 +233,12 @@ public class ParticleSPHGPU : MonoBehaviour{
         _StaggeredGridHalfHeightsId = Shader.PropertyToID("_StaggeredGridHalfHeights");
         _StaggeredGridGradientsId   = Shader.PropertyToID("_StaggeredGridGradients");
         _StaggeredGridLaplaciansId  = Shader.PropertyToID("_StaggeredGridLaplacians");
+    }
+
+    private void InitNeighbourGridIds(){
+        _NeighbourGridId = Shader.PropertyToID("_NeighbourGrid");
+        _NeighbourGridCellsId = Shader.PropertyToID("_NeighbourGridCells");
+        _NeighbourGridCellsCounterId = Shader.PropertyToID("_NeighbourGridCellsCounter");
     }
 
     private void InitParticlesIds(){
@@ -341,6 +371,8 @@ public class ParticleSPHGPU : MonoBehaviour{
     private void SendDataToAllKernels(ComputeBuffer buffer, int id){
         // set to every kernel
         _Shader.SetBuffer(_KernelGenerateParticleId, id, buffer);
+        _Shader.SetBuffer(_KernelResetNeighboursCounterId, id, buffer);
+        _Shader.SetBuffer(_KernelUpdateNeighboursId, id, buffer);
         _Shader.SetBuffer(_KernelUpdateDensitiesId, id, buffer);
         _Shader.SetBuffer(_KernelUpdateHeightsId, id, buffer);
         _Shader.SetBuffer(_KernelTimeIntegrationId, id, buffer);
@@ -383,7 +415,7 @@ public class ParticleSPHGPU : MonoBehaviour{
     }
 
     private ComputeBuffer SetData(ParticleGPU[] data, int id){
-        ComputeBuffer buffer = new ComputeBuffer(data.Length, sizeof(float)*10);
+        ComputeBuffer buffer = new ComputeBuffer(data.Length, sizeof(float)*10 + sizeof(int)*2);
         buffer.SetData(data);
         SendDataToAllKernels(buffer, id);
         return buffer;
@@ -391,6 +423,13 @@ public class ParticleSPHGPU : MonoBehaviour{
 
     private ComputeBuffer SetData(StaggeredGridGPU[] data, int id){
         ComputeBuffer buffer = new ComputeBuffer(data.Length, sizeof(float)*2 + sizeof(int)*2);
+        buffer.SetData(data);
+        SendDataToAllKernels(buffer, id);
+        return buffer;
+    }
+
+    private ComputeBuffer SetData(NeighbourGridGPU[] data, int id){
+        ComputeBuffer buffer = new ComputeBuffer(data.Length, sizeof(float)*2 + sizeof(int)*3);
         buffer.SetData(data);
         SendDataToAllKernels(buffer, id);
         return buffer;
@@ -408,6 +447,41 @@ public class ParticleSPHGPU : MonoBehaviour{
         
         // init grid buffer
         _StaggeredGridBuffer = SetData(gridArray, _StaggeredGridId);
+    }
+
+    private void InitNeighbourGridAttributes(){
+        // init grid data
+        NeighbourGridGPU[] gridArray = new NeighbourGridGPU[1];
+        NeighbourGridGPU grid = new NeighbourGridGPU();
+        grid._DeltaCols  = _KernelRadius*2;
+        grid._DeltaLines = _KernelRadius*2;
+        grid._NbCols     = (int)(_TerrainSize.x / grid._DeltaCols);
+        grid._NbLines    = (int)(_TerrainSize.z / grid._DeltaLines);
+        grid._NbMaxNeighbours = _NbMaxParticles;
+
+        _NeighbourGridNbCols = grid._NbCols;
+        _NeighbourGridNbLines = grid._NbLines;
+        _NeighbourGridNbMaxNeighbours = grid._NbMaxNeighbours;
+        // Debug.Log("nbCol: " + _NeighbourGridNbCols 
+        //         + ", nbLines: " + _NeighbourGridNbLines
+        //         + ", deltaCols: " + grid._DeltaCols
+        //         + ", deltaLines: " + grid._DeltaLines
+        //         + ", nbMax: " + _NeighbourGridNbMaxNeighbours
+        // );
+        
+        gridArray[0] = grid;
+        
+        // init grid buffer
+        _NeighbourGridBuffer = SetData(gridArray, _NeighbourGridId);
+    }
+
+    private void InitNeighbourGrid(){
+        InitNeighbourGridIds();
+        InitNeighbourGridAttributes();
+        _NeighbourGridCells = new float[_NeighbourGridNbCols*_NeighbourGridNbLines*_NeighbourGridNbMaxNeighbours];
+        _NeighbourGridCellsCounter = new int[_NeighbourGridNbCols*_NeighbourGridNbLines];
+        _NeighbourGridCellsBuffer = SetData(_NeighbourGridCells, _NeighbourGridCellsId);
+        _NeighbourGridCellsCounterBuffer = SetData(_NeighbourGridCellsCounter, _NeighbourGridCellsCounterId);
     }
 
     private void InitStaggeredGrid(){
@@ -462,6 +536,7 @@ public class ParticleSPHGPU : MonoBehaviour{
         InitBuffersData();
         InitGpuBuffers();
         InitStaggeredGrid();
+        InitNeighbourGrid();
         InitMesh();
     }
 
@@ -536,11 +611,50 @@ public class ParticleSPHGPU : MonoBehaviour{
         _Shader.Dispatch(_KernelPropagateDensityUpdateId, res, 1, 1);
     }
 
+    private void DebugParticles(){
+        _ParticlesBuffer.GetData(_Particles);
+        for(int i=0; i<_NbCurParticles; i++){
+            ParticleGPU p = _Particles[i];
+            Debug.Log(
+                "pos: " + p._Position +
+                ", h: " + p._Height +
+                ", hGrad: " + p._HeightGradient +
+                ", dens: " + p._Density +
+                ", mass: " + p._Mass +
+                ", vol: " + p._Volume +
+                ", cell: " + p._Cell +
+                ", id: " + p._Id
+            );
+        }
+    }
+
+    private void DebugNeighbours(){
+    _NeighbourGridCellsCounterBuffer.GetData(_NeighbourGridCellsCounter);
+        for(int j=0; j<_NeighbourGridNbLines; j++){
+            for(int i=0; i<_NeighbourGridNbCols; i++){
+                int idx = j*_NeighbourGridNbCols + i;
+                if(_NeighbourGridCellsCounter[idx]!=0){
+                    Debug.Log("Count["+idx+"] = "+_NeighbourGridCellsCounter[idx]);
+                }
+            }
+        }
+    }
+
+    private void UpdateNeighbours(){
+        int res = (_NeighbourGridNbCols*_NeighbourGridNbLines / 1024) + 1;
+        _Shader.Dispatch(_KernelResetNeighboursCounterId, res, 1, 1);
+        _Shader.Dispatch(_KernelUpdateNeighboursId, res, 1, 1);
+        // DebugParticles();  
+        // DebugNeighbours();      
+    }
+
     public void Updt(Vector3 position){
         UpdateGPUValues();        
         int res = (_NbMaxParticles / 128)+1;
         // generate particle in GPU
         GenerateParticle(position);
+        // update the neighbours
+        UpdateNeighbours();
         // update densities
         UpdateVolumes(res);
         // calculate heights in gpu
