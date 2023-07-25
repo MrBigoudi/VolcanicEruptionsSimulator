@@ -41,23 +41,29 @@ public class Tweakable : MonoBehaviour{
     [SerializeField, Range(1, 100000)]
     public int _NbMaxParticles = 50000;
     [SerializeField, Range(0.0f, 10.0f)]
-    public float _InitialPositionDelta = 1.0f;
+    public float _InitialPositionDelta = 10.0f;
     [SerializeField, Range(0.0f, 0.25f)]
     public float _DT = 0.01f;
-    [SerializeField, Range(0.0f, 2.0f)]
-    public float _Spike = 0.1f;
     [SerializeField, Range(0.0f, 10.0f)]
-    public float _KernelRadius = 5.0f;
+    public float _Spike = 1.0f;
+    [SerializeField, Range(0.0f, 5.0f)]
+    public float _KernelRadius = 1.0f;
     [SerializeField, Range(0.0f, 10.0f)]
-    public float _Stiffness = 3.0f;
+    public float _Stiffness = 1.0f;
     [SerializeField, Range(0.0f, 100.0f)]
     public float _ParticleInitialHeight = 2.0f;
-    [SerializeField, Range(1, 200)]
+    [SerializeField, Range(1, 2500)]
     public float _TerrainDensityMax = 150;
-    [SerializeField, Range(1, 200)]
+    [SerializeField, Range(1, 2500)]
     public float _TerrainDensityMin = 30;
 
-    [SerializeField, Range(0.0f, 5.0f)]
-    public float _ParticlesMeshHeights = 0.1f;
+    [SerializeField, Range(-5.0f, 5.0f)]
+    public float _ParticlesMeshHeights = 0.0f;
 
+    [SerializeField, Range(1, 10000)]
+    public float _Mu = 100.0f;
+    [SerializeField, Range(1, 10000)]
+    public float _Ke = 100.0f;
+    [SerializeField, Range(1, 3000)]
+    public float _ThetaE = 1423.0f;
 }

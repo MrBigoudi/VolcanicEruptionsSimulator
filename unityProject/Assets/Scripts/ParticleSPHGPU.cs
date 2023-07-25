@@ -16,6 +16,7 @@ public struct NeighbourGridGPU{
 };
 
 public struct ParticleGPU{
+    public Vector3 _Velocity;
     public Vector3 _Position;
     public float   _Height;
     public Vector3 _HeightGradient;
@@ -24,6 +25,7 @@ public struct ParticleGPU{
     public float   _Volume;
     public int     _Cell;
     public int     _Id;
+    public float   _Temperature;
 };
 
 /**
@@ -42,6 +44,9 @@ public class ParticleSPHGPU : MonoBehaviour{
     private int _NbMaxParticles;
     private int _NbCurParticles;
     private float _InitialPositionDelta;
+    private float _Mu;
+    private float _Ke;
+    private float _ThetaE;
 
     private ComputeShader _Shader;
 
@@ -60,6 +65,10 @@ public class ParticleSPHGPU : MonoBehaviour{
     private int _KernelPropagateHeightUpdateId;
     private int _KernelPropagatePositionUpdateId;
     private int _KernelUpdateHeightsId;
+    private int _KernelUpdateTemperaturesId;
+    private int _KernelPropagateTemperatureUpdateId;
+    private int _KernelUpdateVelocitiesId;
+    private int _KernelPropagateVelocityUpdateId;
     private int _KernelTimeIntegrationId;
     private int _KernelUpdateTerrainHeightsId;
     private int _KernelUpdateTerrainDensitiesId;
@@ -74,6 +83,8 @@ public class ParticleSPHGPU : MonoBehaviour{
     private int _VolumesId;
     private int _DensitiesId;
     private int _MassesId;
+    private int _TemperaturesId;
+    private int _VelocitiesId;
     private ComputeBuffer _ParticlesBuffer;
     private ComputeBuffer _HeightsBuffer;
     private ComputeBuffer _HeightsGradientsBuffer;
@@ -81,6 +92,8 @@ public class ParticleSPHGPU : MonoBehaviour{
     private ComputeBuffer _VolumesBuffer;
     private ComputeBuffer _DensitiesBuffer;
     private ComputeBuffer _MassesBuffer;
+    private ComputeBuffer _TemperaturesBuffer;
+    private ComputeBuffer _VelocitiesBuffer;
 
     private int _StaggeredGridId;
     private int _StaggeredGridHeightsId;
@@ -118,14 +131,17 @@ public class ParticleSPHGPU : MonoBehaviour{
     private float _TerrainDensityMax;
     private float _TerrainDensityMin;
     private int _TerrainDensitiesId;
+    private int _TerrainDensitiesRadiiId;
     private int _TerrainDensitiesHatId;
     private int _TerrainDensitiesStarId;
     private int _TerrainDensitiesMinMaxId;
     private ComputeBuffer _TerrainDensitiesBuffer;
+    private ComputeBuffer _TerrainDensitiesRadiiBuffer;
     private ComputeBuffer _TerrainDensitiesHatBuffer;
     private ComputeBuffer _TerrainDensitiesStarBuffer;
     private ComputeBuffer _TerrainDensitiesMinMaxBuffer;
     private float[] _TerrainDensities;
+    private float[] _TerrainDensitiesRadii;
     private float[] _TerrainDensitiesHat;
     private float[] _TerrainDensitiesStar;
     private Vector2[] _TerrainDensitiesMinMax;
@@ -134,9 +150,11 @@ public class ParticleSPHGPU : MonoBehaviour{
     private float[]   _Heights;
     private Vector3[] _HeightsGradients;
     private Vector3[] _Positions;
+    private Vector3[] _Velocities;
     private float[]   _Volumes;
     private float[]   _Densities;
     private float[]   _Masses;
+    private float[]   _Temperatures;
 
     private ParticleGPU[] _Particles;
 
@@ -179,6 +197,9 @@ public class ParticleSPHGPU : MonoBehaviour{
         _ParticleInitialHeight = _Fields._ParticleInitialHeight;
         _TerrainDensityMax = _Fields._TerrainDensityMax;
         _TerrainDensityMin = _Fields._TerrainDensityMin;
+        _Mu = _Fields._Mu;
+        _Ke = _Fields._Ke;
+        _ThetaE = _Fields._ThetaE;
     }
 
     public void Awake(){
@@ -216,6 +237,12 @@ public class ParticleSPHGPU : MonoBehaviour{
         _KernelUpdateNeighboursId           = _Shader.FindKernel("UpdateNeighbours");
         _KernelUpdateDensitiesId            = _Shader.FindKernel("UpdateDensities");
         _KernelUpdateHeightsId              = _Shader.FindKernel("UpdateHeights");
+
+        _KernelUpdateTemperaturesId         = _Shader.FindKernel("UpdateTemperatures");
+        _KernelPropagateTemperatureUpdateId = _Shader.FindKernel("PropagateTemperatureUpdate");
+        _KernelUpdateVelocitiesId           = _Shader.FindKernel("UpdateVelocities");
+        _KernelPropagateVelocityUpdateId    = _Shader.FindKernel("PropagateVelocityUpdate");
+
         _KernelTimeIntegrationId            = _Shader.FindKernel("TimeIntegration");
         _KernelUpdateTerrainHeightsId       = _Shader.FindKernel("UpdateTerrainHeights");
         _KernelUpdateTerrainDensitiesId     = _Shader.FindKernel("UpdateTerrainDensities");
@@ -251,9 +278,11 @@ public class ParticleSPHGPU : MonoBehaviour{
         _HeightsId          = Shader.PropertyToID("_Heights");
         _HeightsGradientsId = Shader.PropertyToID("_HeightsGradients");
         _PositionsId        = Shader.PropertyToID("_Positions");
+        _VelocitiesId       = Shader.PropertyToID("_Velocities");
         _VolumesId          = Shader.PropertyToID("_Volumes");
         _DensitiesId        = Shader.PropertyToID("_Densities");
         _MassesId           = Shader.PropertyToID("_Masses");
+        _TemperaturesId     = Shader.PropertyToID("_Temperatures");
 
         _RandId           = Shader.PropertyToID("RAND");
 
@@ -262,6 +291,7 @@ public class ParticleSPHGPU : MonoBehaviour{
         _TerrainHeightsTmpId     = Shader.PropertyToID("_TerrainHeightsTmp");
 
         _TerrainDensitiesId      = Shader.PropertyToID("_TerrainDensities");
+        _TerrainDensitiesRadiiId = Shader.PropertyToID("_TerrainDensitiesRadii");
         _TerrainDensitiesHatId   = Shader.PropertyToID("_TerrainDensitiesHat");
         _TerrainDensitiesStarId  = Shader.PropertyToID("_TerrainDensitiesStar");
         _TerrainDensitiesMinMaxId  = Shader.PropertyToID("_TerrainDensitiesMinMax");
@@ -276,9 +306,11 @@ public class ParticleSPHGPU : MonoBehaviour{
         _Heights          = new float[_NbMaxParticles];
         _HeightsGradients = new Vector3[_NbMaxParticles];
         _Positions        = new Vector3[_NbMaxParticles];
+        _Velocities       = new Vector3[_NbMaxParticles];
         _Volumes          = new float[_NbMaxParticles];
         _Densities        = new float[_NbMaxParticles];
         _Masses           = new float[_NbMaxParticles];
+        _Temperatures     = new float[_NbMaxParticles];
 
         _Particles = new ParticleGPU[_NbMaxParticles];
         _InitialTerrainHeights = Convert2dArray(StaggeredGridV2._Heights);
@@ -286,6 +318,7 @@ public class ParticleSPHGPU : MonoBehaviour{
         _TerrainHeightsTmp = Convert2dArray(StaggeredGridV2._Heights);
         
         _TerrainDensities = new float[StaggeredGridV2._NbCols * StaggeredGridV2._NbLines];
+        _TerrainDensitiesRadii = new float[StaggeredGridV2._NbCols * StaggeredGridV2._NbLines];
         _TerrainDensitiesHat = new float[StaggeredGridV2._NbCols * StaggeredGridV2._NbLines];
         _TerrainDensitiesStar = new float[StaggeredGridV2._NbCols * StaggeredGridV2._NbLines];
         _TerrainDensitiesMinMax = new Vector2[StaggeredGridV2._NbCols * StaggeredGridV2._NbLines];
@@ -305,6 +338,8 @@ public class ParticleSPHGPU : MonoBehaviour{
         _Shader.SetFloat("PI", Constants.PI);
         _Shader.SetFloat("G", Constants.G);
         _Shader.SetFloat("RHO_0", Constants.RHO_0);
+        _Shader.SetFloat("ALPHA", Constants.ALPHA);
+
     }
 
     private void InitGpuValues(){
@@ -375,6 +410,12 @@ public class ParticleSPHGPU : MonoBehaviour{
         _Shader.SetBuffer(_KernelUpdateNeighboursId, id, buffer);
         _Shader.SetBuffer(_KernelUpdateDensitiesId, id, buffer);
         _Shader.SetBuffer(_KernelUpdateHeightsId, id, buffer);
+
+        _Shader.SetBuffer(_KernelUpdateTemperaturesId, id, buffer);
+        _Shader.SetBuffer(_KernelPropagateTemperatureUpdateId, id, buffer);
+        _Shader.SetBuffer(_KernelUpdateVelocitiesId, id, buffer);
+        _Shader.SetBuffer(_KernelPropagateVelocityUpdateId, id, buffer);
+
         _Shader.SetBuffer(_KernelTimeIntegrationId, id, buffer);
         _Shader.SetBuffer(_KernelUpdateTerrainHeightsId, id, buffer);
         _Shader.SetBuffer(_KernelUpdateTerrainDensitiesId, id, buffer);
@@ -415,7 +456,7 @@ public class ParticleSPHGPU : MonoBehaviour{
     }
 
     private ComputeBuffer SetData(ParticleGPU[] data, int id){
-        ComputeBuffer buffer = new ComputeBuffer(data.Length, sizeof(float)*10 + sizeof(int)*2);
+        ComputeBuffer buffer = new ComputeBuffer(data.Length, sizeof(float)*14 + sizeof(int)*2);
         buffer.SetData(data);
         SendDataToAllKernels(buffer, id);
         return buffer;
@@ -457,7 +498,7 @@ public class ParticleSPHGPU : MonoBehaviour{
         grid._DeltaLines = _KernelRadius*2;
         grid._NbCols     = (int)(_TerrainSize.x / grid._DeltaCols);
         grid._NbLines    = (int)(_TerrainSize.z / grid._DeltaLines);
-        grid._NbMaxNeighbours = _NbMaxParticles;
+        grid._NbMaxNeighbours = _NbMaxParticles > 8192 ? 8192 : _NbMaxParticles;
 
         _NeighbourGridNbCols = grid._NbCols;
         _NeighbourGridNbLines = grid._NbLines;
@@ -503,17 +544,20 @@ public class ParticleSPHGPU : MonoBehaviour{
     private void InitGpuBuffers(){
         _ParticlesBuffer        = SetData(_Particles, _ParticlesId);
         _PositionsBuffer        = SetData(_Positions, _PositionsId);
+        _VelocitiesBuffer       = SetData(_Velocities, _VelocitiesId);
         _HeightsBuffer          = SetData(_Heights, _HeightsId);
         _HeightsGradientsBuffer = SetData(_HeightsGradients, _HeightsGradientsId);
         _VolumesBuffer          = SetData(_Volumes, _VolumesId);
         _DensitiesBuffer        = SetData(_Densities, _DensitiesId);
         _MassesBuffer           = SetData(_Masses, _MassesId);
+        _TemperaturesBuffer     = SetData(_Temperatures, _TemperaturesId);
 
         _InitialTerrainHeightsBuffer = SetData(_InitialTerrainHeights, _InitialTerrainHeightsId);
         _TerrainHeightsBuffer        = SetData(_TerrainHeights, _TerrainHeightsId);
         _TerrainHeightsTmpBuffer     = SetData(_TerrainHeightsTmp, _TerrainHeightsTmpId);
 
         _TerrainDensitiesBuffer       = SetData(_TerrainDensities, _TerrainDensitiesId);
+        _TerrainDensitiesRadiiBuffer  = SetData(_TerrainDensitiesRadii, _TerrainDensitiesRadiiId);
         _TerrainDensitiesHatBuffer    = SetData(_TerrainDensitiesHat, _TerrainDensitiesHatId);
         _TerrainDensitiesStarBuffer   = SetData(_TerrainDensitiesStar, _TerrainDensitiesStarId);
         _TerrainDensitiesMinMaxBuffer = SetData(_TerrainDensitiesMinMax, _TerrainDensitiesMinMaxId);
@@ -593,8 +637,6 @@ public class ParticleSPHGPU : MonoBehaviour{
     private void UpdateGPUValues(){
         SendKernelFactorsToGPU();
         _Shader.SetFloat("STIFF", _Stiffness);
-        // TODO:
-        // _KernelRadius = 2/Mathf.Sqrt(Constants.PI);
         _Shader.SetFloat("H", _KernelRadius);
         _Shader.SetFloat("SPIKE", _Spike);
         _Shader.SetFloat(_RandId, GetRandomValue(_InitialPositionDelta));
@@ -604,6 +646,10 @@ public class ParticleSPHGPU : MonoBehaviour{
         _Shader.SetFloat("_TerrainDensityMin", _TerrainDensityMin);
 
         _Shader.SetBool("_DisplayLava", _DisplayLava);
+
+        _Shader.SetFloat("_Mu", _Mu);
+        _Shader.SetFloat("_Ke", _Ke);
+        _Shader.SetFloat("_ThetaE", _ThetaE);
     }
 
     private void UpdateVolumes(int res){
@@ -648,6 +694,16 @@ public class ParticleSPHGPU : MonoBehaviour{
         // DebugNeighbours();      
     }
 
+    private void UpdateTemperatures(int res){
+        _Shader.Dispatch(_KernelUpdateTemperaturesId, res, 1, 1);
+        _Shader.Dispatch(_KernelPropagateTemperatureUpdateId, res, 1, 1);
+    }
+
+    private void UpdateVelocities(int res){
+        _Shader.Dispatch(_KernelUpdateVelocitiesId, res, 1, 1);
+        _Shader.Dispatch(_KernelPropagateVelocityUpdateId, res, 1, 1);
+    }
+
     public void Updt(Vector3 position){
         UpdateGPUValues();        
         int res = (_NbMaxParticles / 128)+1;
@@ -655,10 +711,12 @@ public class ParticleSPHGPU : MonoBehaviour{
         GenerateParticle(position);
         // update the neighbours
         UpdateNeighbours();
-        // update densities
-        UpdateVolumes(res);
         // calculate heights in gpu
         UpdateHeights(res);
+        // update densities
+        // UpdateVolumes(res);
+        UpdateTemperatures(res);
+        UpdateVelocities(res);
         // time integration gpu
         TimeIntegration(res);
         // update the terrain heights
@@ -672,15 +730,18 @@ public class ParticleSPHGPU : MonoBehaviour{
         _HeightsBuffer.Dispose();
         _HeightsGradientsBuffer.Dispose();
         _PositionsBuffer.Dispose();
+        _VelocitiesBuffer.Dispose();
         _VolumesBuffer.Dispose();
         _DensitiesBuffer.Dispose();
         _MassesBuffer.Dispose();
+        _TemperaturesBuffer.Dispose();
 
         _InitialTerrainHeightsBuffer.Dispose();
         _TerrainHeightsBuffer.Dispose();
         _TerrainHeightsTmpBuffer.Dispose();
 
         _TerrainDensitiesBuffer.Dispose();
+        _TerrainDensitiesRadiiBuffer.Dispose();
         _TerrainDensitiesHatBuffer.Dispose();
         _TerrainDensitiesStarBuffer.Dispose();
         _TerrainDensitiesMinMaxBuffer.Dispose();

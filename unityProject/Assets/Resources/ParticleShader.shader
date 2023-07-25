@@ -98,6 +98,7 @@ Shader "Custom/ParticleShader"{
 
                     for(int j=0; j<3; j++){
                         pos = vertices[indices[id+j]] + input[0].vertex + float4(0,_ParticlesMeshHeights,0,0);
+                        pos.y += radius;
                         o.vertex = UnityObjectToClipPos(pos);
                         o.id = input[0].id;
                         o.normal = normal;

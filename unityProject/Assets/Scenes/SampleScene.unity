@@ -162,17 +162,18 @@ MonoBehaviour:
   _Size: {x: 512, y: 0, z: 512}
   _Scale: 64
   _DisplayParticles: 1
+  _DisplayLava: 1
   _GaussianBlur: 0
   _NbMaxParticles: 50000
   _InitialPositionDelta: 10
   _DT: 0.01
-  _Spike: 0.1
-  _KernelRadius: 5
-  _Stiffness: 6.03
+  _Spike: 3
+  _KernelRadius: 1
+  _Stiffness: 6
   _ParticleInitialHeight: 2
-  _TerrainDensityMax: 100
+  _TerrainDensityMax: 150
   _TerrainDensityMin: 30
-  _ParticlesMeshHeights: 0.1
+  _ParticlesMeshHeights: 0
 --- !u!4 &298545280
 Transform:
   m_ObjectHideFlags: 0

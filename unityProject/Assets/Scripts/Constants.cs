@@ -21,5 +21,7 @@ public static class Constants{
      * The lava rest density
     */
     public const float RHO_0 = 2500.0f;
+
+    public const float ALPHA = (1.0f/(810.0f*810.0f*810.0f));
     
 }
