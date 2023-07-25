@@ -780,7 +780,7 @@ public class ParticleSPHGPU : MonoBehaviour{
     private void InitParticlesMesh(){
         // if(_DisplayParticles){
             // Debug.Log("Particles mesh initialized");
-            _ParticleDisplay.InitMesh(_PositionsBuffer);
+            _ParticleDisplay.InitMesh(_PositionsBuffer, _TemperaturesBuffer);
         // }
     }
 

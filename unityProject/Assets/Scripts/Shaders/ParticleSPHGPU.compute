@@ -714,7 +714,7 @@ void UpdateTerrainHeights(uint3 id : SV_DispatchThreadID){
     if(id.x >= _StaggeredGrid[0]._NbCols * _StaggeredGrid[0]._NbLines) return;
     
     // TODO:
-    float newHeight = SPIKE*(_TerrainDensitiesStar[id.x] / RHO_0) + _InitialTerrainHeights[id.x];
+    float newHeight = SPIKE*(_TerrainDensitiesStar[id.x]) + _InitialTerrainHeights[id.x];
     // float newHeight = SPIKE*(_TerrainDensities[id.x]) + _InitialTerrainHeights[id.x];
     // float newHeight = SPIKE*(_TerrainDensitiesHat[id.x]) + _InitialTerrainHeights[id.x];
     

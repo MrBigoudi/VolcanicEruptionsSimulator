@@ -87,10 +87,10 @@ Shader "Custom/TerrainShader"{
 
                 fixed light = saturate (dot (normalize(_WorldSpaceLightPos0), i.normal));
                 // TODO:
-                // if(!updated){
-                //     col.rgb *= light;
-                // }
-                col.rgb *= light;
+                if(!updated){
+                    col.rgb *= light;
+                }
+                // col.rgb *= light;
 
                 // col = updated ? col : fixed4(i.normal * 0.5 + 0.5, 1);
 

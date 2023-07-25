@@ -11,6 +11,8 @@ Shader "Custom/ParticleShader"{
             #include "UnityCG.cginc"
 
             StructuredBuffer<float3> _ParticlesPositions;
+            StructuredBuffer<float> _ParticlesTemperatures;
+
             int _NbCurParticles;
             float _ParticlesMeshHeights;
             int _DisplayParticles;
@@ -116,6 +118,8 @@ Shader "Custom/ParticleShader"{
                     discard;
                 }
                 fixed4 col = fixed4(i.id/_NbCurParticles,1,1,1);
+                // fixed4 red = fixed4(1, _ParticlesTemperatures[(int)i.id] / 200.0f, 0, 1);
+                // col = red;
 
                 fixed light = saturate (dot (normalize(_WorldSpaceLightPos0), i.normal));
                 col.rgb *= light;

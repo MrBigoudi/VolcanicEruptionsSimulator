@@ -18,6 +18,7 @@ public class ParticleDisplay : MonoBehaviour{
     private MeshRenderer _ParticleRenderer;
 
     private ComputeBuffer _PositionsBuffer;
+    private ComputeBuffer _TemperaturesBuffer;
 
     private float _ParticlesMeshHeights;
 
@@ -64,17 +65,19 @@ public class ParticleDisplay : MonoBehaviour{
         _ParticleRenderer.material = _ParticleMaterial;
     }
 
-    private void SetMaterialBuffers(ComputeBuffer positionsBuffer){
+    private void SetMaterialBuffers(ComputeBuffer positionsBuffer, ComputeBuffer temperaturesBuffer){
         _PositionsBuffer = positionsBuffer;
+        _TemperaturesBuffer = temperaturesBuffer;
         _ParticleMaterial.SetBuffer("_ParticlesPositions", _PositionsBuffer);
+        _ParticleMaterial.SetBuffer("_ParticlesTemperatures", _TemperaturesBuffer);
     }
 
-    public void InitMesh(ComputeBuffer positionsBuffer){
+    public void InitMesh(ComputeBuffer positionsBuffer, ComputeBuffer temperaturesBuffer){
         InitMeshProperties();
         int nbMaxParticles = positionsBuffer.count;
         ParticleSetVertices(nbMaxParticles);
         ParticleSetIndices(nbMaxParticles);
-        SetMaterialBuffers(positionsBuffer);
+        SetMaterialBuffers(positionsBuffer, temperaturesBuffer);
         _ParticleMesh.UploadMeshData(false);
     }
 
