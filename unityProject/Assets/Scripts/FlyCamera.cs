@@ -2,77 +2,106 @@ using UnityEngine;
 using System.Collections;
  
 public class FlyCamera : MonoBehaviour {
+    [SerializeField] float navigationSpeed = 2.4f;
+    [SerializeField] float shiftMultiplier = 2f;
+    [SerializeField] float sensitivity = 1.0f;
+    [SerializeField] float panSensitivity = 0.5f;
+    [SerializeField] float mouseWheelZoomSpeed = 1.0f;
+    private Camera cam;
+    private Vector3 anchorPoint;
+    private Quaternion anchorRot;
  
-    /*
-    Writen by Windexglow 11-13-10.  Use it, edit it, steal it I don't care.  
-    Converted to C# 27-02-13 - no credit wanted.
-    Simple flycam I made, since I couldn't find any others made public.  
-    Made simple to use (drag and drop, done) for regular keyboard layout  
-    wasd : basic movement
-    c: Makes camera move
-    shift : Makes camera accelerate
-    space : Moves camera on X and Z axis only.  So camera doesn't gain any height*/
-     
-     
-    float mainSpeed = 10.0f; //regular speed
-    float shiftAdd = 250.0f; //multiplied by how long shift is held.  Basically running
-    float maxShift = 1000.0f; //Maximum speed when holdin gshift
-    float camSens = 0.25f; //How sensitive it with mouse
-    private Vector3 lastMouse = new Vector3(255, 255, 255); //kind of in the middle of the screen, rather than at the top (play)
-    private float totalRun= 1.0f;
-     
+    private bool isPanning;
+    private void Awake () {
+        cam = GetComponent<Camera>();
+    }
     void Update () {
-        if(Input.GetKey(KeyCode.C)){
-            lastMouse = Input.mousePosition - lastMouse ;
-            lastMouse = new Vector3(-lastMouse.y * camSens, lastMouse.x * camSens, 0 );
-            lastMouse = new Vector3(transform.eulerAngles.x + lastMouse.x , transform.eulerAngles.y + lastMouse.y, 0);
-            transform.eulerAngles = lastMouse;
-            lastMouse =  Input.mousePosition;
-            //Mouse  camera angle done.  
+   
+   
+        MousePanning();
+        if(isPanning)
+        {return;}
+   
+        // if(Input.GetMouseButton(1)) {
+            Vector3 move = Vector3.zero;
+            float speed = navigationSpeed * (Input.GetKey(KeyCode.LeftShift) ? shiftMultiplier : 1f) * Time.deltaTime * 9.1f;
+            if(Input.GetKey(KeyCode.W))
+                move += Vector3.forward * speed;
+            if(Input.GetKey(KeyCode.S))
+                move -= Vector3.forward * speed;
+            if(Input.GetKey(KeyCode.D))
+                move += Vector3.right * speed;
+            if(Input.GetKey(KeyCode.A))
+                move -= Vector3.right * speed;
+            if(Input.GetKey(KeyCode.E))
+                move += Vector3.up * speed;
+            if(Input.GetKey(KeyCode.Q))
+                move -= Vector3.up * speed;
+            transform.Translate(move);
+        // }
+
+        if(Input.GetMouseButtonDown(1)) {
+            anchorPoint = new Vector3(Input.mousePosition.y, -Input.mousePosition.x);
+            anchorRot = transform.rotation;
         }
+   
+        if(Input.GetMouseButton(1)) {
+            Quaternion rot = anchorRot;
+            Vector3 dif = anchorPoint - new Vector3(Input.mousePosition.y, -Input.mousePosition.x);
+            rot.eulerAngles += dif * sensitivity;
+            transform.rotation = rot;
+        }
+ 
+        MouseWheeling();
+   
+    }
+ 
+    //Zoom with mouse wheel
+    void MouseWheeling()
+    {
+        float speed = 10*(mouseWheelZoomSpeed * (Input.GetKey(KeyCode.LeftShift) ? shiftMultiplier : 1f) * Time.deltaTime * 9.1f);
        
-        //Keyboard commands
-        float f = 0.0f;
-        Vector3 p = GetBaseInput();
-        if (p.sqrMagnitude > f){ // only move while a direction key is pressed
-          if (Input.GetKey (KeyCode.LeftShift)){
-              totalRun += Time.deltaTime;
-              p  = p * totalRun * shiftAdd;
-              p.x = Mathf.Clamp(p.x, -maxShift, maxShift);
-              p.y = Mathf.Clamp(p.y, -maxShift, maxShift);
-              p.z = Mathf.Clamp(p.z, -maxShift, maxShift);
-          } else {
-              totalRun = Mathf.Clamp(totalRun * 0.5f, 1f, 1000f);
-              p = p * mainSpeed;
-          }
-         
-          p = p * Time.deltaTime;
-          Vector3 newPosition = transform.position;
-          if (Input.GetKey(KeyCode.Space)){ //If player wants to move on X and Z axis only
-              transform.Translate(p);
-              newPosition.x = transform.position.x;
-              newPosition.z = transform.position.z;
-              transform.position = newPosition;
-          } else {
-              transform.Translate(p);
-          }
+        Vector3 pos = transform.position;
+        if (Input.GetAxis("Mouse ScrollWheel") < 0)
+        {
+            pos = pos - (transform.forward*speed);
+            transform.position = pos;
+        }
+        if (Input.GetAxis("Mouse ScrollWheel") > 0)
+        {
+            pos = pos + (transform.forward*speed);
+            transform.position = pos;
         }
     }
-     
-    private Vector3 GetBaseInput() { //returns the basic values, if it's 0 than it's not active.
-        Vector3 p_Velocity = new Vector3();
-        if (Input.GetKey (KeyCode.W)){
-            p_Velocity += new Vector3(0, 0 , 1);
+ 
+ 
+    private float pan_x;
+    private float pan_y;
+    private Vector3 panComplete;
+ 
+    void MousePanning()
+    {
+   
+        pan_x=-Input.GetAxis("Mouse X")*panSensitivity;
+        pan_y=-Input.GetAxis("Mouse Y")*panSensitivity;
+        panComplete = new Vector3(pan_x,pan_y,0);
+   
+        if (Input.GetMouseButtonDown(2))
+        {
+            isPanning=true;
         }
-        if (Input.GetKey (KeyCode.S)){
-            p_Velocity += new Vector3(0, 0, -1);
+   
+        if (Input.GetMouseButtonUp(2))
+        {
+            isPanning=false;
         }
-        if (Input.GetKey (KeyCode.A)){
-            p_Velocity += new Vector3(-1, 0, 0);
+   
+        if(isPanning)
+        {
+            transform.Translate(panComplete);
         }
-        if (Input.GetKey (KeyCode.D)){
-            p_Velocity += new Vector3(1, 0, 0);
-        }
-        return p_Velocity;
+   
+ 
     }
+ 
 }

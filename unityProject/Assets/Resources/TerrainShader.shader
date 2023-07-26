@@ -15,6 +15,7 @@ Shader "Custom/TerrainShader"{
 
             StructuredBuffer<float> _TerrainHeights;
             StructuredBuffer<float> _InitialTerrainHeights;
+            StructuredBuffer<float> _ParticlesTemperatures;
 
             struct appdata{
                 float4 vertex : POSITION;
@@ -74,6 +75,7 @@ Shader "Custom/TerrainShader"{
                 fixed4 brown = fixed4(131.0/255, 101.0/255, 57.0/255, 1);
 
                 fixed4 red = fixed4(1.0, deltaY, 0, 1.0);
+                // fixed4 red = fixed4(1, _ParticlesTemperatures[(int)i.uv.x] / 200.0f, 0, 1);
 
                 // get color
                 fixed4 col = green;
@@ -87,10 +89,10 @@ Shader "Custom/TerrainShader"{
 
                 fixed light = saturate (dot (normalize(_WorldSpaceLightPos0), i.normal));
                 // TODO:
-                if(!updated){
-                    col.rgb *= light;
-                }
-                // col.rgb *= light;
+                // if(!updated){
+                //     col.rgb *= light;
+                // }
+                col.rgb *= light;
 
                 // col = updated ? col : fixed4(i.normal * 0.5 + 0.5, 1);
 

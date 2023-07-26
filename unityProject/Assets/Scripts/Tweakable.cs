@@ -48,7 +48,7 @@ public class Tweakable : MonoBehaviour{
     public float _Spike = 1.0f;
     [SerializeField, Range(0.0f, 5.0f)]
     public float _KernelRadius = 1.0f;
-    [SerializeField, Range(0.0f, 10.0f)]
+    [SerializeField, Range(0.0f, 1.0f)]
     public float _Stiffness = 1.0f;
     [SerializeField, Range(0.0f, 100.0f)]
     public float _ParticleInitialHeight = 2.0f;
@@ -60,7 +60,7 @@ public class Tweakable : MonoBehaviour{
     [SerializeField, Range(-5.0f, 5.0f)]
     public float _ParticlesMeshHeights = 0.0f;
 
-    [SerializeField, Range(1, 10000)]
+    [SerializeField, Range(1, 100)]
     public float _Mu = 100.0f;
     [SerializeField, Range(1, 10000)]
     public float _Ke = 100.0f;

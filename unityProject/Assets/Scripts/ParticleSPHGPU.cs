@@ -60,6 +60,7 @@ public class ParticleSPHGPU : MonoBehaviour{
     private int _KernelGenerateParticleId;
     private int _KernelResetNeighboursCounterId;
     private int _KernelUpdateNeighboursId;
+    private int _KernelAssignNeighboursId;
     private int _KernelUpdateDensitiesId;
     private int _KernelPropagateDensityUpdateId;
     private int _KernelPropagateHeightUpdateId;
@@ -85,6 +86,7 @@ public class ParticleSPHGPU : MonoBehaviour{
     private int _MassesId;
     private int _TemperaturesId;
     private int _VelocitiesId;
+    private int _ParticleNeighboursId;
     private ComputeBuffer _ParticlesBuffer;
     private ComputeBuffer _HeightsBuffer;
     private ComputeBuffer _HeightsGradientsBuffer;
@@ -94,6 +96,7 @@ public class ParticleSPHGPU : MonoBehaviour{
     private ComputeBuffer _MassesBuffer;
     private ComputeBuffer _TemperaturesBuffer;
     private ComputeBuffer _VelocitiesBuffer;
+    private ComputeBuffer _ParticleNeighboursBuffer;
 
     private int _StaggeredGridId;
     private int _StaggeredGridHeightsId;
@@ -155,6 +158,7 @@ public class ParticleSPHGPU : MonoBehaviour{
     private float[]   _Densities;
     private float[]   _Masses;
     private float[]   _Temperatures;
+    private int[]     _ParticleNeighbours;
 
     private ParticleGPU[] _Particles;
 
@@ -235,6 +239,7 @@ public class ParticleSPHGPU : MonoBehaviour{
         _KernelGenerateParticleId           = _Shader.FindKernel("GenerateParticle");
         _KernelResetNeighboursCounterId     = _Shader.FindKernel("ResetNeighboursCounter");
         _KernelUpdateNeighboursId           = _Shader.FindKernel("UpdateNeighbours");
+        _KernelAssignNeighboursId           = _Shader.FindKernel("AssignNeighbours");
         _KernelUpdateDensitiesId            = _Shader.FindKernel("UpdateDensities");
         _KernelUpdateHeightsId              = _Shader.FindKernel("UpdateHeights");
 
@@ -283,6 +288,7 @@ public class ParticleSPHGPU : MonoBehaviour{
         _DensitiesId        = Shader.PropertyToID("_Densities");
         _MassesId           = Shader.PropertyToID("_Masses");
         _TemperaturesId     = Shader.PropertyToID("_Temperatures");
+        _ParticleNeighboursId = Shader.PropertyToID("_ParticleNeighbours");
 
         _RandId           = Shader.PropertyToID("RAND");
 
@@ -408,6 +414,7 @@ public class ParticleSPHGPU : MonoBehaviour{
         _Shader.SetBuffer(_KernelGenerateParticleId, id, buffer);
         _Shader.SetBuffer(_KernelResetNeighboursCounterId, id, buffer);
         _Shader.SetBuffer(_KernelUpdateNeighboursId, id, buffer);
+        _Shader.SetBuffer(_KernelAssignNeighboursId, id, buffer);
         _Shader.SetBuffer(_KernelUpdateDensitiesId, id, buffer);
         _Shader.SetBuffer(_KernelUpdateHeightsId, id, buffer);
 
@@ -498,7 +505,7 @@ public class ParticleSPHGPU : MonoBehaviour{
         grid._DeltaLines = _KernelRadius*2;
         grid._NbCols     = (int)(_TerrainSize.x / grid._DeltaCols);
         grid._NbLines    = (int)(_TerrainSize.z / grid._DeltaLines);
-        grid._NbMaxNeighbours = _NbMaxParticles > 8192 ? 8192 : _NbMaxParticles;
+        grid._NbMaxNeighbours = _NbMaxParticles > 1024 ? 1024 : _NbMaxParticles;
 
         _NeighbourGridNbCols = grid._NbCols;
         _NeighbourGridNbLines = grid._NbLines;
@@ -523,6 +530,9 @@ public class ParticleSPHGPU : MonoBehaviour{
         _NeighbourGridCellsCounter = new int[_NeighbourGridNbCols*_NeighbourGridNbLines];
         _NeighbourGridCellsBuffer = SetData(_NeighbourGridCells, _NeighbourGridCellsId);
         _NeighbourGridCellsCounterBuffer = SetData(_NeighbourGridCellsCounter, _NeighbourGridCellsCounterId);
+
+        _ParticleNeighbours = new int[_NbMaxParticles*_NeighbourGridNbMaxNeighbours];
+        _ParticleNeighboursBuffer = SetData(_ParticleNeighbours, _ParticleNeighboursId);
     }
 
     private void InitStaggeredGrid(){
@@ -686,10 +696,11 @@ public class ParticleSPHGPU : MonoBehaviour{
         }
     }
 
-    private void UpdateNeighbours(){
-        int res = (_NeighbourGridNbCols*_NeighbourGridNbLines / 1024) + 1;
-        _Shader.Dispatch(_KernelResetNeighboursCounterId, res, 1, 1);
-        _Shader.Dispatch(_KernelUpdateNeighboursId, res, 1, 1);
+    private void UpdateNeighbours(int res){
+        int res2 = (_NeighbourGridNbCols*_NeighbourGridNbLines / 1024) + 1;
+        _Shader.Dispatch(_KernelResetNeighboursCounterId, res2, 1, 1);
+        _Shader.Dispatch(_KernelUpdateNeighboursId, res2, 1, 1);
+        _Shader.Dispatch(_KernelAssignNeighboursId, res, 1, 1);
         // DebugParticles();  
         // DebugNeighbours();      
     }
@@ -710,7 +721,7 @@ public class ParticleSPHGPU : MonoBehaviour{
         // generate particle in GPU
         GenerateParticle(position);
         // update the neighbours
-        UpdateNeighbours();
+        UpdateNeighbours(res);
         // calculate heights in gpu
         UpdateHeights(res);
         // update densities
@@ -735,6 +746,7 @@ public class ParticleSPHGPU : MonoBehaviour{
         _DensitiesBuffer.Dispose();
         _MassesBuffer.Dispose();
         _TemperaturesBuffer.Dispose();
+        _ParticleNeighboursBuffer.Dispose();
 
         _InitialTerrainHeightsBuffer.Dispose();
         _TerrainHeightsBuffer.Dispose();
@@ -765,6 +777,7 @@ public class ParticleSPHGPU : MonoBehaviour{
     private void SetMaterialBuffers(){
         _TerrainMaterial.SetBuffer("_TerrainHeights", _TerrainHeightsBuffer);
         _TerrainMaterial.SetBuffer("_InitialTerrainHeights", _InitialTerrainHeightsBuffer);
+        _TerrainMaterial.SetBuffer("_ParticlesTemperatures", _TemperaturesBuffer);
     }
 
     private void InitTerrainMesh(){

@@ -2,6 +2,7 @@
 #pragma kernel GenerateParticle
 #pragma kernel ResetNeighboursCounter
 #pragma kernel UpdateNeighbours
+#pragma kernel AssignNeighbours
 #pragma kernel UpdateDensities
 #pragma kernel PropagateDensityUpdate
 #pragma kernel UpdateHeights
@@ -101,6 +102,7 @@ RWStructuredBuffer<float>  _Volumes;
 RWStructuredBuffer<float>  _Densities;
 RWStructuredBuffer<float>  _Masses;
 RWStructuredBuffer<float>  _Temperatures;
+RWStructuredBuffer<int>  _ParticleNeighbours;
 
 uniform uint _NbNewParticles;
 uniform float3 _NewPosition;
@@ -523,6 +525,7 @@ void PropagatePositionUpdate(uint3 id : SV_DispatchThreadID){
 void ResetNeighboursCounter(uint3 id : SV_DispatchThreadID){\
     if(id.x>=_NeighbourGrid[0]._NbLines*_NeighbourGrid[0]._NbCols) return;
     _NeighbourGridCellsCounter[id.x] = 0;
+    if(id.x < _NbCurParticles) _ParticleNeighbours[id.x*_NeighbourGrid[0]._NbMaxNeighbours] = -1;
 }
 
 [numthreads(1024,1,1)]
@@ -543,6 +546,47 @@ void UpdateNeighbours(uint3 id : SV_DispatchThreadID){
         } 
     }
     _NeighbourGridCellsCounter[id.x] = cpt;
+}
+
+[numthreads(128,1,1)]
+void AssignNeighbours(uint3 id : SV_DispatchThreadID){
+    if(id.x >= _NbCurParticles) return;
+    ParticleGPU pi = GetParticle(id);
+
+    uint nbNeigh = 0;
+    uint partIdx = id.x*_NeighbourGrid[0]._NbMaxNeighbours;
+
+    uint cellIdx = pi._Cell;
+    int w11 = GetUpLeftNeighbour(cellIdx);
+    int w12 = GetUpMiddleNeighbour(cellIdx);
+    int w13 = GetUpRightNeighbour(cellIdx);
+    int w21 = GetMiddleLeftNeighbour(cellIdx);
+    int w22 = GetMiddleMiddleNeighbour(cellIdx);
+    int w23 = GetMiddleRightNeighbour(cellIdx);
+    int w31 = GetDownLeftNeighbour(cellIdx);
+    int w32 = GetDownMiddleNeighbour(cellIdx);
+    int w33 = GetDownRightNeighbour(cellIdx);
+    int cells[9] = {w11, w12, w13,
+                    w21, w22, w23,
+                    w31, w32, w33};
+
+    for(uint i=0; i<9; i++){
+        if(nbNeigh+1 >= _NeighbourGrid[0]._NbMaxNeighbours) break;
+        int idx = cells[i];
+        // int idx = cellIdx;
+        if(idx <= -1) continue;
+        // uint cpt = 1;
+        uint cpt = GetCellCount(idx);
+
+        for(uint j=0; j<cpt; j++){
+            ParticleGPU pj = GetParticle(_NeighbourGridCells[idx+j]);
+            if(!AreNeighbours(pi,pj)) continue;
+            _ParticleNeighbours[partIdx+nbNeigh] = pj._Id;
+            nbNeigh++;
+            if(nbNeigh+1 >= _NeighbourGrid[0]._NbMaxNeighbours) break;
+        }
+    }
+    _ParticleNeighbours[partIdx+nbNeigh] = -1;
 }
 
 [numthreads(128,1,1)]
@@ -587,7 +631,7 @@ void GenerateParticle(uint3 id : SV_DispatchThreadID){
 void UpdateTerrainDensitiesMinMax(uint id, uint maxIdx, float h){
     float3 pos = StaggeredGridGetPosition(id);
 
-    // get number of cells arround me that are inside kernel
+    // get number of terrain cells arround me that are inside kernel
     int nbCells = h / _StaggeredGrid[0]._DeltaCols + 1;
 
     float densityMin = -1.0f;
@@ -665,45 +709,38 @@ void UpdateTerrainDensities(uint3 id : SV_DispatchThreadID){
     float sumDensities = 0.0f;
     float sumWeights = 0.0f;
 
-    float kernelRadius = GetKernelRadius(_TerrainDensities[id.x], H, 3*H);
+    // float kernelRadius = GetKernelRadius(_TerrainDensities[id.x], H, 5*H);
     // float kernelRadius = 10*H;
-    // float kernelRadius = H;
-    
-    uint cellIdx = GetCell(pos);
-    int w11 = GetUpLeftNeighbour(cellIdx);
-    int w12 = GetUpMiddleNeighbour(cellIdx);
-    int w13 = GetUpRightNeighbour(cellIdx);
-    int w21 = GetMiddleLeftNeighbour(cellIdx);
-    int w22 = GetMiddleMiddleNeighbour(cellIdx);
-    int w23 = GetMiddleRightNeighbour(cellIdx);
-    int w31 = GetDownLeftNeighbour(cellIdx);
-    int w32 = GetDownMiddleNeighbour(cellIdx);
-    int w33 = GetDownRightNeighbour(cellIdx);
-    int cells[9] = {w11, w12, w13,
-                    w21, w22, w23,
-                    w31, w32, w33};
+    float kernelRadius = H;
 
-    for(uint i=0; i<9; i++){
-        int idx = cells[i];
-        // int idx = cellIdx;
-        if(idx <= -1) continue;
-        // uint cpt = 1;
-        uint cpt = GetCellCount(idx);
+    // get number of neighbour cells arround me that are inside kernel
+    int nbCells = kernelRadius / _NeighbourGrid[0]._DeltaCols + 1;
+    int cellId = GetCell(pos);
+    int maxId = (int)(_NeighbourGrid[0]._NbCols*_NeighbourGrid[0]._NbLines*_NeighbourGrid[0]._NbMaxNeighbours);
 
-        for(uint j=0; j<cpt; j++){
-            ParticleGPU pj = GetParticle(_NeighbourGridCells[idx+j]);
-            // ParticleGPU pj = GetParticle(0);
-            if(!AreNeighbours(pos, pj._Position)) continue;
+    // check cells inside radius
+    for(int k=-nbCells; k<=nbCells; k++){
+        for(int i=-nbCells; i<=nbCells; i++){
+            int idx = cellId + (i + (k*_NeighbourGrid[0]._NbCols))*_NeighbourGrid[0]._NbMaxNeighbours;
+            // do not count cells outside the grid
+            if(idx < 0 || idx >= maxId) continue;
+            uint cpt = GetCellCount(idx);
 
-            float wij = W_POLY6_Densities(pos, pj._Position, kernelRadius);
-            // TODO:
-            sumDensities += wij*pj._Height;
-            // sumDensities = 1;
-            sumWeights += wij;
-            // sumWeights = 1;
+            for(uint j=0; j<cpt; j++){
+                ParticleGPU pj = GetParticle(_NeighbourGridCells[idx+j]);
+                // ParticleGPU pj = GetParticle(0);
+                if(!AreNeighbours(pos, pj._Position)) continue;
+
+                float wij = W_POLY6_Densities(pos, pj._Position, kernelRadius);
+                // TODO:
+                sumDensities += wij*pj._Volume;
+                // sumDensities = 1;
+                sumWeights += wij;
+                // sumWeights = 1;
+            }
         }
     }
-
+    
     _TerrainDensitiesRadii[id.x] = kernelRadius;
     _TerrainDensities[id.x] = sumDensities;
     _TerrainDensitiesHat[id.x] = sumWeights < 0.0001f ? 0.0f : sumDensities / sumWeights;
@@ -714,8 +751,8 @@ void UpdateTerrainHeights(uint3 id : SV_DispatchThreadID){
     if(id.x >= _StaggeredGrid[0]._NbCols * _StaggeredGrid[0]._NbLines) return;
     
     // TODO:
-    float newHeight = SPIKE*(_TerrainDensitiesStar[id.x]) + _InitialTerrainHeights[id.x];
-    // float newHeight = SPIKE*(_TerrainDensities[id.x]) + _InitialTerrainHeights[id.x];
+    // float newHeight = SPIKE*(_TerrainDensitiesStar[id.x]) + _InitialTerrainHeights[id.x];
+    float newHeight = SPIKE*(_TerrainDensities[id.x]) + _InitialTerrainHeights[id.x];
     // float newHeight = SPIKE*(_TerrainDensitiesHat[id.x]) + _InitialTerrainHeights[id.x];
     
     _TerrainHeightsTmp[id.x] = newHeight;
@@ -758,38 +795,23 @@ void UpdateHeights(uint3 id : SV_DispatchThreadID){
     
     float3 sumGrads  = float3(0.0f, 0.0f, 0.0f);
 
-    uint cellIdx = GetCell(pi._Position);
-    int w11 = GetUpLeftNeighbour(cellIdx);
-    int w12 = GetUpMiddleNeighbour(cellIdx);
-    int w13 = GetUpRightNeighbour(cellIdx);
-    int w21 = GetMiddleLeftNeighbour(cellIdx);
-    int w22 = GetMiddleMiddleNeighbour(cellIdx);
-    int w23 = GetMiddleRightNeighbour(cellIdx);
-    int w31 = GetDownLeftNeighbour(cellIdx);
-    int w32 = GetDownMiddleNeighbour(cellIdx);
-    int w33 = GetDownRightNeighbour(cellIdx);
-    int cells[9] = {w11, w12, w13,
-                    w21, w22, w23,
-                    w31, w32, w33};
+    int initialId = id.x*_NeighbourGrid[0]._NbMaxNeighbours;
+    int cpt = 0;
+    int pjId = _ParticleNeighbours[initialId];
 
-    for(uint i=0; i<9; i++){
-        int idx = cells[i];
-        // int idx = cellIdx;
-        if(idx <= -1) continue;
-        // uint cpt = 1;
-        uint cpt = GetCellCount(idx);
+    while(pjId >= 0){
+        ParticleGPU pj = GetParticle(pjId);
 
-        for(uint j=0; j<cpt; j++){
-            ParticleGPU pj = GetParticle(_NeighbourGridCells[idx+j]);
-            if(!AreNeighbours(pi,pj)) continue;
+        float  wijHeight = W_POLY6(pi, pj);
+        float3 wijGrad   = W_POLY6_Grad(pi, pj);
 
-            float  wijHeight = W_POLY6(pi, pj);
-            float3 wijGrad   = W_POLY6_Grad(pi, pj);
+        sumHeights += wijHeight * pj._Volume;
+        sumGrads   += wijGrad * pj._Volume;
+        // sumWeights += wijHeight;
 
-            sumHeights += wijHeight * pj._Volume;
-            sumGrads   += wijGrad * pj._Volume;
-            // sumWeights += wijHeight;
-        }
+        // get next neighbour
+        cpt++;
+        pjId = _ParticleNeighbours[initialId+cpt];
     }
 
     _Heights[id.x] = sumHeights;
@@ -825,37 +847,20 @@ void UpdateTemperatures(uint3 id : SV_DispatchThreadID){
 
     float sumTemperatures = 0.0f;
 
-    uint cellIdx = GetCell(pi._Position);
-    int w11 = GetUpLeftNeighbour(cellIdx);
-    int w12 = GetUpMiddleNeighbour(cellIdx);
-    int w13 = GetUpRightNeighbour(cellIdx);
-    int w21 = GetMiddleLeftNeighbour(cellIdx);
-    int w22 = GetMiddleMiddleNeighbour(cellIdx);
-    int w23 = GetMiddleRightNeighbour(cellIdx);
-    int w31 = GetDownLeftNeighbour(cellIdx);
-    int w32 = GetDownMiddleNeighbour(cellIdx);
-    int w33 = GetDownRightNeighbour(cellIdx);
-    int cells[9] = {w11, w12, w13,
-                    w21, w22, w23,
-                    w31, w32, w33};
+    int initialId = id.x*_NeighbourGrid[0]._NbMaxNeighbours;
+    int cpt = 0;
+    int pjId = _ParticleNeighbours[initialId];
 
-    for(uint i=0; i<9; i++){
-        int idx = cells[i];
-        // int idx = cellIdx;
-        if(idx <= -1) continue;
-        // uint cpt = 1;
-        uint cpt = GetCellCount(idx);
+    while(pjId >= 0){
+        ParticleGPU pj = GetParticle(pjId);
 
-        for(uint j=0; j<cpt; j++){
-            ParticleGPU pj = GetParticle(_NeighbourGridCells[idx+j]);
-            if(!AreNeighbours(pi,pj)) continue;
+        float  wij = W_POLY6(pi, pj);
+        sumTemperatures += pj._Temperature * wij * pj._Volume / pj._Height;
 
-            float  wij = W_POLY6(pi, pj);
-
-            sumTemperatures += pj._Temperature * wij * pj._Volume / pj._Height;
-        }
+        // get next neighbour
+        cpt++;
+        pjId = _ParticleNeighbours[initialId+cpt];
     }
-
     _Temperatures[id.x] = sumTemperatures;
 }
 
@@ -895,43 +900,29 @@ void UpdateVelocities(uint3 id : SV_DispatchThreadID){
     float3 sumVelocities = float3(0.0f,0.0f,0.0f);
     float  sumWeights = 0.0f;
 
-    uint cellIdx = GetCell(pi._Position);
-    int w11 = GetUpLeftNeighbour(cellIdx);
-    int w12 = GetUpMiddleNeighbour(cellIdx);
-    int w13 = GetUpRightNeighbour(cellIdx);
-    int w21 = GetMiddleLeftNeighbour(cellIdx);
-    int w22 = GetMiddleMiddleNeighbour(cellIdx);
-    int w23 = GetMiddleRightNeighbour(cellIdx);
-    int w31 = GetDownLeftNeighbour(cellIdx);
-    int w32 = GetDownMiddleNeighbour(cellIdx);
-    int w33 = GetDownRightNeighbour(cellIdx);
-    int cells[9] = {w11, w12, w13,
-                    w21, w22, w23,
-                    w31, w32, w33};
+        int initialId = id.x*_NeighbourGrid[0]._NbMaxNeighbours;
+    int cpt = 0;
+    int pjId = _ParticleNeighbours[initialId];
 
-    for(uint i=0; i<9; i++){
-        int idx = cells[i];
-        // int idx = cellIdx;
-        if(idx <= -1) continue;
-        // uint cpt = 1;
-        uint cpt = GetCellCount(idx);
+    while(pjId >= 0){
+        ParticleGPU pj = GetParticle(pjId);
 
-        for(uint j=0; j<cpt; j++){
-            ParticleGPU pj = GetParticle(_NeighbourGridCells[idx+j]);
-            if(!AreNeighbours(pi,pj)) continue;
+        float f_theta = FTemp(pj._Temperature);
+        // float f_theta = 1;
+        float mu = _Mu;
+        float rho = pj._Density;
+        float3 gradSurface = GetGradientSurface(pj);
 
-            float f_theta = FTemp(pj._Temperature);
-            float mu = _Mu;
-            float rho = pj._Density;
-            float3 gradSurface = GetGradientSurface(pj);
+        float3 b = -(rho*G)/(f_theta*mu)*gradSurface;
+        // float3 b = -(rho*G)/(mu)*gradSurface;
+        float wij = W_NEW(pi, pj);
 
-            float3 b = -(rho*G)/(f_theta*mu)*gradSurface;
-            // float3 b = -(rho*G)/(mu)*gradSurface;
-            float wij = W_NEW(pi, pj);
+        sumVelocities += wij*b;
+        sumWeights += wij;
 
-            sumVelocities += wij*b;
-            sumWeights += wij;
-        }
+        // get next neighbour
+        cpt++;
+        pjId = _ParticleNeighbours[initialId+cpt];
     }
 
     // _Velocities[id.x] = sumVelocities / sumWeights;
