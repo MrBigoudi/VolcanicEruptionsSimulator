@@ -123,12 +123,15 @@ public class ParticleSPHGPU : MonoBehaviour{
 
     private int _InitialTerrainHeightsId;
     private int _TerrainHeightsId;
+    private int _TerrainTemperaturesId;
     private int _TerrainHeightsTmpId;
     private ComputeBuffer _InitialTerrainHeightsBuffer;
     private ComputeBuffer _TerrainHeightsBuffer;
+    private ComputeBuffer _TerrainTemperaturesBuffer;
     private ComputeBuffer _TerrainHeightsTmpBuffer;
     private float[] _InitialTerrainHeights;
     private float[] _TerrainHeights;
+    private float[] _TerrainTemperatures;
     private float[] _TerrainHeightsTmp;
 
     private float _TerrainDensityMax;
@@ -294,6 +297,7 @@ public class ParticleSPHGPU : MonoBehaviour{
 
         _InitialTerrainHeightsId = Shader.PropertyToID("_InitialTerrainHeights");
         _TerrainHeightsId        = Shader.PropertyToID("_TerrainHeights");
+        _TerrainTemperaturesId   = Shader.PropertyToID("_TerrainTemperatures");
         _TerrainHeightsTmpId     = Shader.PropertyToID("_TerrainHeightsTmp");
 
         _TerrainDensitiesId      = Shader.PropertyToID("_TerrainDensities");
@@ -321,6 +325,7 @@ public class ParticleSPHGPU : MonoBehaviour{
         _Particles = new ParticleGPU[_NbMaxParticles];
         _InitialTerrainHeights = Convert2dArray(StaggeredGridV2._Heights);
         _TerrainHeights = Convert2dArray(StaggeredGridV2._Heights);
+        _TerrainTemperatures = new float[StaggeredGridV2._NbCols * StaggeredGridV2._NbLines];
         _TerrainHeightsTmp = Convert2dArray(StaggeredGridV2._Heights);
         
         _TerrainDensities = new float[StaggeredGridV2._NbCols * StaggeredGridV2._NbLines];
@@ -494,6 +499,7 @@ public class ParticleSPHGPU : MonoBehaviour{
         gridArray[0] = grid;
         
         // init grid buffer
+        // Debug.Log(grid._NbCols);
         _StaggeredGridBuffer = SetData(gridArray, _StaggeredGridId);
     }
 
@@ -564,6 +570,7 @@ public class ParticleSPHGPU : MonoBehaviour{
 
         _InitialTerrainHeightsBuffer = SetData(_InitialTerrainHeights, _InitialTerrainHeightsId);
         _TerrainHeightsBuffer        = SetData(_TerrainHeights, _TerrainHeightsId);
+        _TerrainTemperaturesBuffer   = SetData(_TerrainTemperatures, _TerrainTemperaturesId);
         _TerrainHeightsTmpBuffer     = SetData(_TerrainHeightsTmp, _TerrainHeightsTmpId);
 
         _TerrainDensitiesBuffer       = SetData(_TerrainDensities, _TerrainDensitiesId);
@@ -750,6 +757,7 @@ public class ParticleSPHGPU : MonoBehaviour{
 
         _InitialTerrainHeightsBuffer.Dispose();
         _TerrainHeightsBuffer.Dispose();
+        _TerrainTemperaturesBuffer.Dispose();
         _TerrainHeightsTmpBuffer.Dispose();
 
         _TerrainDensitiesBuffer.Dispose();
@@ -777,7 +785,7 @@ public class ParticleSPHGPU : MonoBehaviour{
     private void SetMaterialBuffers(){
         _TerrainMaterial.SetBuffer("_TerrainHeights", _TerrainHeightsBuffer);
         _TerrainMaterial.SetBuffer("_InitialTerrainHeights", _InitialTerrainHeightsBuffer);
-        _TerrainMaterial.SetBuffer("_ParticlesTemperatures", _TemperaturesBuffer);
+        _TerrainMaterial.SetBuffer("_TerrainTemperatures", _TerrainTemperaturesBuffer);
     }
 
     private void InitTerrainMesh(){

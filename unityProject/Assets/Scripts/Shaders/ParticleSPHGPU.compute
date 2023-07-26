@@ -83,6 +83,7 @@ RWStructuredBuffer<uint> _NeighbourGridCellsCounter;
 
 RWStructuredBuffer<float> _TerrainHeightsTmp;
 RWStructuredBuffer<float> _TerrainHeights;
+RWStructuredBuffer<float> _TerrainTemperatures;
 RWStructuredBuffer<float> _InitialTerrainHeights;
 
 RWStructuredBuffer<float> _TerrainDensities;
@@ -495,7 +496,7 @@ int GetDownRightNeighbour(uint id){
 // ##################################################################################################################
 [numthreads(128,1,1)]
 void PropagateDensityUpdate(uint3 id : SV_DispatchThreadID){
-    if(id.x >= _NbCurParticles) return;
+    if(id.x >= _NbCurParticles || id.x < 0) return;
     ParticleGPU pi = GetParticle(id);
     pi._Density = _Densities[id.x];
     pi._Volume  = _Volumes[id.x];
@@ -504,7 +505,7 @@ void PropagateDensityUpdate(uint3 id : SV_DispatchThreadID){
 
 [numthreads(128,1,1)]
 void PropagateHeightUpdate(uint3 id : SV_DispatchThreadID){
-    if(id.x >= _NbCurParticles) return;
+    if(id.x >= _NbCurParticles || id.x < 0) return;
     ParticleGPU pi = GetParticle(id);
     pi._Height         = _Heights[id.x];
     pi._HeightGradient = _HeightsGradients[id.x];
@@ -513,7 +514,7 @@ void PropagateHeightUpdate(uint3 id : SV_DispatchThreadID){
 
 [numthreads(128,1,1)]
 void PropagatePositionUpdate(uint3 id : SV_DispatchThreadID){
-    if(id.x >= _NbCurParticles) return;
+    if(id.x >= _NbCurParticles || id.x < 0) return;
     ParticleGPU pi = GetParticle(id);
     float3 newPosition = _Positions[id.x];
     pi._Position = newPosition;
@@ -522,15 +523,15 @@ void PropagatePositionUpdate(uint3 id : SV_DispatchThreadID){
 }
 
 [numthreads(1024,1,1)]
-void ResetNeighboursCounter(uint3 id : SV_DispatchThreadID){\
-    if(id.x>=_NeighbourGrid[0]._NbLines*_NeighbourGrid[0]._NbCols) return;
+void ResetNeighboursCounter(uint3 id : SV_DispatchThreadID){
+    if(id.x>=_NeighbourGrid[0]._NbLines*_NeighbourGrid[0]._NbCols || id.x < 0) return;
     _NeighbourGridCellsCounter[id.x] = 0;
     if(id.x < _NbCurParticles) _ParticleNeighbours[id.x*_NeighbourGrid[0]._NbMaxNeighbours] = -1;
 }
 
 [numthreads(1024,1,1)]
 void UpdateNeighbours(uint3 id : SV_DispatchThreadID){
-    if(id.x >= _NeighbourGrid[0]._NbCols*_NeighbourGrid[0]._NbLines) return;
+    if(id.x >= _NeighbourGrid[0]._NbCols*_NeighbourGrid[0]._NbLines || id.x < 0) return;
     
     uint cpt = 0;
     uint cellId = id.x*_NeighbourGrid[0]._NbMaxNeighbours;
@@ -550,7 +551,7 @@ void UpdateNeighbours(uint3 id : SV_DispatchThreadID){
 
 [numthreads(128,1,1)]
 void AssignNeighbours(uint3 id : SV_DispatchThreadID){
-    if(id.x >= _NbCurParticles) return;
+    if(id.x >= _NbCurParticles || id.x < 0) return;
     ParticleGPU pi = GetParticle(id);
 
     uint nbNeigh = 0;
@@ -591,7 +592,7 @@ void AssignNeighbours(uint3 id : SV_DispatchThreadID){
 
 [numthreads(128,1,1)]
 void GenerateParticle(uint3 id : SV_DispatchThreadID){
-    if(id.x < _NbNewParticles){
+    if(id.x < _NbNewParticles && id.x >= 0){
         uint i = (_NbCurParticles - 1 - id.x);
 
         float density = RHO_0;
@@ -680,7 +681,7 @@ void UpdateDensitiesStar(uint id){
 [numthreads(1024,1,1)]
 void UpdateTerrainDensitiesStar(uint3 id : SV_DispatchThreadID){
     uint maxIdx = _StaggeredGrid[0]._NbCols * _StaggeredGrid[0]._NbLines;
-    if(id.x >= maxIdx) return;
+    if(id.x >= maxIdx || id.x < 0) return;
     float h = _TerrainDensitiesRadii[id.x];
     UpdateTerrainDensitiesMinMax(id.x, maxIdx, h);
     UpdateDensitiesStar(id.x);
@@ -703,15 +704,18 @@ float GetKernelRadius(float density, float hMin, float hMax){
 
 [numthreads(1024,1,1)]
 void UpdateTerrainDensities(uint3 id : SV_DispatchThreadID){
-    if(id.x >= _StaggeredGrid[0]._NbCols * _StaggeredGrid[0]._NbLines) return;
+    uint maxTerrainId = _StaggeredGrid[0]._NbCols * _StaggeredGrid[0]._NbLines;
+    if(id.x >= maxTerrainId || id.x < 0) return;
     float3 pos = StaggeredGridGetPosition(id.x);
 
     float sumDensities = 0.0f;
+    float sumTemperatures = 0.0f;
     float sumWeights = 0.0f;
 
     // float kernelRadius = GetKernelRadius(_TerrainDensities[id.x], H, 5*H);
-    // float kernelRadius = 10*H;
-    float kernelRadius = H;
+    float kernelRadius = 10*H;
+    // float kernelRadius = H;
+    int nbParticles = 0;
 
     // get number of neighbour cells arround me that are inside kernel
     int nbCells = kernelRadius / _NeighbourGrid[0]._DeltaCols + 1;
@@ -729,7 +733,7 @@ void UpdateTerrainDensities(uint3 id : SV_DispatchThreadID){
             for(uint j=0; j<cpt; j++){
                 ParticleGPU pj = GetParticle(_NeighbourGridCells[idx+j]);
                 // ParticleGPU pj = GetParticle(0);
-                if(!AreNeighbours(pos, pj._Position)) continue;
+                if(KernelDistance(pos, pj._Position) > kernelRadius) continue;
 
                 float wij = W_POLY6_Densities(pos, pj._Position, kernelRadius);
                 // TODO:
@@ -737,18 +741,27 @@ void UpdateTerrainDensities(uint3 id : SV_DispatchThreadID){
                 // sumDensities = 1;
                 sumWeights += wij;
                 // sumWeights = 1;
+
+                if(!AreNeighbours(pos, pj._Position)) continue;
+                float wij2 = W_POLY6(pos, pj._Position);
+                sumTemperatures += pj._Temperature * wij2 * pj._Volume / pj._Height;
             }
         }
     }
     
     _TerrainDensitiesRadii[id.x] = kernelRadius;
     _TerrainDensities[id.x] = sumDensities;
+    // _TerrainTemperatures[id.x] = sumTemperatures;
+    uint yId = (uint)(id.x / 512.0f);
+    uint xId = id.x % 512;
+    _TerrainTemperatures[id.x] = id.x / (512.0f*512.0f);
+
     _TerrainDensitiesHat[id.x] = sumWeights < 0.0001f ? 0.0f : sumDensities / sumWeights;
 }
 
 [numthreads(1024,1,1)]
 void UpdateTerrainHeights(uint3 id : SV_DispatchThreadID){
-    if(id.x >= _StaggeredGrid[0]._NbCols * _StaggeredGrid[0]._NbLines) return;
+    if(id.x >= _StaggeredGrid[0]._NbCols * _StaggeredGrid[0]._NbLines || id.x < 0) return;
     
     // TODO:
     // float newHeight = SPIKE*(_TerrainDensitiesStar[id.x]) + _InitialTerrainHeights[id.x];
@@ -764,7 +777,7 @@ void UpdateTerrainHeights(uint3 id : SV_DispatchThreadID){
 
 [numthreads(128,1,1)]
 void UpdateDensities(uint3 id : SV_DispatchThreadID){
-    if(id.x >= _NbCurParticles) return;
+    if(id.x >= _NbCurParticles || id.x < 0) return;
     ParticleGPU pi = GetParticle(id);
 
     float sumDensity = 0.0f;
@@ -787,7 +800,7 @@ void UpdateDensities(uint3 id : SV_DispatchThreadID){
 
 [numthreads(128,1,1)]
 void UpdateHeights(uint3 id : SV_DispatchThreadID){
-    if(id.x >= _NbCurParticles) return;
+    if(id.x >= _NbCurParticles || id.x < 0) return;
     ParticleGPU pi = GetParticle(id);
 
     float sumHeights = 0.0f;
@@ -820,7 +833,7 @@ void UpdateHeights(uint3 id : SV_DispatchThreadID){
 
 [numthreads(128,1,1)]
 void TimeIntegration(uint3 id : SV_DispatchThreadID){
-    if(id.x >= _NbCurParticles) return;
+    if(id.x >= _NbCurParticles || id.x < 0) return;
     ParticleGPU pi = GetParticle(id);
 
     float3 curPosition = pi._Position;
@@ -842,7 +855,7 @@ void TimeIntegration(uint3 id : SV_DispatchThreadID){
 // ##################################################################################################################
 [numthreads(128,1,1)]
 void UpdateTemperatures(uint3 id : SV_DispatchThreadID){
-    if(id.x >= _NbCurParticles) return;
+    if(id.x >= _NbCurParticles || id.x < 0) return;
     ParticleGPU pi = GetParticle(id);
 
     float sumTemperatures = 0.0f;
@@ -866,7 +879,7 @@ void UpdateTemperatures(uint3 id : SV_DispatchThreadID){
 
 [numthreads(128,1,1)]
 void PropagateTemperatureUpdate(uint3 id : SV_DispatchThreadID){
-    if(id.x >= _NbCurParticles) return;
+    if(id.x >= _NbCurParticles || id.x < 0) return;
     ParticleGPU pi = GetParticle(id);
     pi._Temperature = _Temperatures[id.x];
     _Particles[id.x] = pi;
@@ -894,7 +907,7 @@ float FTemp(float theta){
 
 [numthreads(128,1,1)]
 void UpdateVelocities(uint3 id : SV_DispatchThreadID){
-    if(id.x >= _NbCurParticles) return;
+    if(id.x >= _NbCurParticles || id.x < 0) return;
     ParticleGPU pi = GetParticle(id);
 
     float3 sumVelocities = float3(0.0f,0.0f,0.0f);
@@ -931,7 +944,7 @@ void UpdateVelocities(uint3 id : SV_DispatchThreadID){
 
 [numthreads(128,1,1)]
 void PropagateVelocityUpdate(uint3 id : SV_DispatchThreadID){
-    if(id.x >= _NbCurParticles) return;
+    if(id.x >= _NbCurParticles || id.x < 0) return;
     ParticleGPU pi = GetParticle(id);
     pi._Velocity = _Velocities[id.x];
     _Particles[id.x] = pi;
