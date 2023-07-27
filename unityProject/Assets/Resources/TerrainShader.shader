@@ -17,6 +17,8 @@ Shader "Custom/TerrainShader"{
             StructuredBuffer<float> _InitialTerrainHeights;
             StructuredBuffer<float> _TerrainTemperatures;
 
+            uniform float _ColorShade;
+
             struct appdata{
                 float4 vertex : POSITION;
                 uint id : SV_VertexID;
@@ -27,12 +29,14 @@ Shader "Custom/TerrainShader"{
                 float4 vertex : POSITION;
                 float id : TEXCOORD0;
                 float3 normal : NORMAL;
+                float4 color : COLOR;
             };
 
             struct g2f{
                 float4 vertex : SV_POSITION;
                 float3 uv : TEXCOORD0; // uv = (id, deltaY, curHeight)
                 float3 normal : NORMAL;
+                float4 color : COLOR;
             };
 
             v2g vert(appdata v){
@@ -41,6 +45,7 @@ Shader "Custom/TerrainShader"{
                 o.vertex.y = _TerrainHeights[v.id];
                 o.id = v.id;
                 o.normal = v.normal;
+                o.color = fixed4(1, _TerrainTemperatures[v.id]/_ColorShade, 0, 1);
                 return o;
             }
 
@@ -60,6 +65,7 @@ Shader "Custom/TerrainShader"{
                     o.uv = float3(id, deltaY, curHeight);
                     o.vertex = UnityObjectToClipPos(input[i].vertex);
                     o.normal = normal;
+                    o.color = input[i].color;
                     // o.normal = input[i].normal;
                     triStream.Append(o);
                 }
@@ -75,8 +81,7 @@ Shader "Custom/TerrainShader"{
                 fixed4 brown = fixed4(131.0/255, 101.0/255, 57.0/255, 1);
 
                 // fixed4 red = fixed4(1.0, deltaY, 0, 1.0);
-                float tmp = _TerrainTemperatures[(uint)i.uv.x];
-                fixed4 red = fixed4(1-tmp, tmp, 0, 1);
+                fixed4 red = i.color;
 
                 // get color
                 fixed4 col = green;

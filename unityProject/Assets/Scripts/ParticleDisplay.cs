@@ -54,6 +54,7 @@ public class ParticleDisplay : MonoBehaviour{
         // Debug.Log(nbCurParticles);
         _ParticleMaterial.SetInteger("_NbCurParticles", nbCurParticles);
         _ParticleMaterial.SetInteger("_DisplayParticles", displayParticles ? 1 : 0);
+        _ParticleMesh.RecalculateBounds();
     }
 
     private void InitMeshProperties(){

@@ -167,7 +167,7 @@ MonoBehaviour:
   _NbMaxParticles: 100000
   _InitialPositionDelta: 10
   _DT: 0.01
-  _Spike: 1
+  _Spike: 2
   _KernelRadius: 1
   _Stiffness: 1
   _ParticleInitialHeight: 2
@@ -177,6 +177,7 @@ MonoBehaviour:
   _Mu: 100
   _Ke: 100
   _ThetaE: 1423
+  _ColorShade: 100
 --- !u!4 &298545280
 Transform:
   m_ObjectHideFlags: 0
@@ -639,7 +640,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1708334436}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 258.4, y: 0.6, z: 265.9}
+  m_LocalPosition: {x: 258.4, y: 0, z: 265.9}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

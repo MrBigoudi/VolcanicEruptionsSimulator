@@ -71,7 +71,7 @@ public class TerrainGenerator : MonoBehaviour{
 
         switch(_VolcanoImage){
             case Volcano.Basic:
-                path += "/Media/new_volcano-height-map.png";
+                path += "/Media/volcano-height-map.png";
                 break;
             case Volcano.Fuji:
                 path += "/Media/testFuji.png";

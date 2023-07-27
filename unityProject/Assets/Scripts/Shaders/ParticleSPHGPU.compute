@@ -751,10 +751,8 @@ void UpdateTerrainDensities(uint3 id : SV_DispatchThreadID){
     
     _TerrainDensitiesRadii[id.x] = kernelRadius;
     _TerrainDensities[id.x] = sumDensities;
-    // _TerrainTemperatures[id.x] = sumTemperatures;
-    uint yId = (uint)(id.x / 512.0f);
-    uint xId = id.x % 512;
-    _TerrainTemperatures[id.x] = id.x / (512.0f*512.0f);
+    _TerrainTemperatures[id.x] = sumTemperatures;
+    // _TerrainTemperatures[id.x] = sumWeights < 0.0001f ? 0.0f : sumTemperatures / sumWeights;
 
     _TerrainDensitiesHat[id.x] = sumWeights < 0.0001f ? 0.0f : sumDensities / sumWeights;
 }

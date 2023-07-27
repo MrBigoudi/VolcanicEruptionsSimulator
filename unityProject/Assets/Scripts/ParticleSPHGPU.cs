@@ -47,6 +47,7 @@ public class ParticleSPHGPU : MonoBehaviour{
     private float _Mu;
     private float _Ke;
     private float _ThetaE;
+    private float _ColorShade;
 
     private ComputeShader _Shader;
 
@@ -207,6 +208,7 @@ public class ParticleSPHGPU : MonoBehaviour{
         _Mu = _Fields._Mu;
         _Ke = _Fields._Ke;
         _ThetaE = _Fields._ThetaE;
+        _ColorShade = _Fields._ColorShade;
     }
 
     public void Awake(){
@@ -601,33 +603,6 @@ public class ParticleSPHGPU : MonoBehaviour{
         InitMesh();
     }
 
-    private void GenerateParticle(Vector3 position){
-        _ElapsedTime += Time.deltaTime;
-
-        if(_NbCurParticles < _NbMaxParticles && _ElapsedTime > _DT){
-            int delta = (int)(_ElapsedTime / _DT);
-            delta = Double.IsNaN(delta) ? 10 : delta;
-            int cpt = 0;
-
-            // put new particles in buffer
-            for(int i=0; i<delta; i++){
-                if(_NbCurParticles >= _NbMaxParticles) break;
-                _NbCurParticles++;
-                cpt++;
-            }
-
-            // update gpu side
-            int res = _NbMaxParticles / 128 + 1;
-            // _Shader.SetFloat("DT", Time.deltaTime);
-            _Shader.SetInt(_NbNewParticlesId, cpt);
-            _Shader.SetInt(_NbCurParticlesId, _NbCurParticles);
-            _Shader.SetVector(_NewPositionId, position);
-
-            _ElapsedTime -= (delta*_DT);
-            _Shader.Dispatch(_KernelGenerateParticleId, res, 1, 1);
-        }
-    }
-
     private void UpdateHeights(int res){
         _Shader.Dispatch(_KernelUpdateHeightsId, res, 1, 1);
         _Shader.Dispatch(_KernelPropagateHeightUpdateId, res, 1, 1);
@@ -667,6 +642,8 @@ public class ParticleSPHGPU : MonoBehaviour{
         _Shader.SetFloat("_Mu", _Mu);
         _Shader.SetFloat("_Ke", _Ke);
         _Shader.SetFloat("_ThetaE", _ThetaE);
+
+        _TerrainMaterial.SetFloat("_ColorShade", _ColorShade);
     }
 
     private void UpdateVolumes(int res){
@@ -722,25 +699,53 @@ public class ParticleSPHGPU : MonoBehaviour{
         _Shader.Dispatch(_KernelPropagateVelocityUpdateId, res, 1, 1);
     }
 
+    private void GenerateParticle(Vector3 position, int delta){
+        if(_NbCurParticles < _NbMaxParticles){
+            int cpt = 0;
+
+            // put new particles in buffer
+            for(int i=0; i<delta; i++){
+                if(_NbCurParticles >= _NbMaxParticles) break;
+                _NbCurParticles++;
+                cpt++;
+            }
+
+            // update gpu side
+            int res = _NbMaxParticles / 128 + 1;
+            // _Shader.SetFloat("DT", Time.deltaTime);
+            _Shader.SetInt(_NbNewParticlesId, cpt);
+            _Shader.SetInt(_NbCurParticlesId, _NbCurParticles);
+            _Shader.SetVector(_NewPositionId, position);
+            _Shader.Dispatch(_KernelGenerateParticleId, res, 1, 1);
+        }
+    }
+
     public void Updt(Vector3 position){
-        UpdateGPUValues();        
+        UpdateGPUValues();
         int res = (_NbMaxParticles / 128)+1;
-        // generate particle in GPU
-        GenerateParticle(position);
-        // update the neighbours
-        UpdateNeighbours(res);
-        // calculate heights in gpu
-        UpdateHeights(res);
-        // update densities
-        // UpdateVolumes(res);
-        UpdateTemperatures(res);
-        UpdateVelocities(res);
-        // time integration gpu
-        TimeIntegration(res);
-        // update the terrain heights
-        UpdateTerrainHeights();
-        // display particles
-        UpdateParticleMesh();
+
+        _ElapsedTime += Time.deltaTime;
+        if(_ElapsedTime > _DT){
+            int delta = (int)(_ElapsedTime / _DT);
+            delta = Double.IsNaN(delta) ? 10 : delta;
+            // generate particle in GPU
+            GenerateParticle(position, delta);
+            // update the neighbours
+            UpdateNeighbours(res);
+            // calculate heights in gpu
+            UpdateHeights(res);
+            // update densities
+            // UpdateVolumes(res);
+            UpdateTemperatures(res);
+            UpdateVelocities(res);
+            // time integration gpu
+            TimeIntegration(res);
+            // update the terrain heights
+            UpdateTerrainHeights();
+            // display particles
+            UpdateParticleMesh();
+            _ElapsedTime -= (delta*_DT);
+        }
     }
 
     private void ReleaseBuffers(){
