@@ -4,17 +4,26 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Assertions;
 
+/**
+ * The structure matching the compute shader representation of the staggered grid
+*/
 public struct StaggeredGridGPU{
     public int _NbCols, _NbLines;
     public float _DeltaCols, _DeltaLines;    
 };
 
+/**
+ * The structure matching the compute shader representation of the neighbour grid
+*/
 public struct NeighbourGridGPU{
     public int _NbCols, _NbLines;
     public float _DeltaCols, _DeltaLines;    
     public int _NbMaxNeighbours;
 };
 
+/**
+ * The structure matching the compute shader representation of a particle
+*/
 public struct ParticleGPU{
     public Vector3 _Velocity;
     public Vector3 _Position;
@@ -29,41 +38,128 @@ public struct ParticleGPU{
 };
 
 /**
- * A class representing an sph solver
+ * The main class exchanging with the sph solver in the compute shader
 */
 public class ParticleSPHGPU : MonoBehaviour{
 
+// ################################################################################################################################################################################################################
+// ################################################################################################## ATTRIBUTES ##################################################################################################
+// ################################################################################################################################################################################################################
+
+    /**
+     * The class used to regroup all the serializied fields
+    */
     [SerializeField]
     public Tweakable _Fields;
 
+    /**
+     * Boolean to tell if particles should be visible or not
+    */
     private bool _DisplayParticles;
+
+    /**
+     * Boolean to tell if lava should be visible or not
+    */
     private bool _DisplayLava;
+
+    /**
+     * The class containing the particle mesh
+    */
     private ParticleDisplay _ParticleDisplay;
+
+    /**
+     * Boolean to tell if the terrain should be smoothed
+    */
     private bool _GaussianBlur;
 
+    /**
+     * The maximum number of particles
+    */
     private int _NbMaxParticles;
+    
+    /**
+     * The current number of particles
+    */
     private int _NbCurParticles;
+    
+    /**
+     * The radius of the circle within which particles can spawn
+    */
     private float _InitialPositionDelta;
+    
+    /**
+     * The lava viscosity constant
+    */
     private float _Mu;
+    
+    /**
+     * The lava initial viscosity constant
+    */
     private float _Ke;
+    
+    /**
+     * The lava initial temperature constant
+    */
     private float _ThetaE;
+    
+    
+    /**
+     * The shade of the lava color
+    */
     private float _ColorShade;
-
+    
+    /**
+     * The compute shader containing the core of our simulation
+    */
     private ComputeShader _Shader;
-
+    
+    /**
+     * Id for the number of current particle variable inside the GPU
+    */
     private int _NbCurParticlesId;
+
+    /**
+     * Id for the number of new particles variable inside the GPU
+    */
     private int _NbNewParticlesId;
+
+    /**
+     * Id for the new position variable inside the GPU
+    */
     private int _NewPositionId;
-    private int _ParticleInitialHeightId;
+
+    /**
+     * Id for the random float variable inside the GPU
+    */
     private int _RandId;
 
-    // compute shader functions
+    /**
+     * The delta time for the simulation
+    */
+    private float _DT;
+
+    /**
+     * The current time elapsed since last update
+    */
+    private float _ElapsedTime;
+
+    /**
+     * A variable to elevate of decrease the lava height when rendering
+    */
+    private float _Spike;
+
+    /**
+     * The kernel radius
+    */
+    private float _KernelRadius;
+
+    // ##########################################
+    // ######## Compute Shader Functions ########
+    // ##########################################
     private int _KernelGenerateParticleId;
     private int _KernelResetNeighboursCounterId;
     private int _KernelUpdateNeighboursId;
     private int _KernelAssignNeighboursId;
-    private int _KernelUpdateDensitiesId;
-    private int _KernelPropagateDensityUpdateId;
     private int _KernelPropagateHeightUpdateId;
     private int _KernelPropagatePositionUpdateId;
     private int _KernelUpdateHeightsId;
@@ -73,18 +169,16 @@ public class ParticleSPHGPU : MonoBehaviour{
     private int _KernelPropagateVelocityUpdateId;
     private int _KernelTimeIntegrationId;
     private int _KernelUpdateTerrainHeightsId;
-    private int _KernelUpdateTerrainDensitiesId;
-    private int _KernelUpdateTerrainDensitiesStarId;
+    private int _KernelUpdateTerrainTemperaturesId;
     private int _KernelGaussianBlurTerrainHeightsId;
 
-    // compute shader buffers
+    // ##########################################
+    // ############ Particle Buffers ############
+    // ##########################################
     private int _ParticlesId;
     private int _HeightsId;
     private int _HeightsGradientsId;
     private int _PositionsId;
-    private int _VolumesId;
-    private int _DensitiesId;
-    private int _MassesId;
     private int _TemperaturesId;
     private int _VelocitiesId;
     private int _ParticleNeighboursId;
@@ -92,24 +186,32 @@ public class ParticleSPHGPU : MonoBehaviour{
     private ComputeBuffer _HeightsBuffer;
     private ComputeBuffer _HeightsGradientsBuffer;
     private ComputeBuffer _PositionsBuffer;
-    private ComputeBuffer _VolumesBuffer;
-    private ComputeBuffer _DensitiesBuffer;
-    private ComputeBuffer _MassesBuffer;
     private ComputeBuffer _TemperaturesBuffer;
     private ComputeBuffer _VelocitiesBuffer;
     private ComputeBuffer _ParticleNeighboursBuffer;
+    private ParticleGPU[] _Particles;
+    private float[]   _Heights;
+    private Vector3[] _HeightsGradients;
+    private Vector3[] _Positions;
+    private float[]   _Temperatures;
+    private Vector3[] _Velocities;
+    private int[]     _ParticleNeighbours;
 
+    // ##########################################
+    // ######### Staggered Grid Buffers #########
+    // ##########################################
     private int _StaggeredGridId;
     private int _StaggeredGridHeightsId;
     private int _StaggeredGridHalfHeightsId;
     private int _StaggeredGridGradientsId;
-    private int _StaggeredGridLaplaciansId;
     private ComputeBuffer _StaggeredGridBuffer;
     private ComputeBuffer _StaggeredGridHeightsBuffer;
     private ComputeBuffer _StaggeredGridHalfHeightsBuffer;
     private ComputeBuffer _StaggeredGridGradientsBuffer;
-    private ComputeBuffer _StaggeredGridLaplaciansBuffer;
 
+    // ##########################################
+    // ######### Neighbors Grid Buffers #########
+    // ##########################################
     private int _NeighbourGridId;
     private int _NeighbourGridCellsId;
     private int _NeighbourGridCellsCounterId;
@@ -122,116 +224,57 @@ public class ParticleSPHGPU : MonoBehaviour{
     private int _NeighbourGridNbLines;
     private int _NeighbourGridNbMaxNeighbours;
 
+    // ##########################################
+    // ############ Terrain Buffers #############
+    // ##########################################
     private int _InitialTerrainHeightsId;
     private int _TerrainHeightsId;
     private int _TerrainTemperaturesId;
-    private int _TerrainHeightsTmpId;
     private ComputeBuffer _InitialTerrainHeightsBuffer;
     private ComputeBuffer _TerrainHeightsBuffer;
     private ComputeBuffer _TerrainTemperaturesBuffer;
-    private ComputeBuffer _TerrainHeightsTmpBuffer;
     private float[] _InitialTerrainHeights;
     private float[] _TerrainHeights;
     private float[] _TerrainTemperatures;
-    private float[] _TerrainHeightsTmp;
 
-    private float _TerrainDensityMax;
-    private float _TerrainDensityMin;
-    private int _TerrainDensitiesId;
-    private int _TerrainDensitiesRadiiId;
-    private int _TerrainDensitiesHatId;
-    private int _TerrainDensitiesStarId;
-    private int _TerrainDensitiesMinMaxId;
-    private ComputeBuffer _TerrainDensitiesBuffer;
-    private ComputeBuffer _TerrainDensitiesRadiiBuffer;
-    private ComputeBuffer _TerrainDensitiesHatBuffer;
-    private ComputeBuffer _TerrainDensitiesStarBuffer;
-    private ComputeBuffer _TerrainDensitiesMinMaxBuffer;
-    private float[] _TerrainDensities;
-    private float[] _TerrainDensitiesRadii;
-    private float[] _TerrainDensitiesHat;
-    private float[] _TerrainDensitiesStar;
-    private Vector2[] _TerrainDensitiesMinMax;
-
-    // future buffer data
-    private float[]   _Heights;
-    private Vector3[] _HeightsGradients;
-    private Vector3[] _Positions;
-    private Vector3[] _Velocities;
-    private float[]   _Volumes;
-    private float[]   _Densities;
-    private float[]   _Masses;
-    private float[]   _Temperatures;
-    private int[]     _ParticleNeighbours;
-
-    private ParticleGPU[] _Particles;
-
-    private float _DT;
-    private float _ElapsedTime;
-
-    private float _Spike;
-    private float _KernelRadius;
-    private float _Stiffness;
-    private float _ParticleInitialHeight;
-
-    private float _AlphaPoly6;
-    private float _AlphaPoly6Laplacian;
-    private float _AlphaViscosity;
-    private float _AlphaViscosityLaplacian;
-
-
-    // some usefull values
+    // ##########################################
+    // ############# Terrain Values #############
+    // ##########################################
     private int _TerrainNbCols;
     private int _TerrainNbLines;
     private float _TerrainDeltaCols;
     private float _TerrainDeltaLines;
     private Vector3 _TerrainSize;
 
+    // ##########################################
+    // ############ Terrain Material ############
+    // ##########################################
     private Material _TerrainMaterial;
     private Mesh _TerrainMesh;
     private MeshFilter _TerrainMeshFilter;
     private MeshRenderer _TerrainRenderer;
 
-    public void UpdateTweakableFields(){
-        _DisplayParticles = _Fields._DisplayParticles;
-        _DisplayLava = _Fields._DisplayLava;
-        _GaussianBlur = _Fields._GaussianBlur;
-        _NbMaxParticles = _Fields._NbMaxParticles;
-        _InitialPositionDelta = _Fields._InitialPositionDelta;
-        _DT = _Fields._DT;
-        _Spike = _Fields._Spike;
-        _KernelRadius = _Fields._KernelRadius;
-        _Stiffness = _Fields._Stiffness;
-        _ParticleInitialHeight = _Fields._ParticleInitialHeight;
-        _TerrainDensityMax = _Fields._TerrainDensityMax;
-        _TerrainDensityMin = _Fields._TerrainDensityMin;
-        _Mu = _Fields._Mu;
-        _Ke = _Fields._Ke;
-        _ThetaE = _Fields._ThetaE;
-        _ColorShade = _Fields._ColorShade;
-    }
 
+// ################################################################################################################################################################################################################
+// ########################################################################################### Initialization Methods #############################################################################################
+// ################################################################################################################################################################################################################
+
+    /**
+     * Initiate the serialized fields
+    */
     public void Awake(){
         _ParticleDisplay = _Fields._ParticleDisplay;
         _TerrainMaterial = _Fields._TerrainMaterial;
+        _GaussianBlur = _Fields._GaussianBlur;
+        _NbMaxParticles = _Fields._NbMaxParticles;
         UpdateTweakableFields();
     }
 
-    public void Update(){
-        UpdateTweakableFields();
-    }
-
-    public int GetNbCurParticles(){
-        return _NbCurParticles;
-    }
-
-    private void UpdateKernelFactors(){
-        _AlphaPoly6              = 4.0f  / (Constants.PI*_KernelRadius*_KernelRadius*_KernelRadius*_KernelRadius*_KernelRadius*_KernelRadius*_KernelRadius*_KernelRadius);
-        _AlphaPoly6Laplacian     = 32.0f / (Constants.PI*_KernelRadius*_KernelRadius*_KernelRadius*_KernelRadius*_KernelRadius*_KernelRadius*_KernelRadius*_KernelRadius);
-        _AlphaViscosity          = 10.0f / (9.0f*Constants.PI*_KernelRadius*_KernelRadius*_KernelRadius*_KernelRadius*_KernelRadius);
-        _AlphaViscosityLaplacian = 40.0f / (Constants.PI*_KernelRadius*_KernelRadius*_KernelRadius*_KernelRadius*_KernelRadius);
-    }
-
+    /**
+     * Initiate the class
+     * @param shader The core of the sph simulation
+     * @param terrain The heightmap of the terrain
+    */
     public void Create(ComputeShader shader, TerrainGenerator terrain){
         _NbCurParticles = 0;
         _Shader = shader;
@@ -239,122 +282,132 @@ public class ParticleSPHGPU : MonoBehaviour{
         Init(terrain);
     }
 
+    /**
+     * Initiate the kernels ids
+    */
     private void InitKernelsIds(){
-        // init functions id
+        // kernels for particles updates
         _KernelGenerateParticleId           = _Shader.FindKernel("GenerateParticle");
+        _KernelTimeIntegrationId            = _Shader.FindKernel("TimeIntegration");
+        _KernelUpdateHeightsId              = _Shader.FindKernel("UpdateHeights");
+        _KernelUpdateTemperaturesId         = _Shader.FindKernel("UpdateTemperatures");
+        _KernelUpdateVelocitiesId           = _Shader.FindKernel("UpdateVelocities");
+
+        // kernels for neighbours functions
         _KernelResetNeighboursCounterId     = _Shader.FindKernel("ResetNeighboursCounter");
         _KernelUpdateNeighboursId           = _Shader.FindKernel("UpdateNeighbours");
         _KernelAssignNeighboursId           = _Shader.FindKernel("AssignNeighbours");
-        _KernelUpdateDensitiesId            = _Shader.FindKernel("UpdateDensities");
-        _KernelUpdateHeightsId              = _Shader.FindKernel("UpdateHeights");
-
-        _KernelUpdateTemperaturesId         = _Shader.FindKernel("UpdateTemperatures");
-        _KernelPropagateTemperatureUpdateId = _Shader.FindKernel("PropagateTemperatureUpdate");
-        _KernelUpdateVelocitiesId           = _Shader.FindKernel("UpdateVelocities");
-        _KernelPropagateVelocityUpdateId    = _Shader.FindKernel("PropagateVelocityUpdate");
-
-        _KernelTimeIntegrationId            = _Shader.FindKernel("TimeIntegration");
+        
+        // kernels for terrain updates
         _KernelUpdateTerrainHeightsId       = _Shader.FindKernel("UpdateTerrainHeights");
-        _KernelUpdateTerrainDensitiesId     = _Shader.FindKernel("UpdateTerrainDensities");
-        _KernelUpdateTerrainDensitiesStarId = _Shader.FindKernel("UpdateTerrainDensitiesStar");
+        _KernelUpdateTerrainTemperaturesId  = _Shader.FindKernel("UpdateTerrainTemperatures");
         _KernelGaussianBlurTerrainHeightsId = _Shader.FindKernel("GaussianBlurTerrainHeights");
-        _KernelPropagateDensityUpdateId     = _Shader.FindKernel("PropagateDensityUpdate");
+
+        // kernels for updates propagations
         _KernelPropagateHeightUpdateId      = _Shader.FindKernel("PropagateHeightUpdate");
         _KernelPropagatePositionUpdateId    = _Shader.FindKernel("PropagatePositionUpdate");
-
+        _KernelPropagateVelocityUpdateId    = _Shader.FindKernel("PropagateVelocityUpdate");
+        _KernelPropagateTemperatureUpdateId = _Shader.FindKernel("PropagateTemperatureUpdate");
     }
 
+    /**
+     * Init the staggered grid buffers' ids
+    */
     private void InitStaggeredGridIds(){
         _StaggeredGridId            = Shader.PropertyToID("_StaggeredGrid");
         _StaggeredGridHeightsId     = Shader.PropertyToID("_StaggeredGridHeights");
         _StaggeredGridHalfHeightsId = Shader.PropertyToID("_StaggeredGridHalfHeights");
         _StaggeredGridGradientsId   = Shader.PropertyToID("_StaggeredGridGradients");
-        _StaggeredGridLaplaciansId  = Shader.PropertyToID("_StaggeredGridLaplacians");
     }
 
+    /**
+     * Init the neighbours grid buffers' ids
+    */
     private void InitNeighbourGridIds(){
         _NeighbourGridId = Shader.PropertyToID("_NeighbourGrid");
         _NeighbourGridCellsId = Shader.PropertyToID("_NeighbourGridCells");
         _NeighbourGridCellsCounterId = Shader.PropertyToID("_NeighbourGridCellsCounter");
     }
 
-    private void InitParticlesIds(){
+    /**
+     * Init the variables' ids
+    */
+    private void InitVariablesIds(){
         _NbCurParticlesId   = Shader.PropertyToID("_NbCurParticles");
         _NbNewParticlesId   = Shader.PropertyToID("_NbNewParticles");
         _NewPositionId      = Shader.PropertyToID("_NewPosition");
-        _ParticleInitialHeightId = Shader.PropertyToID("_ParticleInitialHeightId");
+        _RandId           = Shader.PropertyToID("RAND");
+    }
 
+    /**
+     * Init the terrain buffers' ids
+    */
+    private void InitTerrainIds(){
+        _InitialTerrainHeightsId = Shader.PropertyToID("_InitialTerrainHeights");
+        _TerrainHeightsId        = Shader.PropertyToID("_TerrainHeights");
+        _TerrainTemperaturesId   = Shader.PropertyToID("_TerrainTemperatures");
+    }
+
+    /**
+     * Init the particle buffers' ids
+    */
+    private void InitParticlesIds(){
         _ParticlesId        = Shader.PropertyToID("_Particles");
         _HeightsId          = Shader.PropertyToID("_Heights");
         _HeightsGradientsId = Shader.PropertyToID("_HeightsGradients");
         _PositionsId        = Shader.PropertyToID("_Positions");
         _VelocitiesId       = Shader.PropertyToID("_Velocities");
-        _VolumesId          = Shader.PropertyToID("_Volumes");
-        _DensitiesId        = Shader.PropertyToID("_Densities");
-        _MassesId           = Shader.PropertyToID("_Masses");
         _TemperaturesId     = Shader.PropertyToID("_Temperatures");
         _ParticleNeighboursId = Shader.PropertyToID("_ParticleNeighbours");
-
-        _RandId           = Shader.PropertyToID("RAND");
-
-        _InitialTerrainHeightsId = Shader.PropertyToID("_InitialTerrainHeights");
-        _TerrainHeightsId        = Shader.PropertyToID("_TerrainHeights");
-        _TerrainTemperaturesId   = Shader.PropertyToID("_TerrainTemperatures");
-        _TerrainHeightsTmpId     = Shader.PropertyToID("_TerrainHeightsTmp");
-
-        _TerrainDensitiesId      = Shader.PropertyToID("_TerrainDensities");
-        _TerrainDensitiesRadiiId = Shader.PropertyToID("_TerrainDensitiesRadii");
-        _TerrainDensitiesHatId   = Shader.PropertyToID("_TerrainDensitiesHat");
-        _TerrainDensitiesStarId  = Shader.PropertyToID("_TerrainDensitiesStar");
-        _TerrainDensitiesMinMaxId  = Shader.PropertyToID("_TerrainDensitiesMinMax");
     }
 
+    /**
+     * Init all the GPU ids
+    */
     private void InitIds(){
         InitKernelsIds();
-        InitParticlesIds();        
+        InitParticlesIds();      
+        InitStaggeredGridIds();
+        InitNeighbourGridIds();
+        InitTerrainIds();
+        InitVariablesIds();  
     }
 
-    private void InitBuffersData(){
-        _Heights          = new float[_NbMaxParticles];
-        _HeightsGradients = new Vector3[_NbMaxParticles];
-        _Positions        = new Vector3[_NbMaxParticles];
-        _Velocities       = new Vector3[_NbMaxParticles];
-        _Volumes          = new float[_NbMaxParticles];
-        _Densities        = new float[_NbMaxParticles];
-        _Masses           = new float[_NbMaxParticles];
-        _Temperatures     = new float[_NbMaxParticles];
-
-        _Particles = new ParticleGPU[_NbMaxParticles];
+    /**
+     * Init terrain buffers data
+    */
+    private void InitTerrainData(){
         _InitialTerrainHeights = Convert2dArray(StaggeredGridV2._Heights);
         _TerrainHeights = Convert2dArray(StaggeredGridV2._Heights);
         _TerrainTemperatures = new float[StaggeredGridV2._NbCols * StaggeredGridV2._NbLines];
-        _TerrainHeightsTmp = Convert2dArray(StaggeredGridV2._Heights);
-        
-        _TerrainDensities = new float[StaggeredGridV2._NbCols * StaggeredGridV2._NbLines];
-        _TerrainDensitiesRadii = new float[StaggeredGridV2._NbCols * StaggeredGridV2._NbLines];
-        _TerrainDensitiesHat = new float[StaggeredGridV2._NbCols * StaggeredGridV2._NbLines];
-        _TerrainDensitiesStar = new float[StaggeredGridV2._NbCols * StaggeredGridV2._NbLines];
-        _TerrainDensitiesMinMax = new Vector2[StaggeredGridV2._NbCols * StaggeredGridV2._NbLines];
     }
 
-    private void SendKernelFactorsToGPU(){
-        UpdateKernelFactors();
-        _Shader.SetFloat("ALPHA_POLY6", _AlphaPoly6);
-        _Shader.SetFloat("ALPHA_POLY6_LAPLACIAN", _AlphaPoly6Laplacian);
-        _Shader.SetFloat("ALPHA_VISCOSITY", _AlphaViscosity);
-        _Shader.SetFloat("ALPHA_VISCOSITY_LAPLACIAN", _AlphaViscosityLaplacian);
+    /**
+     * Init particles' buffers data
+    */
+    private void InitParticlesData(){
+        _Particles        = new ParticleGPU[_NbMaxParticles];
+        _Heights          = new float[_NbMaxParticles];
+        _HeightsGradients = new Vector3[_NbMaxParticles];
+        _Temperatures     = new float[_NbMaxParticles];
+        _Velocities       = new Vector3[_NbMaxParticles];
+        _Positions        = new Vector3[_NbMaxParticles];
     }
 
+    /**
+     * Send constants to gpu
+    */
     private void SendConstantsToGPU(){
-        _Shader.SetFloat("DT", _DT);
         _Shader.SetInt("MAX_PARTICLES", _NbMaxParticles);
         _Shader.SetFloat("PI", Constants.PI);
         _Shader.SetFloat("G", Constants.G);
         _Shader.SetFloat("RHO_0", Constants.RHO_0);
         _Shader.SetFloat("ALPHA", Constants.ALPHA);
-
     }
 
+    /**
+     * Init the values inside the GPU
+    */
     private void InitGpuValues(){
         SendConstantsToGPU();
         _Shader.SetBool("FirstTimeBlur", true);
@@ -362,134 +415,37 @@ public class ParticleSPHGPU : MonoBehaviour{
         UpdateGPUValues();        
     }
 
-    private float[] Convert2dArray(float[,] arr){
-        int nbLines = arr.GetLength(0);
-        int nbCols  = arr.GetLength(1);
-        // Debug.Log(nbLines + ", " + nbCols + ", " + arr.GetLength(0) + ", " + arr.GetLength(1));
-        // Assert.IsTrue(_TerrainNbCols == arr.GetLength(0) && _TerrainNbLines == arr.GetLength(1));
-
-        float[] res = new float[nbLines*nbCols];
-        float val;
-
-        for(int j = 0; j<nbLines; j++){
-            for(int i = 0; i<nbCols; i++){
-                val = arr[j,i];
-                res[i+j*nbCols] = val;
-            }
-        }
-        return res;
-    }
-
-    private Vector2[] Convert2dArray(Vector2[,] arr){
-        int nbLines = arr.GetLength(0);
-        int nbCols  = arr.GetLength(1);
-        // Debug.Log(nbLines + ", " + nbCols + ", " + arr.GetLength(0) + ", " + arr.GetLength(1));
-        // Assert.IsTrue(_TerrainNbCols == arr.GetLength(0) && _TerrainNbLines == arr.GetLength(1));
-
-        Vector2[] res = new Vector2[nbLines*nbCols];
-        Vector2 val;
-
-        for(int j = 0; j<nbLines; j++){
-            for(int i = 0; i<nbCols; i++){
-                val = arr[j,i];
-                res[i+j*nbCols] = val;
-            }
-        }
-        return res;
-    }
-
-    private Vector3[] Convert2dArray(Vector3[,] arr){
-        int nbLines = arr.GetLength(0);
-        int nbCols  = arr.GetLength(1);
-        // Debug.Log(nbLines + ", " + nbCols + ", " + arr.GetLength(0) + ", " + arr.GetLength(1));
-        // Assert.IsTrue(_TerrainNbCols == arr.GetLength(0) && _TerrainNbLines == arr.GetLength(1));
-
-        Vector3[] res = new Vector3[nbLines*nbCols];
-        Vector3 val;
-
-        for(int j = 0; j<nbLines; j++){
-            for(int i = 0; i<nbCols; i++){
-                val = arr[j,i];
-                res[i+j*nbCols] = val;
-            }
-        }
-        return res;
-    }
-
+    /**
+     * Send the buffers to all kernel functions
+    */
     private void SendDataToAllKernels(ComputeBuffer buffer, int id){
-        // set to every kernel
+        // kernels for particles updates
         _Shader.SetBuffer(_KernelGenerateParticleId, id, buffer);
+        _Shader.SetBuffer(_KernelTimeIntegrationId, id, buffer);
+        _Shader.SetBuffer(_KernelUpdateHeightsId, id, buffer);
+        _Shader.SetBuffer(_KernelUpdateTemperaturesId, id, buffer);
+        _Shader.SetBuffer(_KernelUpdateVelocitiesId, id, buffer);
+
+        // kernels for neighbours functions
         _Shader.SetBuffer(_KernelResetNeighboursCounterId, id, buffer);
         _Shader.SetBuffer(_KernelUpdateNeighboursId, id, buffer);
         _Shader.SetBuffer(_KernelAssignNeighboursId, id, buffer);
-        _Shader.SetBuffer(_KernelUpdateDensitiesId, id, buffer);
-        _Shader.SetBuffer(_KernelUpdateHeightsId, id, buffer);
-
-        _Shader.SetBuffer(_KernelUpdateTemperaturesId, id, buffer);
-        _Shader.SetBuffer(_KernelPropagateTemperatureUpdateId, id, buffer);
-        _Shader.SetBuffer(_KernelUpdateVelocitiesId, id, buffer);
-        _Shader.SetBuffer(_KernelPropagateVelocityUpdateId, id, buffer);
-
-        _Shader.SetBuffer(_KernelTimeIntegrationId, id, buffer);
+        
+        // kernels for terrain updates
         _Shader.SetBuffer(_KernelUpdateTerrainHeightsId, id, buffer);
-        _Shader.SetBuffer(_KernelUpdateTerrainDensitiesId, id, buffer);
-        _Shader.SetBuffer(_KernelUpdateTerrainDensitiesStarId, id, buffer);
+        _Shader.SetBuffer(_KernelUpdateTerrainTemperaturesId, id, buffer);
         _Shader.SetBuffer(_KernelGaussianBlurTerrainHeightsId, id, buffer);
-        _Shader.SetBuffer(_KernelPropagateDensityUpdateId, id, buffer);
+
+        // kernels for updates propagations
         _Shader.SetBuffer(_KernelPropagateHeightUpdateId, id, buffer);
         _Shader.SetBuffer(_KernelPropagatePositionUpdateId, id, buffer);
-
+        _Shader.SetBuffer(_KernelPropagateVelocityUpdateId, id, buffer);
+        _Shader.SetBuffer(_KernelPropagateTemperatureUpdateId, id, buffer);
     }
 
-    private ComputeBuffer SetData(float[] data, int id){
-        ComputeBuffer buffer = new ComputeBuffer(data.Length, sizeof(float));
-        buffer.SetData(data);
-        SendDataToAllKernels(buffer, id);
-        return buffer;
-    }
-
-    private ComputeBuffer SetData(Vector2[] data, int id){
-        ComputeBuffer buffer = new ComputeBuffer(data.Length, sizeof(float)*2);
-        buffer.SetData(data);
-        SendDataToAllKernels(buffer, id);
-        return buffer;
-    }
-
-    private ComputeBuffer SetData(Vector3[] data, int id){
-        ComputeBuffer buffer = new ComputeBuffer(data.Length, sizeof(float)*3);
-        buffer.SetData(data);
-        SendDataToAllKernels(buffer, id);
-        return buffer;
-    }
-
-    private ComputeBuffer SetData(int[] data, int id){
-        ComputeBuffer buffer = new ComputeBuffer(data.Length, sizeof(int));
-        buffer.SetData(data);
-        SendDataToAllKernels(buffer, id);
-        return buffer;
-    }
-
-    private ComputeBuffer SetData(ParticleGPU[] data, int id){
-        ComputeBuffer buffer = new ComputeBuffer(data.Length, sizeof(float)*14 + sizeof(int)*2);
-        buffer.SetData(data);
-        SendDataToAllKernels(buffer, id);
-        return buffer;
-    }
-
-    private ComputeBuffer SetData(StaggeredGridGPU[] data, int id){
-        ComputeBuffer buffer = new ComputeBuffer(data.Length, sizeof(float)*2 + sizeof(int)*2);
-        buffer.SetData(data);
-        SendDataToAllKernels(buffer, id);
-        return buffer;
-    }
-
-    private ComputeBuffer SetData(NeighbourGridGPU[] data, int id){
-        ComputeBuffer buffer = new ComputeBuffer(data.Length, sizeof(float)*2 + sizeof(int)*3);
-        buffer.SetData(data);
-        SendDataToAllKernels(buffer, id);
-        return buffer;
-    }
-
+    /**
+     * Init the staggered grid attributes
+    */
     private void InitStaggeredGridAttributes(){
         // init grid data
         StaggeredGridGPU[] gridArray = new StaggeredGridGPU[1];
@@ -501,10 +457,12 @@ public class ParticleSPHGPU : MonoBehaviour{
         gridArray[0] = grid;
         
         // init grid buffer
-        // Debug.Log(grid._NbCols);
         _StaggeredGridBuffer = SetData(gridArray, _StaggeredGridId);
     }
 
+    /**
+     * Init the neighbours grid attributes
+    */
     private void InitNeighbourGridAttributes(){
         // init grid data
         NeighbourGridGPU[] gridArray = new NeighbourGridGPU[1];
@@ -518,12 +476,6 @@ public class ParticleSPHGPU : MonoBehaviour{
         _NeighbourGridNbCols = grid._NbCols;
         _NeighbourGridNbLines = grid._NbLines;
         _NeighbourGridNbMaxNeighbours = grid._NbMaxNeighbours;
-        // Debug.Log("nbCol: " + _NeighbourGridNbCols 
-        //         + ", nbLines: " + _NeighbourGridNbLines
-        //         + ", deltaCols: " + grid._DeltaCols
-        //         + ", deltaLines: " + grid._DeltaLines
-        //         + ", nbMax: " + _NeighbourGridNbMaxNeighbours
-        // );
         
         gridArray[0] = grid;
         
@@ -531,8 +483,10 @@ public class ParticleSPHGPU : MonoBehaviour{
         _NeighbourGridBuffer = SetData(gridArray, _NeighbourGridId);
     }
 
+    /**
+     * Init the neighbours grid for the gpu
+    */
     private void InitNeighbourGrid(){
-        InitNeighbourGridIds();
         InitNeighbourGridAttributes();
         _NeighbourGridCells = new float[_NeighbourGridNbCols*_NeighbourGridNbLines*_NeighbourGridNbMaxNeighbours];
         _NeighbourGridCellsCounter = new int[_NeighbourGridNbCols*_NeighbourGridNbLines];
@@ -543,45 +497,57 @@ public class ParticleSPHGPU : MonoBehaviour{
         _ParticleNeighboursBuffer = SetData(_ParticleNeighbours, _ParticleNeighboursId);
     }
 
+    /**
+     * Init the staggered grid for the gpu
+    */
     private void InitStaggeredGrid(){
         // init grid itself
-        InitStaggeredGridIds();
         InitStaggeredGridAttributes();
         // init grid data
         float[] heights     = Convert2dArray(StaggeredGridV2._Heights);
         float[] halfHeights = Convert2dArray(StaggeredGridV2._HalfHeights);
         Vector2[] gradients = Convert2dArray(StaggeredGridV2._Gradients);
-        float[] laplacians  = Convert2dArray(StaggeredGridV2._Laplacians);
         // init grid buffers
         _StaggeredGridHeightsBuffer     = SetData(heights, _StaggeredGridHeightsId);
         _StaggeredGridHalfHeightsBuffer = SetData(halfHeights, _StaggeredGridHalfHeightsId);
         _StaggeredGridGradientsBuffer   = SetData(gradients, _StaggeredGridGradientsId);
-        _StaggeredGridLaplaciansBuffer  = SetData(laplacians, _StaggeredGridLaplaciansId);
     }
 
-    private void InitGpuBuffers(){
-        _ParticlesBuffer        = SetData(_Particles, _ParticlesId);
-        _PositionsBuffer        = SetData(_Positions, _PositionsId);
-        _VelocitiesBuffer       = SetData(_Velocities, _VelocitiesId);
-        _HeightsBuffer          = SetData(_Heights, _HeightsId);
-        _HeightsGradientsBuffer = SetData(_HeightsGradients, _HeightsGradientsId);
-        _VolumesBuffer          = SetData(_Volumes, _VolumesId);
-        _DensitiesBuffer        = SetData(_Densities, _DensitiesId);
-        _MassesBuffer           = SetData(_Masses, _MassesId);
-        _TemperaturesBuffer     = SetData(_Temperatures, _TemperaturesId);
-
+    /**
+     * Init the terrain for the gpu
+    */
+    private void InitTerrain(){
+        InitTerrainData();
         _InitialTerrainHeightsBuffer = SetData(_InitialTerrainHeights, _InitialTerrainHeightsId);
         _TerrainHeightsBuffer        = SetData(_TerrainHeights, _TerrainHeightsId);
         _TerrainTemperaturesBuffer   = SetData(_TerrainTemperatures, _TerrainTemperaturesId);
-        _TerrainHeightsTmpBuffer     = SetData(_TerrainHeightsTmp, _TerrainHeightsTmpId);
-
-        _TerrainDensitiesBuffer       = SetData(_TerrainDensities, _TerrainDensitiesId);
-        _TerrainDensitiesRadiiBuffer  = SetData(_TerrainDensitiesRadii, _TerrainDensitiesRadiiId);
-        _TerrainDensitiesHatBuffer    = SetData(_TerrainDensitiesHat, _TerrainDensitiesHatId);
-        _TerrainDensitiesStarBuffer   = SetData(_TerrainDensitiesStar, _TerrainDensitiesStarId);
-        _TerrainDensitiesMinMaxBuffer = SetData(_TerrainDensitiesMinMax, _TerrainDensitiesMinMaxId);
     }
 
+    /**
+     * Init the particles for the gpu
+    */
+    private void InitParticles(){
+        InitParticlesData();
+        _ParticlesBuffer        = SetData(_Particles, _ParticlesId);
+        _HeightsBuffer          = SetData(_Heights, _HeightsId);
+        _HeightsGradientsBuffer = SetData(_HeightsGradients, _HeightsGradientsId);
+        _TemperaturesBuffer     = SetData(_Temperatures, _TemperaturesId);
+        _PositionsBuffer        = SetData(_Positions, _PositionsId);
+        _VelocitiesBuffer       = SetData(_Velocities, _VelocitiesId);
+    }
+
+    private void InitGPU(){
+        InitGpuValues();
+        InitTerrain();
+        InitParticles();
+        InitNeighbourGrid();
+        InitStaggeredGrid();
+    }
+
+    /**
+     * Get the terrain informations from the heightmap
+     * @param terrain The heightmap of the terrain
+    */
     private void GetTerrainValues(TerrainGenerator terrain){
         _TerrainSize    = terrain._Size;
         _TerrainNbCols  = terrain.GetResolution();
@@ -592,50 +558,46 @@ public class ParticleSPHGPU : MonoBehaviour{
         _TerrainDeltaLines = terrainSize.z / _TerrainNbLines;
     }
 
+    /**
+     * Initiate everything
+     * @param terrain The heightmap of the terrain
+    */
     private void Init(TerrainGenerator terrain){
         GetTerrainValues(terrain);
         InitIds();
-        InitGpuValues();
-        InitBuffersData();
-        InitGpuBuffers();
-        InitStaggeredGrid();
-        InitNeighbourGrid();
+        InitGPU();
         InitMesh();
     }
 
-    private void UpdateHeights(int res){
-        _Shader.Dispatch(_KernelUpdateHeightsId, res, 1, 1);
-        _Shader.Dispatch(_KernelPropagateHeightUpdateId, res, 1, 1);
+
+// ################################################################################################################################################################################################################
+// ############################################################################################### Update Methods #################################################################################################
+// ################################################################################################################################################################################################################
+
+    /**
+     * Update the serialized fields
+    */
+    public void UpdateTweakableFields(){
+        _DisplayParticles = _Fields._DisplayParticles;
+        _DisplayLava = _Fields._DisplayLava;
+        _InitialPositionDelta = _Fields._InitialPositionDelta;
+        _DT = _Fields._DT;
+        _Spike = _Fields._Spike;
+        _KernelRadius = _Fields._KernelRadius;
+        _Mu = _Fields._Mu;
+        _Ke = _Fields._Ke;
+        _ThetaE = _Fields._ThetaE;
+        _ColorShade = _Fields._ColorShade;
     }
 
-    private void TimeIntegration(int res){
-        // _Shader.SetFloat("DT", Time.deltaTime);
-        _Shader.Dispatch(_KernelTimeIntegrationId, res, 1, 1);
-        _Shader.Dispatch(_KernelPropagatePositionUpdateId, res, 1, 1);
-    }
-
-    private void UpdateTerrainHeights(){
-        int res = (_TerrainNbCols*_TerrainNbLines / 1024) + 1;
-        _Shader.Dispatch(_KernelUpdateTerrainDensitiesId, res, 1, 1);
-        _Shader.Dispatch(_KernelUpdateTerrainDensitiesStarId, res, 1, 1);
-        _Shader.Dispatch(_KernelUpdateTerrainHeightsId, res, 1, 1);
-
-        if(_GaussianBlur){
-            _Shader.Dispatch(_KernelGaussianBlurTerrainHeightsId, res, 1, 1);
-            _Shader.SetBool("FirstTimeBlur", false);
-        }
-    }
-
+    /**
+     * Update GPU variables
+    */
     private void UpdateGPUValues(){
-        SendKernelFactorsToGPU();
-        _Shader.SetFloat("STIFF", _Stiffness);
+        _Shader.SetFloat("DT", _DT);
         _Shader.SetFloat("H", _KernelRadius);
         _Shader.SetFloat("SPIKE", _Spike);
         _Shader.SetFloat(_RandId, GetRandomValue(_InitialPositionDelta));
-        _Shader.SetFloat(_ParticleInitialHeightId, _ParticleInitialHeight);
-
-        _Shader.SetFloat("_TerrainDensityMax", _TerrainDensityMax);
-        _Shader.SetFloat("_TerrainDensityMin", _TerrainDensityMin);
 
         _Shader.SetBool("_DisplayLava", _DisplayLava);
 
@@ -646,40 +608,42 @@ public class ParticleSPHGPU : MonoBehaviour{
         _TerrainMaterial.SetFloat("_ColorShade", _ColorShade);
     }
 
-    private void UpdateVolumes(int res){
-        _Shader.Dispatch(_KernelUpdateDensitiesId, res, 1, 1);
-        _Shader.Dispatch(_KernelPropagateDensityUpdateId, res, 1, 1);
+    /**
+     * Update the particles' heights
+     * @param res The number of threads for the GPU kernel
+    */
+    private void UpdateHeights(int res){
+        _Shader.Dispatch(_KernelUpdateHeightsId, res, 1, 1);
+        _Shader.Dispatch(_KernelPropagateHeightUpdateId, res, 1, 1);
     }
 
-    private void DebugParticles(){
-        _ParticlesBuffer.GetData(_Particles);
-        for(int i=0; i<_NbCurParticles; i++){
-            ParticleGPU p = _Particles[i];
-            Debug.Log(
-                "pos: " + p._Position +
-                ", h: " + p._Height +
-                ", hGrad: " + p._HeightGradient +
-                ", dens: " + p._Density +
-                ", mass: " + p._Mass +
-                ", vol: " + p._Volume +
-                ", cell: " + p._Cell +
-                ", id: " + p._Id
-            );
+    /**
+     * Update the particles' positions
+     * @param res The number of threads for the GPU kernel
+    */
+    private void TimeIntegration(int res){
+        _Shader.Dispatch(_KernelTimeIntegrationId, res, 1, 1);
+        _Shader.Dispatch(_KernelPropagatePositionUpdateId, res, 1, 1);
+    }
+
+    /**
+     * Update the terrain heights
+    */
+    private void UpdateTerrainHeights(){
+        int res = (_TerrainNbCols*_TerrainNbLines / 1024) + 1;
+        _Shader.Dispatch(_KernelUpdateTerrainTemperaturesId, res, 1, 1);
+        _Shader.Dispatch(_KernelUpdateTerrainHeightsId, res, 1, 1);
+        // smooth the terrain once if user wants to
+        if(_GaussianBlur){
+            _Shader.Dispatch(_KernelGaussianBlurTerrainHeightsId, res, 1, 1);
+            _Shader.SetBool("FirstTimeBlur", false);
         }
     }
 
-    private void DebugNeighbours(){
-    _NeighbourGridCellsCounterBuffer.GetData(_NeighbourGridCellsCounter);
-        for(int j=0; j<_NeighbourGridNbLines; j++){
-            for(int i=0; i<_NeighbourGridNbCols; i++){
-                int idx = j*_NeighbourGridNbCols + i;
-                if(_NeighbourGridCellsCounter[idx]!=0){
-                    Debug.Log("Count["+idx+"] = "+_NeighbourGridCellsCounter[idx]);
-                }
-            }
-        }
-    }
-
+    /**
+     * Update the particles' neighbours
+     * @param res The number of threads for the GPU kernel
+    */
     private void UpdateNeighbours(int res){
         int res2 = (_NeighbourGridNbCols*_NeighbourGridNbLines / 1024) + 1;
         _Shader.Dispatch(_KernelResetNeighboursCounterId, res2, 1, 1);
@@ -689,22 +653,35 @@ public class ParticleSPHGPU : MonoBehaviour{
         // DebugNeighbours();      
     }
 
+    /**
+     * Update the particles' temperatures
+     * @param res The number of threads for the GPU kernel
+    */
     private void UpdateTemperatures(int res){
         _Shader.Dispatch(_KernelUpdateTemperaturesId, res, 1, 1);
         _Shader.Dispatch(_KernelPropagateTemperatureUpdateId, res, 1, 1);
     }
 
+    /**
+     * Update the particles' velocities
+     * @param res The number of threads for the GPU kernel
+    */
     private void UpdateVelocities(int res){
         _Shader.Dispatch(_KernelUpdateVelocitiesId, res, 1, 1);
         _Shader.Dispatch(_KernelPropagateVelocityUpdateId, res, 1, 1);
     }
 
-    private void GenerateParticle(Vector3 position, int delta){
+    /**
+     * Generate new particles
+     * @param position The new position of the particles (random delta is then added inside the GPU to not have them spawn at the same place everytime)
+     * @param nbNewParticles The number of new particles
+    */
+    private void GenerateParticle(Vector3 position, int nbNewParticles){
         if(_NbCurParticles < _NbMaxParticles){
             int cpt = 0;
 
             // put new particles in buffer
-            for(int i=0; i<delta; i++){
+            for(int i=0; i<nbNewParticles; i++){
                 if(_NbCurParticles >= _NbMaxParticles) break;
                 _NbCurParticles++;
                 cpt++;
@@ -720,79 +697,78 @@ public class ParticleSPHGPU : MonoBehaviour{
         }
     }
 
+    /**
+     * The main infinite loop of the simulation
+     * @param position The new position for the particles
+    */
     public void Updt(Vector3 position){
+        UpdateTweakableFields();
         UpdateGPUValues();
         int res = (_NbMaxParticles / 128)+1;
-
         _ElapsedTime += Time.deltaTime;
+
         if(_ElapsedTime > _DT){
             int delta = (int)(_ElapsedTime / _DT);
             delta = Double.IsNaN(delta) ? 10 : delta;
-            // generate particle in GPU
+            // generate particles in GPU
             GenerateParticle(position, delta);
             // update the neighbours
             UpdateNeighbours(res);
-            // calculate heights in gpu
+            // update particles' attributes
             UpdateHeights(res);
-            // update densities
-            // UpdateVolumes(res);
             UpdateTemperatures(res);
             UpdateVelocities(res);
-            // time integration gpu
             TimeIntegration(res);
-            // update the terrain heights
+            // update values for the rendering part
             UpdateTerrainHeights();
-            // display particles
             UpdateParticleMesh();
+
             _ElapsedTime -= (delta*_DT);
         }
     }
 
+    /**
+     * Release all the buffers to save memory space
+    */
     private void ReleaseBuffers(){
         _ParticlesBuffer.Dispose();
         _HeightsBuffer.Dispose();
         _HeightsGradientsBuffer.Dispose();
         _PositionsBuffer.Dispose();
         _VelocitiesBuffer.Dispose();
-        _VolumesBuffer.Dispose();
-        _DensitiesBuffer.Dispose();
-        _MassesBuffer.Dispose();
         _TemperaturesBuffer.Dispose();
         _ParticleNeighboursBuffer.Dispose();
 
         _InitialTerrainHeightsBuffer.Dispose();
         _TerrainHeightsBuffer.Dispose();
         _TerrainTemperaturesBuffer.Dispose();
-        _TerrainHeightsTmpBuffer.Dispose();
-
-        _TerrainDensitiesBuffer.Dispose();
-        _TerrainDensitiesRadiiBuffer.Dispose();
-        _TerrainDensitiesHatBuffer.Dispose();
-        _TerrainDensitiesStarBuffer.Dispose();
-        _TerrainDensitiesMinMaxBuffer.Dispose();
 
         _StaggeredGridBuffer.Dispose();
         _StaggeredGridHeightsBuffer.Dispose();
         _StaggeredGridHalfHeightsBuffer.Dispose();
         _StaggeredGridGradientsBuffer.Dispose();
-        _StaggeredGridLaplaciansBuffer.Dispose();
     }
 
+    /**
+     * Call when leaving the application
+    */
     public void OnApplicationQuit(){
         // release buffers
         ReleaseBuffers();
     }
 
-    public void OnDisable(){
-        // ReleaseBuffers();
-    }
-
+    /**
+     * Set buffer for the terrain material
+    */
     private void SetMaterialBuffers(){
         _TerrainMaterial.SetBuffer("_TerrainHeights", _TerrainHeightsBuffer);
         _TerrainMaterial.SetBuffer("_InitialTerrainHeights", _InitialTerrainHeightsBuffer);
         _TerrainMaterial.SetBuffer("_TerrainTemperatures", _TerrainTemperaturesBuffer);
     }
 
+    /**
+     * Initiate the terrain mesh
+    */
     private void InitTerrainMesh(){
         _TerrainMesh = new Mesh();
         _TerrainMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
@@ -803,43 +779,58 @@ public class ParticleSPHGPU : MonoBehaviour{
         UpdateTerrainMesh();
     }
 
+    /**
+     * Init the particle mesh
+    */
     private void InitParticlesMesh(){
-        // if(_DisplayParticles){
-            // Debug.Log("Particles mesh initialized");
-            _ParticleDisplay.InitMesh(_PositionsBuffer, _TemperaturesBuffer);
-        // }
+        _ParticleDisplay.InitMesh(_PositionsBuffer, _TemperaturesBuffer);
     }
 
+    /**
+     * Init all the meshes
+    */
     private void InitMesh(){
         InitTerrainMesh();
         InitParticlesMesh();        
     }
 
+    /**
+     * Update the particle mesh
+    */
     public void UpdateParticleMesh(){
         _ParticleDisplay.UpdateParticleMesh(_NbCurParticles, _DisplayParticles);
         _ParticleDisplay.UpdateParticleHeight();
     }
 
+    /**
+     * Update the terrain mesh
+    */
     private void UpdateTerrainMesh(){
         SetMaterialBuffers();
         TerrainSetVertices();
         TerrainSetIndices();
-        TerrainSetNormals();
+        TerrainSetUVs();
         _TerrainMesh.UploadMeshData(false);
     }
 
-    private void TerrainSetNormals(){
-        Vector3[] normals = new Vector3[_TerrainNbLines*_TerrainNbCols];
+    /**
+     * Init the terrain uvs
+    */
+    private void TerrainSetUVs(){
+        Vector2[] uvs = new Vector2[_TerrainNbLines*_TerrainNbCols];
         for(int j=1; j<_TerrainNbLines; j++){
             for(int i=1; i<_TerrainNbCols; i++){
                 int idx = i + j*_TerrainNbCols;
-                normals[idx].x = StaggeredGridV2._Gradients[j-1,i-1].x;
-                normals[idx].z = StaggeredGridV2._Gradients[j-1,i-1].y;
+                uvs[idx].x = i / (1.0f*_TerrainNbLines);
+                uvs[idx].y = j / (1.0f*_TerrainNbCols);
             }
         }
-        _TerrainMesh.SetNormals(normals);
+        _TerrainMesh.SetUVs(0, uvs);
     }
 
+    /**
+     * Init the terrain vertices
+    */
     private void TerrainSetVertices(){
         Vector3[] vertices = new Vector3[_TerrainNbLines*_TerrainNbCols];
         for(int j=0; j<_TerrainNbLines; j++){
@@ -854,6 +845,9 @@ public class ParticleSPHGPU : MonoBehaviour{
         _TerrainMesh.SetVertices(vertices);
     }
 
+    /**
+     * Init the terrain indices
+    */
     private void TerrainSetIndices(){
         // init indices
         int[] indices = new int[_TerrainNbLines*_TerrainNbCols*12];
@@ -889,9 +883,217 @@ public class ParticleSPHGPU : MonoBehaviour{
         _TerrainMesh.SetIndices(indices, MeshTopology.Triangles, 0);
     }
 
+    /**
+     * Get a random value
+     * @param delta The value is between 0 and 2*delta
+     * @return The random floating point value
+    */
     private float GetRandomValue(float delta){
         float v = UnityEngine.Random.value*2*delta - delta;
         return v;
+    }
+
+
+// ################################################################################################################################################################################################################
+// ############################################################################################## Usefull Functions ###############################################################################################
+// ################################################################################################################################################################################################################
+
+    /**
+     * Convert a float 2D array into a 1D array
+     * @param arr The 2D array
+     * @return The 1D array
+    */
+    private float[] Convert2dArray(float[,] arr){
+        int nbLines = arr.GetLength(0);
+        int nbCols  = arr.GetLength(1);
+
+        float[] res = new float[nbLines*nbCols];
+        float val;
+
+        for(int j = 0; j<nbLines; j++){
+            for(int i = 0; i<nbCols; i++){
+                val = arr[j,i];
+                res[i+j*nbCols] = val;
+            }
+        }
+        return res;
+    }
+
+    /**
+     * Convert a vector2 2D array into a 1D array
+     * @param arr The 2D array
+     * @return The 1D array
+    */
+    private Vector2[] Convert2dArray(Vector2[,] arr){
+        int nbLines = arr.GetLength(0);
+        int nbCols  = arr.GetLength(1);
+
+        Vector2[] res = new Vector2[nbLines*nbCols];
+        Vector2 val;
+
+        for(int j = 0; j<nbLines; j++){
+            for(int i = 0; i<nbCols; i++){
+                val = arr[j,i];
+                res[i+j*nbCols] = val;
+            }
+        }
+        return res;
+    }
+
+    /**
+     * Convert a vector3 2D array into a 1D array
+     * @param arr The 2D array
+     * @return The 1D array
+    */
+    private Vector3[] Convert2dArray(Vector3[,] arr){
+        int nbLines = arr.GetLength(0);
+        int nbCols  = arr.GetLength(1);
+
+        Vector3[] res = new Vector3[nbLines*nbCols];
+        Vector3 val;
+
+        for(int j = 0; j<nbLines; j++){
+            for(int i = 0; i<nbCols; i++){
+                val = arr[j,i];
+                res[i+j*nbCols] = val;
+            }
+        }
+        return res;
+    }
+
+    /**
+     * Set data to a float buffer and send the newly created buffer to all kernels
+     * @param data The buffer's data
+     * @param id The buffer's id
+     * @return THe newly created buffer
+    */
+    private ComputeBuffer SetData(float[] data, int id){
+        ComputeBuffer buffer = new ComputeBuffer(data.Length, sizeof(float));
+        buffer.SetData(data);
+        SendDataToAllKernels(buffer, id);
+        return buffer;
+    }
+
+    /**
+     * Set data to a vector2 buffer and send the newly created buffer to all kernels
+     * @param data The buffer's data
+     * @param id The buffer's id
+     * @return THe newly created buffer
+    */
+    private ComputeBuffer SetData(Vector2[] data, int id){
+        ComputeBuffer buffer = new ComputeBuffer(data.Length, sizeof(float)*2);
+        buffer.SetData(data);
+        SendDataToAllKernels(buffer, id);
+        return buffer;
+    }
+
+    /**
+     * Set data to a vector3 buffer and send the newly created buffer to all kernels
+     * @param data The buffer's data
+     * @param id The buffer's id
+     * @return THe newly created buffer
+    */
+    private ComputeBuffer SetData(Vector3[] data, int id){
+        ComputeBuffer buffer = new ComputeBuffer(data.Length, sizeof(float)*3);
+        buffer.SetData(data);
+        SendDataToAllKernels(buffer, id);
+        return buffer;
+    }
+
+    /**
+     * Set data to an integer buffer and send the newly created buffer to all kernels
+     * @param data The buffer's data
+     * @param id The buffer's id
+     * @return THe newly created buffer
+    */
+    private ComputeBuffer SetData(int[] data, int id){
+        ComputeBuffer buffer = new ComputeBuffer(data.Length, sizeof(int));
+        buffer.SetData(data);
+        SendDataToAllKernels(buffer, id);
+        return buffer;
+    }
+
+    /**
+     * Set data to a particle buffer and send the newly created buffer to all kernels
+     * @param data The buffer's data
+     * @param id The buffer's id
+     * @return THe newly created buffer
+    */
+    private ComputeBuffer SetData(ParticleGPU[] data, int id){
+        ComputeBuffer buffer = new ComputeBuffer(data.Length, sizeof(float)*14 + sizeof(int)*2);
+        buffer.SetData(data);
+        SendDataToAllKernels(buffer, id);
+        return buffer;
+    }
+
+    /**
+     * Set data to a staggered grid buffer and send the newly created buffer to all kernels
+     * @param data The buffer's data
+     * @param id The buffer's id
+     * @return THe newly created buffer
+    */
+    private ComputeBuffer SetData(StaggeredGridGPU[] data, int id){
+        ComputeBuffer buffer = new ComputeBuffer(data.Length, sizeof(float)*2 + sizeof(int)*2);
+        buffer.SetData(data);
+        SendDataToAllKernels(buffer, id);
+        return buffer;
+    }
+
+    /**
+     * Set data to a neighbour grid buffer and send the newly created buffer to all kernels
+     * @param data The buffer's data
+     * @param id The buffer's id
+     * @return THe newly created buffer
+    */
+    private ComputeBuffer SetData(NeighbourGridGPU[] data, int id){
+        ComputeBuffer buffer = new ComputeBuffer(data.Length, sizeof(float)*2 + sizeof(int)*3);
+        buffer.SetData(data);
+        SendDataToAllKernels(buffer, id);
+        return buffer;
+    }
+
+    /**
+     * Get the number of particles
+     * @return The number of particles
+    */
+    public int GetNbCurParticles(){
+        return _NbCurParticles;
+    }
+
+    /**
+     * Print the particles from the GPU (only for debug purposes)
+    */
+    private void DebugParticles(){
+        _ParticlesBuffer.GetData(_Particles);
+        for(int i=0; i<_NbCurParticles; i++){
+            ParticleGPU p = _Particles[i];
+            Debug.Log(
+                "pos: "     + p._Position +
+                ", h: "     + p._Height +
+                ", hGrad: " + p._HeightGradient +
+                ", dens: "  + p._Density +
+                ", mass: "  + p._Mass +
+                ", vol: "   + p._Volume +
+                ", temp: "  + p._Temperature +
+                ", cell: "  + p._Cell +
+                ", id: "    + p._Id
+            );
+        }
+    }
+
+    /**
+     * Print the number of particles per cells from the GPU (only for debug purposes)
+    */
+    private void DebugNeighbours(){
+    _NeighbourGridCellsCounterBuffer.GetData(_NeighbourGridCellsCounter);
+        for(int j=0; j<_NeighbourGridNbLines; j++){
+            for(int i=0; i<_NeighbourGridNbCols; i++){
+                int idx = j*_NeighbourGridNbCols + i;
+                if(_NeighbourGridCellsCounter[idx]!=0){
+                    Debug.Log("Count["+idx+"] = "+_NeighbourGridCellsCounter[idx]);
+                }
+            }
+        }
     }
 
 }

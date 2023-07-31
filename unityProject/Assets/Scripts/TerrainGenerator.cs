@@ -6,32 +6,76 @@ using UnityEngine.Assertions;
 using System;
 using UnityEditor;
 
+/**
+ * An enumeration representing the type of volcano to use for the simulation
+ TODO: change camera's position and particle generator's positions as well depending on the volcano
+*/
 public enum Volcano {
-    Basic,
     Fuji,
     Flat,
     Slope,
+    StHelen,
 }
 
+/**
+ * A class to create a heightmap of the terrain
+*/
 public class TerrainGenerator : MonoBehaviour{
 
+// ################################################################################################################################################################################################################
+// ################################################################################################## ATTRIBUTES ##################################################################################################
+// ################################################################################################################################################################################################################
+
+    /**
+     * The class used to regroup all the serializied fields
+    */
     [SerializeField]
     public Tweakable _Fields;
 
+    /**
+     * The type of terrain
+    */
     private Volcano _VolcanoImage;
+
+    /**
+     * The terrain size
+    */
     public Vector3 _Size;
+
+    /**
+     * The scale applied to the grayscale values of the terrain to make it look higher or lower
+    */
     private float _Scale;
 
+    /**
+     * The terrain resolution
+    */
     private int _Resolution;
+
+    /**
+     * The terrain heightmap
+    */
     public float[,] _Heights;
 
 
+// ################################################################################################################################################################################################################
+// ################################################################################################### METHODS ####################################################################################################
+// ################################################################################################################################################################################################################
+
+    /**
+     * Initiate the serialized fields
+    */
     public void Awake(){
         _VolcanoImage = _Fields._VolcanoImage;
         _Size = _Fields._Size;
         _Scale = _Fields._Scale;
     }
 
+    /**
+     * Create a texture from a png file
+     * @param filePath The relative path to the grayscale image
+     * @return A 2D texture containing the heights stored in the image
+    */
     private Texture2D LoadPNG(string filePath){
         Texture2D tex = null;
         byte[] fileData;
@@ -44,14 +88,28 @@ public class TerrainGenerator : MonoBehaviour{
         return tex;
     }
 
+    /**
+     * Get the height at a given position in the heightmap
+     * @param j The ordinate in the heightmap
+     * @param i The abscissa in the heightmap
+     * @return The height as a float
+    */
     public float SampleHeight(int j, int i){
         return _Heights[j,i];
     }
 
+    /**
+     * Getter for the terrain resolution
+     * @return The terrain resolution
+    */
     public int GetResolution(){
         return _Resolution;
     }
 
+    /**
+     * Creates the texture of a terrain made of one big slope
+     * @return The newly created texture
+    */
     public Texture2D CreateSlope(){
         Texture2D texture = new Texture2D(512, 512);
         for (int x = 0; x < texture.width; x++){
@@ -64,20 +122,24 @@ public class TerrainGenerator : MonoBehaviour{
         return texture;
     }
 
+    /**
+     * Initiate the terrain
+    */
     private void InitTerrain(){
         Texture2D heightmap = null;
         string path = Application.dataPath;
         bool pathValid = true;
 
+        // get the type of the terrain
         switch(_VolcanoImage){
-            case Volcano.Basic:
-                path += "/Media/volcano-height-map.png";
-                break;
             case Volcano.Fuji:
-                path += "/Media/testFuji.png";
+                path += "/Media/Fuji.png";
                 break;
             case Volcano.Flat:
                 path += "/Media/Flat.png";
+                break;
+            case Volcano.StHelen:
+                path += "/Media/StHelen.png";
                 break;
             case Volcano.Slope:
                 pathValid = false;
@@ -88,28 +150,24 @@ public class TerrainGenerator : MonoBehaviour{
         }
         if(pathValid){
             heightmap = LoadPNG(path);
-            // heightmap = GaussianBlur(heightmap);
         }
 
-
+        // initiate terrain attributes
         _Resolution = heightmap.width;
         _Heights = new float[_Resolution, _Resolution];
 
-        // Debug.Log(_Resolution + ", " + _Size);
-
-        Vector3 max = Vector3.zero;
+        // initiate the heightmap
         for(int j=0; j<_Resolution; j++){
             for(int i=0; i<_Resolution; i++){
                 float val =  heightmap.GetPixel(i, j).grayscale;
-                if(val > max.y) max = new Vector3(j, val, i);
                 _Heights[j,i] = val*_Scale;
             }
         }
-        // Debug.Log(max);
     }
 
-    
-
+    /**
+     * Initiate the terrain generator
+    */
     public void Init(){
         InitTerrain();
     }
