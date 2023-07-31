@@ -109,7 +109,7 @@ Shader "Custom/TerrainShader"{
                 if(!updated){
                     col.rgb *= light;
                 }
-                col.rgb *= light;
+                // col.rgb *= light;
 
                 // col = updated ? col : fixed4(i.normal * 0.5 + 0.5, 1);
 

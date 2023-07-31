@@ -51,6 +51,8 @@ public class Tweakable : MonoBehaviour{
     public float _Spike = 2.0f;
     [SerializeField, Range(0.0f, 5.0f)]
     public float _KernelRadius = 1.0f;
+    [SerializeField, Range(0.0f, 10.0f)]
+    public float _RenderKernelRadius = 10.0f;
 
     [SerializeField, Range(-5.0f, 5.0f)]
     public float _ParticlesMeshHeights = 0.0f;

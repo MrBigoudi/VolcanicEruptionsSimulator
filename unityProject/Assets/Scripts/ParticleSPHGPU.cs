@@ -153,6 +153,11 @@ public class ParticleSPHGPU : MonoBehaviour{
     */
     private float _KernelRadius;
 
+    /**
+     * The kernel radius for the lava rendering
+    */
+    private float _RenderKernelRadius;
+
     // ##########################################
     // ######## Compute Shader Functions ########
     // ##########################################
@@ -168,8 +173,7 @@ public class ParticleSPHGPU : MonoBehaviour{
     private int _KernelUpdateVelocitiesId;
     private int _KernelPropagateVelocityUpdateId;
     private int _KernelTimeIntegrationId;
-    private int _KernelUpdateTerrainHeightsId;
-    private int _KernelUpdateTerrainTemperaturesId;
+    private int _KernelUpdateTerrainId;
     private int _KernelGaussianBlurTerrainHeightsId;
 
     // ##########################################
@@ -299,8 +303,7 @@ public class ParticleSPHGPU : MonoBehaviour{
         _KernelAssignNeighboursId           = _Shader.FindKernel("AssignNeighbours");
         
         // kernels for terrain updates
-        _KernelUpdateTerrainHeightsId       = _Shader.FindKernel("UpdateTerrainHeights");
-        _KernelUpdateTerrainTemperaturesId  = _Shader.FindKernel("UpdateTerrainTemperatures");
+        _KernelUpdateTerrainId              = _Shader.FindKernel("UpdateTerrain");
         _KernelGaussianBlurTerrainHeightsId = _Shader.FindKernel("GaussianBlurTerrainHeights");
 
         // kernels for updates propagations
@@ -432,8 +435,7 @@ public class ParticleSPHGPU : MonoBehaviour{
         _Shader.SetBuffer(_KernelAssignNeighboursId, id, buffer);
         
         // kernels for terrain updates
-        _Shader.SetBuffer(_KernelUpdateTerrainHeightsId, id, buffer);
-        _Shader.SetBuffer(_KernelUpdateTerrainTemperaturesId, id, buffer);
+        _Shader.SetBuffer(_KernelUpdateTerrainId, id, buffer);
         _Shader.SetBuffer(_KernelGaussianBlurTerrainHeightsId, id, buffer);
 
         // kernels for updates propagations
@@ -584,6 +586,7 @@ public class ParticleSPHGPU : MonoBehaviour{
         _DT = _Fields._DT;
         _Spike = _Fields._Spike;
         _KernelRadius = _Fields._KernelRadius;
+        _RenderKernelRadius = _Fields._RenderKernelRadius;
         _Mu = _Fields._Mu;
         _Ke = _Fields._Ke;
         _ThetaE = _Fields._ThetaE;
@@ -596,6 +599,7 @@ public class ParticleSPHGPU : MonoBehaviour{
     private void UpdateGPUValues(){
         _Shader.SetFloat("DT", _DT);
         _Shader.SetFloat("H", _KernelRadius);
+        _Shader.SetFloat("RenderH", _RenderKernelRadius);
         _Shader.SetFloat("SPIKE", _Spike);
         _Shader.SetFloat(_RandId, GetRandomValue(_InitialPositionDelta));
 
@@ -627,12 +631,11 @@ public class ParticleSPHGPU : MonoBehaviour{
     }
 
     /**
-     * Update the terrain heights
+     * Update the terrain
     */
-    private void UpdateTerrainHeights(){
+    private void UpdateTerrain(){
         int res = (_TerrainNbCols*_TerrainNbLines / 1024) + 1;
-        _Shader.Dispatch(_KernelUpdateTerrainTemperaturesId, res, 1, 1);
-        _Shader.Dispatch(_KernelUpdateTerrainHeightsId, res, 1, 1);
+        _Shader.Dispatch(_KernelUpdateTerrainId, res, 1, 1);
         // smooth the terrain once if user wants to
         if(_GaussianBlur){
             _Shader.Dispatch(_KernelGaussianBlurTerrainHeightsId, res, 1, 1);
@@ -720,7 +723,7 @@ public class ParticleSPHGPU : MonoBehaviour{
             UpdateVelocities(res);
             TimeIntegration(res);
             // update values for the rendering part
-            UpdateTerrainHeights();
+            UpdateTerrain();
             UpdateParticleMesh();
 
             _ElapsedTime -= (delta*_DT);

@@ -13,8 +13,7 @@
 #pragma kernel PropagateVelocityUpdate
 #pragma kernel TimeIntegration
 #pragma kernel PropagatePositionUpdate
-#pragma kernel UpdateTerrainTemperatures
-#pragma kernel UpdateTerrainHeights
+#pragma kernel UpdateTerrain
 #pragma kernel GaussianBlurTerrainHeights
 
 // The structure matching the cpu representation of the staggered grid
@@ -80,6 +79,7 @@ RWStructuredBuffer<float> _TerrainTemperatures;
 
 
 uniform float H;
+uniform float RenderH;
 uniform float PI;
 uniform float G;
 
@@ -248,7 +248,7 @@ float3 StaggeredGridGetGradient(float3 pos){
  * @return The distance as a floating point
 */
 float KernelDistance(float3 p1, float3 p2){
-    return sqrt((p1.x-p2.x)*(p1.x-p2.x) + (p1.z-p2.z)*(p1.z-p2.z));
+    return sqrt((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y) +(p1.z-p2.z)*(p1.z-p2.z));
 }
 
 /**
@@ -321,7 +321,7 @@ float K_NEW(float rTmp, float h){
 */
 float W_NEW(ParticleGPU p1, ParticleGPU p2, float h){
     float r = KernelDistance(p1._Position, p2._Position);
-    float k = sqrt(3.0f/2.0f)*(1.0f/p2._Height);
+    float k = sqrt(3.0f/2.0f)*(p2._Height*p2._Height);
     return (2/(PI*H*H))*K_NEW(k*r, h);
 }
 
@@ -642,7 +642,7 @@ void AssignNeighbours(uint3 id : SV_DispatchThreadID){
 
 
 // ##################################################################################################################
-// ############################################ TERRRAIN FUNCTIONS ###################################################
+// ########################################### TERRRAIN FUNCTIONS ###################################################
 // ##################################################################################################################
 
 /**
@@ -796,7 +796,7 @@ void GaussianBlurTerrainHeights(uint3 id : SV_DispatchThreadID){
  * @param id The thread id representing the current terrain cell
 */
 [numthreads(1024,1,1)]
-void UpdateTerrainTemperatures(uint3 id : SV_DispatchThreadID){
+void UpdateTerrain(uint3 id : SV_DispatchThreadID){
     uint maxTerrainId = _StaggeredGrid[0]._NbCols * _StaggeredGrid[0]._NbLines;
     if(id.x >= maxTerrainId || id.x < 0) return;
     float3 pos = StaggeredGridGetPosition(id.x);
@@ -805,7 +805,7 @@ void UpdateTerrainTemperatures(uint3 id : SV_DispatchThreadID){
     float sumHeights = 0.0f;
     float sumWeights = 0.0f;
 
-    float kernelRadius = 10*H;
+    float kernelRadius = RenderH;
 
     // get number of neighbour cells arround me that are inside kernel
     int nbCells = kernelRadius / _NeighbourGrid[0]._DeltaCols + 1;
@@ -837,27 +837,15 @@ void UpdateTerrainTemperatures(uint3 id : SV_DispatchThreadID){
         }
     }
     
-    _TerrainHeights[id.x] = sumHeights;
+    _TerrainHeights[id.x] = SPIKE*sumHeights + _InitialTerrainHeights[id.x];
     _TerrainTemperatures[id.x] = sumTemperatures;
-}
-
-/**
- * Update the terrain heights
- * @param id The thread id representing the current terrain cell
-*/
-[numthreads(1024,1,1)]
-void UpdateTerrainHeights(uint3 id : SV_DispatchThreadID){
-    if(id.x >= _StaggeredGrid[0]._NbCols * _StaggeredGrid[0]._NbLines || id.x < 0) return;
-    float newHeight = SPIKE*(_TerrainHeights[id.x]) + _InitialTerrainHeights[id.x];
-    _TerrainHeights[id.x] = newHeight;
-    // reset heights if shouldn't display lava
     if(!_DisplayLava) _TerrainHeights[id.x] = _InitialTerrainHeights[id.x];
 }
 
 
 
 // ##################################################################################################################
-// ############################################ Kernel FUNCTIONS #######################################################
+// ########################################### Kernel FUNCTIONS #####################################################
 // ##################################################################################################################
 
 /**
@@ -980,7 +968,7 @@ void TimeIntegration(uint3 id : SV_DispatchThreadID){
 
 
 // ##################################################################################################################
-// ############################################ Viscosity FUNCTIONS #######################################################
+// ######################################### Viscosity FUNCTIONS ####################################################
 // ##################################################################################################################
 
 /**
@@ -1042,6 +1030,7 @@ void UpdateVelocities(uint3 id : SV_DispatchThreadID){
     ParticleGPU pi = GetParticle(id);
 
     float3 sumVelocities = float3(0.0f,0.0f,0.0f);
+    float sumWeights = 0.0f;
 
     int initialId = id.x*_NeighbourGrid[0]._NbMaxNeighbours;
     int cpt = 0;
@@ -1055,17 +1044,19 @@ void UpdateVelocities(uint3 id : SV_DispatchThreadID){
         float rho = pj._Density;
         float3 gradSurface = GetGradientSurface(pj);
 
-        float3 b = -(rho*G)/(f_theta*mu)*gradSurface;
+        float h = pj._Height*pj._Height*pj._Height;
+        float3 b = -(rho*G)/(f_theta*mu)*gradSurface*h;
         float wij = W_NEW(pi, pj, H);
 
         sumVelocities += wij*b;
+        sumWeights += wij;
 
         // get next neighbour
         cpt++;
         pjId = _ParticleNeighbours[initialId+cpt];
     }
-
-    _Velocities[id.x] = sumVelocities;
+    float hi = pi._Height*pi._Height*pi._Height*sumWeights;
+    _Velocities[id.x] = hi > 0.0001f ? sumVelocities / hi : 0.0f;
 }
 
 /**
