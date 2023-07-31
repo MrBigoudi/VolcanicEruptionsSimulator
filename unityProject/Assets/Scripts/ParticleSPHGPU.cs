@@ -63,6 +63,11 @@ public class ParticleSPHGPU : MonoBehaviour{
     private bool _DisplayLava;
 
     /**
+     * Boolean to tell if the terrain texture should be applied
+    */
+    private bool _UseTerrainTexture;
+
+    /**
      * The class containing the particle mesh
     */
     private ParticleDisplay _ParticleDisplay;
@@ -101,7 +106,6 @@ public class ParticleSPHGPU : MonoBehaviour{
      * The lava initial temperature constant
     */
     private float _ThetaE;
-    
     
     /**
      * The shade of the lava color
@@ -283,6 +287,7 @@ public class ParticleSPHGPU : MonoBehaviour{
         _NbCurParticles = 0;
         _Shader = shader;
         _ElapsedTime = 0.0f;
+        _UseTerrainTexture = _Fields._TerrainGenerator._UseTerrainTexture;
         Init(terrain);
     }
 
@@ -767,6 +772,7 @@ public class ParticleSPHGPU : MonoBehaviour{
         _TerrainMaterial.SetBuffer("_TerrainHeights", _TerrainHeightsBuffer);
         _TerrainMaterial.SetBuffer("_InitialTerrainHeights", _InitialTerrainHeightsBuffer);
         _TerrainMaterial.SetBuffer("_TerrainTemperatures", _TerrainTemperaturesBuffer);
+        _TerrainMaterial.SetInteger("_UseTerrainTexture", _UseTerrainTexture ? 1 : 0);
     }
 
     /**

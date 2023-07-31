@@ -31,6 +31,11 @@ public class ParticleGenerator : MonoBehaviour{
     */
     private TerrainGenerator _TerrainGenerator;
 
+    /**
+     * The position of the generator
+    */
+    private Vector3 _Position;
+
 
 // ################################################################################################################################################################################################################
 // ################################################################################################### METHODS ####################################################################################################
@@ -58,6 +63,8 @@ public class ParticleGenerator : MonoBehaviour{
         StaggeredGridV2.Init(_TerrainGenerator);
         _SphGPU.Create(_Shader, _TerrainGenerator);
 
+        _Position = _TerrainGenerator._ParticleGeneratorPos;
+
         // set to avoid warnings
         Unity.Collections.LowLevel.Unsafe.UnsafeUtility.SetLeakDetectionMode(Unity.Collections.NativeLeakDetectionMode.EnabledWithStackTrace);
     }
@@ -66,7 +73,7 @@ public class ParticleGenerator : MonoBehaviour{
      * Update the simulation
     */
     public void Update(){
-        Vector3 pos = transform.position;
+        Vector3 pos = _Position;
         _SphGPU.Updt(pos);
     }
 

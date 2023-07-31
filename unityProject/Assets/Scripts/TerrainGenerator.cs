@@ -11,10 +11,10 @@ using UnityEditor;
  TODO: change camera's position and particle generator's positions as well depending on the volcano
 */
 public enum Volcano {
+    StHelen,
     Fuji,
     Flat,
     Slope,
-    StHelen,
 }
 
 /**
@@ -57,6 +57,31 @@ public class TerrainGenerator : MonoBehaviour{
     */
     public float[,] _Heights;
 
+    /**
+     * The position of the particle generator
+    */
+    public Vector3 _ParticleGeneratorPos;
+
+    /**
+     * The camera position
+    */
+    private Vector3 _CameraPosition;
+
+    /**
+     * The camera rotation
+    */
+    private Vector3 _CameraRotation;
+
+    /**
+     * The camera
+    */
+    private Camera _Camera;
+
+    /**
+     * Boolean to tell if the terrain texture should be applied
+    */
+    public bool _UseTerrainTexture;
+
 
 // ################################################################################################################################################################################################################
 // ################################################################################################### METHODS ####################################################################################################
@@ -67,8 +92,8 @@ public class TerrainGenerator : MonoBehaviour{
     */
     public void Awake(){
         _VolcanoImage = _Fields._VolcanoImage;
-        _Size = _Fields._Size;
-        _Scale = _Fields._Scale;
+        _Camera = _Fields._Camera;
+        _UseTerrainTexture = false;
     }
 
     /**
@@ -123,32 +148,92 @@ public class TerrainGenerator : MonoBehaviour{
     }
 
     /**
+     * Initiate the terrain for the Fuji volcano
+     * @return The path to the Fuji grayscale image
+    */
+    private string InitFuji(){
+        _ParticleGeneratorPos = new Vector3(259, 0, 270);
+        _CameraPosition = new Vector3(288.45f, 81.8649f, 311.8634f);
+        _CameraRotation = new Vector3(22.62f, -144.729f, 0);
+        _Size = new Vector3(512, 0, 512);
+        _Scale = 64.0f;        
+        return "/Media/Fuji.png";
+    }
+
+    /**
+     * Initiate the terrain for the St Helen volcano
+     * @return The path to the St Helen grayscale image
+    */
+    private string InitStHelen(){
+        _ParticleGeneratorPos = new Vector3(183.5f, 0, 215.6f);
+        _CameraPosition = new Vector3(224.308f, 84.87954f, 226.2918f);
+        _CameraRotation = new Vector3(44.59f, -143.212f, 0);
+        _Size = new Vector3(306, 0, 306);
+        _Scale = 64.0f; 
+        _UseTerrainTexture = true;
+        return "/Media/StHelen.png";
+    }
+
+    /**
+     * Initiate the terrain for the flat terrain
+     * @return The path to the black image
+    */
+    private string InitFlat(){
+        _ParticleGeneratorPos = new Vector3(64.0f, 0, 64.0f);
+        _CameraPosition = new Vector3(75.31268f, 16.81098f, 76.12329f);
+        _CameraRotation = new Vector3(38.606f, -129.947f, 0);
+        _Size = new Vector3(128, 0, 128);
+        _Scale = 1.0f; 
+        return "/Media/Flat.png";
+    }
+
+    /**
+     * Initiate the terrain for the slope terrain
+     * @return An empty path
+    */
+    private string InitSlope(){
+        _ParticleGeneratorPos = new Vector3(64.0f, 0, 64.0f);
+        _CameraPosition = new Vector3(64.48229f, 28.78457f, 81.80547f);
+        _CameraRotation = new Vector3(31.902f, -175.497f, 0);
+        _Size = new Vector3(128, 0, 128);
+        _Scale = 32.0f; 
+        return "";
+    }
+
+    /**
+     * Update the camera
+    */
+    private void UpdateCamera(){
+        _Camera.transform.position = _CameraPosition;
+        _Camera.transform.rotation = Quaternion.Euler(_CameraRotation);
+    }
+
+    /**
      * Initiate the terrain
     */
     private void InitTerrain(){
         Texture2D heightmap = null;
         string path = Application.dataPath;
-        bool pathValid = true;
 
         // get the type of the terrain
         switch(_VolcanoImage){
             case Volcano.Fuji:
-                path += "/Media/Fuji.png";
+                path += InitFuji();
                 break;
             case Volcano.Flat:
-                path += "/Media/Flat.png";
+                path += InitFlat();
                 break;
             case Volcano.StHelen:
-                path += "/Media/StHelen.png";
+                path += InitStHelen();
                 break;
             case Volcano.Slope:
-                pathValid = false;
+                path = InitSlope();
                 heightmap = CreateSlope();
                 break;
             default:
                 break;
         }
-        if(pathValid){
+        if(!string.Equals(path, "")){
             heightmap = LoadPNG(path);
         }
 
@@ -163,6 +248,9 @@ public class TerrainGenerator : MonoBehaviour{
                 _Heights[j,i] = val*_Scale;
             }
         }
+
+        // move the camera
+        UpdateCamera();
     }
 
     /**
