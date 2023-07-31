@@ -4,7 +4,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Assertions;
 
-
+/**
+ * A class merging all the serialized fields to ease the tweaking of values from the editor during the simulation
+*/
 public class Tweakable : MonoBehaviour{
     // Other classes
     [SerializeField]
@@ -24,40 +26,42 @@ public class Tweakable : MonoBehaviour{
 
     // Constants values
     [SerializeField]
-    public Volcano _VolcanoImage = Volcano.Basic;
+    public Volcano _VolcanoImage = Volcano.Fuji;
     [SerializeField]
     public Vector3 _Size = new Vector3(512.0f, 0.0f, 512.0f);
     [SerializeField, Range(32.0f, 1024.0f)]
-    public float _Scale = 32.0f;
-
+    public float _Scale = 64.0f;
+    [SerializeField]
+    public bool _GaussianBlur = false;
 
     // Tweakable values
     [SerializeField]
     public bool _DisplayParticles = false;
     [SerializeField]
     public bool _DisplayLava = true;
-    [SerializeField]
-    public bool _GaussianBlur = false;
+    
+
     [SerializeField, Range(1, 100000)]
     public int _NbMaxParticles = 50000;
     [SerializeField, Range(0.0f, 10.0f)]
-    public float _InitialPositionDelta = 1.0f;
+    public float _InitialPositionDelta = 2.0f;
     [SerializeField, Range(0.0f, 0.25f)]
     public float _DT = 0.01f;
-    [SerializeField, Range(0.0f, 2.0f)]
-    public float _Spike = 0.1f;
     [SerializeField, Range(0.0f, 10.0f)]
-    public float _KernelRadius = 5.0f;
-    [SerializeField, Range(0.0f, 10.0f)]
-    public float _Stiffness = 3.0f;
-    [SerializeField, Range(0.0f, 100.0f)]
-    public float _ParticleInitialHeight = 2.0f;
-    [SerializeField, Range(1, 200)]
-    public float _TerrainDensityMax = 150;
-    [SerializeField, Range(1, 200)]
-    public float _TerrainDensityMin = 30;
-
+    public float _Spike = 2.0f;
     [SerializeField, Range(0.0f, 5.0f)]
-    public float _ParticlesMeshHeights = 0.1f;
+    public float _KernelRadius = 1.0f;
 
+    [SerializeField, Range(-5.0f, 5.0f)]
+    public float _ParticlesMeshHeights = 0.0f;
+
+    [SerializeField, Range(1, 10000)]
+    public float _Mu = 100.0f;
+    [SerializeField, Range(1, 10000)]
+    public float _Ke = 100.0f;
+    [SerializeField, Range(1, 3000)]
+    public float _ThetaE = 1423.0f;
+
+    [SerializeField, Range(1, 512)]
+    public float _ColorShade = 100.0f;
 }

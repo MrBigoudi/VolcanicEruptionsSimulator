@@ -1,24 +1,71 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Assertions;
 
-
+/**
+ * A static class representing the staggered grid
+*/
 public static class StaggeredGridV2 {
 
+// ################################################################################################################################################################################################################
+// ################################################################################################## ATTRIBUTES ##################################################################################################
+// ################################################################################################################################################################################################################
+
+    /**
+     * The terrain's heights
+    */
     public static float[,] _Heights;
+
+    /**
+     * The terrain's half heights between columns
+    */
     public static float[,] _HalfHeightsCols;
+
+    /**
+     * The terrain's half heights between lines
+    */
     public static float[,] _HalfHeightsLines;
+
+    /**
+     * The terrain's half heights at each corner
+    */
     public static float[,] _HalfHeights;
 
+    /**
+     * The terrain's gradients at each corner
+    */
     public static Vector2[,] _Gradients;
-    public static float[,] _Laplacians;
 
-    public static int _NbCols, _NbLines;
-    public static float _DeltaCols, _DeltaLines;
+    /**
+     * The number of columns in the grid
+    */
+    public static int _NbCols;
+    
+    /**
+     * The number of lines in the grid
+    */
+    public static int _NbLines;
 
+    /**
+     * The distance between two columns
+    */
+    public static float _DeltaCols;
+    
+    /**
+     * The distance between two lines
+    */
+    public static float _DeltaLines;
+
+
+// ################################################################################################################################################################################################################
+// ################################################################################################### METHODS ####################################################################################################
+// ################################################################################################################################################################################################################
+
+    /**
+     * Initiate all the dimensions in the grid
+     * @param terrain The terrain heightmap
+    */
     private static void InitDimensions(TerrainGenerator terrain){
-        // get the heightmap from unity terrain
         int heightmapResolution = terrain.GetResolution();
         Vector3 terrainSize = terrain._Size;
 
@@ -27,7 +74,6 @@ public static class StaggeredGridV2 {
         _NbLines = heightmapResolution;
         _DeltaCols  = terrainSize.x / _NbCols;
         _DeltaLines = terrainSize.z / _NbLines;
-        // Debug.Log(_NbCols + ", " + _NbLines + ", " + _DeltaCols + ", " + _DeltaLines);
 
         // init arrays
         _Heights = new float[_NbLines, _NbCols];
@@ -35,17 +81,12 @@ public static class StaggeredGridV2 {
         _HalfHeightsLines = new float[_NbLines-1, _NbCols];
         _HalfHeights = new float[_NbLines-1, _NbCols-1];
         _Gradients = new Vector2[_NbLines-1, _NbCols-1];
-        _Laplacians = new float[_NbLines-2, _NbCols-2];
     }
 
-    private static void InitHeights(TerrainGenerator terrain){
-        // init usual heights
-        for(int j=0; j<_NbLines; j++){
-            for(int i=0; i<_NbCols; i++){
-                _Heights[j,i] = terrain.SampleHeight(j, i);
-            }
-        }
-
+    /**
+     * Init the half heights values
+    */
+    private static void InitHalfHeights(){
         // init half heights
         for(int j=0; j<_NbLines-1; j++){
             for(int i=0; i<_NbCols-1; i++){
@@ -93,84 +134,40 @@ public static class StaggeredGridV2 {
         }
     }
 
+    /**
+     * Init the heights
+     * @param The terrain heightmap
+    */
+    private static void InitHeights(TerrainGenerator terrain){
+        // init usual heights
+        for(int j=0; j<_NbLines; j++){
+            for(int i=0; i<_NbCols; i++){
+                _Heights[j,i] = terrain.SampleHeight(j, i);
+            }
+        }
+        InitHalfHeights();
+    }
+
+    /**
+     * Init the gradients
+    */
     private static void InitGradients(){
         for(int j=0; j<_NbLines-1; j++){
             for(int i=0; i<_NbCols-1; i++){
                 float dx = (_HalfHeightsLines[j,i+1]-_HalfHeightsLines[j,i]) / _DeltaCols;
                 float dy = (_HalfHeightsCols[j+1,i]-_HalfHeightsCols[j,i])   / _DeltaLines;
                 _Gradients[j,i] = new Vector2(dx, dy);
-                // if(i<10 && j>500){
-                //     _Gradients[j,i] = Vector2.one;
-                // }
-                // Debug.Log(_Gradients[j,i]);
             }
         }
     }
 
-    private static void InitLaplacians(){
-        for(int j=0; j<_NbLines-2; j++){
-            for(int i=0; i<_NbCols-2; i++){
-                float x = (1/(4*_DeltaCols*_DeltaCols))*
-                                (  _HalfHeightsLines[j+1,i+2] + _HalfHeightsLines[j+1,i+1] - 2*_HalfHeightsLines[j+1,i]
-                                 + _HalfHeightsLines[j,  i+2] + _HalfHeightsLines[j,  i+1] - 2*_HalfHeightsLines[j,  i]
-                                );
-                float y = (1/(4*_DeltaLines*_DeltaLines))*
-                                (  _HalfHeightsCols[j+2,i+1] + _HalfHeightsCols[j+1,i+1] - 2*_HalfHeightsCols[j,i+1]
-                                 + _HalfHeightsCols[j+2,  i] + _HalfHeightsCols[j+1,  i] - 2*_HalfHeightsCols[j,  i]
-                                );
-                _Laplacians[j,i] = x + y;
-            }
-        }
-    }
-
+    /**
+     * Initiate the entire grid
+     * @param The terrain heightmap
+    */
     public static void Init(TerrainGenerator terrain){
         InitDimensions(terrain);
         InitHeights(terrain);
         InitGradients();
-        InitLaplacians();
-    }
-
-    public static Vector2 GetIndices(Vector3 pos){
-        float posX = (pos.x / _DeltaCols);
-        float posZ = (pos.z / _DeltaLines);
-        return new Vector2(posZ, posX);
-    }
-
-    private static float BilinearInterpolation(float x, float z, float xIdx, float zIdx, float w11, float w12, float w21, float w22){
-        float xLeft  = xIdx*_DeltaCols;
-        float xRight = (xIdx+1)*_DeltaCols;
-        float zUp    = (zIdx+1)*_DeltaLines;
-        float zDown  = zIdx*_DeltaLines;
-
-        float x2_prime = xRight - x;
-        float x1_prime = x - xLeft;
-        float z2_prime = zUp - z;
-        float z1_prime = z - zDown;
-
-        float factor = 1.0f/(_DeltaCols*_DeltaLines);
-
-
-        float res = ((w11*x2_prime + w21*x1_prime)*z2_prime) + ((w12*x2_prime + w22*x1_prime)*z1_prime);
-
-        return res *= factor;
-    }
-
-    public static float GetHeight(Vector3 pos){
-        Vector2 indices = GetIndices(pos);
-        int zIdx = (int)indices.x;
-        int xIdx = (int)indices.y;
-
-        float x = pos.x;
-        float z = pos.z;
-
-        // interpolate height, bilinearly
-        float upLeft    = (xIdx == 0 || zIdx >= _NbLines - 1)       ? 0.0f : _HalfHeights[zIdx, xIdx-1];
-        float upRight   = (xIdx >= _NbCols-1 || zIdx >= _NbLines-1) ? 0.0f : _HalfHeights[zIdx, xIdx];
-        float downLeft  = (xIdx == 0 || zIdx == 0)                  ? 0.0f : _HalfHeights[zIdx-1, xIdx-1];
-        float downRight = (xIdx >= _NbCols-1 || zIdx == 0)          ? 0.0f : _HalfHeights[zIdx-1, xIdx];
-
-        float ownRes = BilinearInterpolation(x, z, xIdx, zIdx, downLeft, upLeft, downRight, upRight);
-
-        return ownRes;
     }
 }

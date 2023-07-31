@@ -11,6 +11,8 @@ Shader "Custom/ParticleShader"{
             #include "UnityCG.cginc"
 
             StructuredBuffer<float3> _ParticlesPositions;
+            StructuredBuffer<float> _ParticlesTemperatures;
+
             int _NbCurParticles;
             float _ParticlesMeshHeights;
             int _DisplayParticles;
@@ -98,6 +100,7 @@ Shader "Custom/ParticleShader"{
 
                     for(int j=0; j<3; j++){
                         pos = vertices[indices[id+j]] + input[0].vertex + float4(0,_ParticlesMeshHeights,0,0);
+                        pos.y += radius;
                         o.vertex = UnityObjectToClipPos(pos);
                         o.id = input[0].id;
                         o.normal = normal;
@@ -115,6 +118,8 @@ Shader "Custom/ParticleShader"{
                     discard;
                 }
                 fixed4 col = fixed4(i.id/_NbCurParticles,1,1,1);
+                // fixed4 red = fixed4(1, _ParticlesTemperatures[(int)i.id] / 200.0f, 0, 1);
+                // col = red;
 
                 fixed light = saturate (dot (normalize(_WorldSpaceLightPos0), i.normal));
                 col.rgb *= light;

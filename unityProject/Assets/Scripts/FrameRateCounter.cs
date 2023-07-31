@@ -3,31 +3,86 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 
+/**
+ * The display mode of the fps counter
+*/
+public enum DisplayMode {FPS, MS};
+
+/**
+ * A class to display the frame rate
+*/
 public class FrameRateCounter : MonoBehaviour{
-    [SerializeField]
-    TextMeshProUGUI _Display;
 
+// ################################################################################################################################################################################################################
+// ################################################################################################## ATTRIBUTES ##################################################################################################
+// ################################################################################################################################################################################################################
+
+    /**
+     * The unity gui shown on screen
+    */
+    [SerializeField]
+    public TextMeshProUGUI _Display;
+
+    /**
+     * The duration of a sample
+    */
     [SerializeField, Range(0.1f, 2f)]
-	float _SampleDuration = 1.0f;
+	public float _SampleDuration = 1.0f;
 
-    public enum DisplayMode {FPS, MS};
-
+    /**
+     * Tells if the values should be displayed in Frame per seconds or in Milliseconds
+    */
     [SerializeField]
-    DisplayMode _Mode = DisplayMode.FPS;
+    public DisplayMode _Mode = DisplayMode.FPS;
 
-    int _Frames;
-    float _Duration;
-    float _WorstDuration, _BestDuration = float.MaxValue;
+    /**
+     * The frame counter
+    */
+    private int _Frames;
 
+    /**
+     * The current time spent
+    */
+    private float _Duration;
+
+    /**
+     * The current longest duration time
+    */
+    private float _WorstDuration;
+    
+    /**
+     * The current smallest duration time
+    */
+    private float _BestDuration = float.MaxValue;
+
+    /**
+     * The particle generator used to get the number of particles
+    */
     [SerializeField]
-    ParticleGenerator _ParticleGenerator;
-    int _NbParticles;
+    public ParticleGenerator _ParticleGenerator;
 
+    /**
+     * The current number of particles
+    */
+    private int _NbParticles;
+
+
+// ################################################################################################################################################################################################################
+// ################################################################################################### METHODS ####################################################################################################
+// ################################################################################################################################################################################################################
+
+    /**
+     * Updates the current number of particles
+    */
     void GetNbParticles(){
         _NbParticles = _ParticleGenerator.GetNbCurParticles();
     }
 
+    /**
+     * Update the FPS display
+    */
     void Update(){
+        // update values
         GetNbParticles();
         float frameDuration = Time.unscaledDeltaTime;
 		_Frames += 1;
@@ -41,6 +96,7 @@ public class FrameRateCounter : MonoBehaviour{
             _WorstDuration = frameDuration;
         }
 
+        // update display if needed
         if(_Duration >= _SampleDuration){
             switch(_Mode){
                 case DisplayMode.FPS:
@@ -61,6 +117,7 @@ public class FrameRateCounter : MonoBehaviour{
                     break;
             }
 
+            // reset values
             _Frames = 0;
             _Duration = 0.0f;
             _BestDuration = float.MaxValue;
