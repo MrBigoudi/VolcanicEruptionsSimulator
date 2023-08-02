@@ -42,7 +42,7 @@ public class Tweakable : MonoBehaviour{
     
 
     [SerializeField, Range(1, 100000)]
-    public int _NbMaxParticles = 50000;
+    public int _NbMaxParticles = 100000;
     [SerializeField, Range(0.0f, 10.0f)]
     public float _InitialPositionDelta = 2.0f;
     [SerializeField, Range(0.0f, 0.25f)]

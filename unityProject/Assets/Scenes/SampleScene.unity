@@ -160,7 +160,7 @@ MonoBehaviour:
   _ParticleMaker: {fileID: 1708334437}
   _ParticleMaterial: {fileID: 2100000, guid: 6f71bd793732e5747a434c444c9fd1e8, type: 2}
   _TerrainMaterial: {fileID: 2100000, guid: 0b901cc2122fd9341aa07dd71c397bff, type: 2}
-  _VolcanoImage: 3
+  _VolcanoImage: 0
   _GaussianBlur: 0
   _DisplayParticles: 1
   _DisplayLava: 0
