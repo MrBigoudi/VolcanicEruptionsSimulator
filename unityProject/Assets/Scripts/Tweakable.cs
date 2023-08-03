@@ -17,6 +17,10 @@ public class Tweakable : MonoBehaviour{
     public TerrainGenerator _TerrainGenerator;
     [SerializeField]
     public ParticleDisplay _ParticleDisplay;
+    [SerializeField]
+    public Camera _Camera;
+    [SerializeField]
+    public ParticleGenerator _ParticleMaker;
 
     // Materials
     [SerializeField]
@@ -26,11 +30,7 @@ public class Tweakable : MonoBehaviour{
 
     // Constants values
     [SerializeField]
-    public Volcano _VolcanoImage = Volcano.Fuji;
-    [SerializeField]
-    public Vector3 _Size = new Vector3(512.0f, 0.0f, 512.0f);
-    [SerializeField, Range(32.0f, 1024.0f)]
-    public float _Scale = 64.0f;
+    public Volcano _VolcanoImage = Volcano.StHelen;
     [SerializeField]
     public bool _GaussianBlur = false;
 
@@ -42,7 +42,7 @@ public class Tweakable : MonoBehaviour{
     
 
     [SerializeField, Range(1, 100000)]
-    public int _NbMaxParticles = 50000;
+    public int _NbMaxParticles = 100000;
     [SerializeField, Range(0.0f, 10.0f)]
     public float _InitialPositionDelta = 2.0f;
     [SerializeField, Range(0.0f, 0.25f)]
@@ -51,6 +51,8 @@ public class Tweakable : MonoBehaviour{
     public float _Spike = 2.0f;
     [SerializeField, Range(0.0f, 5.0f)]
     public float _KernelRadius = 1.0f;
+    [SerializeField, Range(0.0f, 10.0f)]
+    public float _RenderKernelRadius = 10.0f;
 
     [SerializeField, Range(-5.0f, 5.0f)]
     public float _ParticlesMeshHeights = 0.0f;

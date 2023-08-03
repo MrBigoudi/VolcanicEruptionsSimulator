@@ -1,5 +1,4 @@
-import matplotlib.pyplot as plt 
-import numpy as np 
+import matplotlib.pyplot as plt
 import math
     
 xdata = [i/100.0 for i in range(0, 201, 1)] 
@@ -101,20 +100,20 @@ yserie_3 = [besselSerie(i/100.0, 0.5) for i in range(0, 201, 1)]
     
 # plot the data 
 # plt.plot(xdata, ydata, color ='tab:blue')
-plt.plot(xdata, yserie, color ='tab:purple')
-plt.plot(xdata, yserie_2, color ='tab:orange')
-plt.plot(xdata, yserie_3, color ='tab:green')
+# plt.plot(xdata, yserie_3, color ='tab:green')
+# plt.plot(xdata, yserie, color ='tab:purple')
+# plt.plot(xdata, yserie_2, color ='tab:orange')
+# plt.plot(xdata, ypoly6_3, color ='tab:green')
 # plt.plot(xdata, ypoly6, color ='tab:purple')
 # plt.plot(xdata, ypoly6_2, color ='tab:orange')
-# plt.plot(xdata, ypoly6_3, color ='tab:green')
+# plt.plot(xdata, yspiky_3, color ='tab:green')
 # plt.plot(xdata, yspiky, color ='tab:purple')
 # plt.plot(xdata, yspiky_2, color ='tab:orange')
-# plt.plot(xdata, yspiky_3, color ='tab:green')
-# plt.plot(xdata, yvisc, color ='tab:purple')
-# plt.plot(xdata, yvisc_2, color ='tab:orange')
-# plt.plot(xdata, yvisc_3, color ='tab:green')
+plt.plot(xdata, yvisc_3, color ='tab:green')
+plt.plot(xdata, yvisc, color ='tab:purple')
+plt.plot(xdata, yvisc_2, color ='tab:orange')
 
-plt.legend(["h=1", "h=2", "h=0.5"], loc ="lower right")
+plt.legend(["l=0.5", "l=1", "l=2"], loc ="lower right")
     
     
 # set the limits 
