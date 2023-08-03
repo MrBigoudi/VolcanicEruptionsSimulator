@@ -166,18 +166,18 @@ Another advantage of using a 2D SPHSWE method is the efficiency in terms of the 
 ### 3.2.2 Staggered grid
 
 The other important grid of our simulation is the staggered grid or Marker-and-Cell (MAC) grid [[HW65]](#HW65). The idea of such a grid is to store variables at different locations. We then use the values inside of it and an accurate bilinear central difference (Equation [22](#eq:bilinear)) to sample these values for every particle. For example, by storing the terrain heights at discrete positions which are the center of our grid cells, we can sample the z coordinate of a particle knowing its position in the 2D plane. In our grid (Figure [3.2b](#fig:staggeres_grid)) we store the terrain heights at the center of every cell, the terrain half heights between cells and the terrain height gradients at every corner. Because the gradient values are not defined at every cell, we put a $0$ when they are not to ease the calculations for the interpolations.
-Let $q$ be a quantity, to estimate its derivative $\frac{6{q}}{6{x}}$ at a grid point $j,i$ without any bias, the natural idea is to use the first central difference:<br/>
+Let $q$ be a quantity, to estimate its derivative $\frac{\partial{q}}{\partial{x}}$ at a grid point $j,i$ without any bias, the natural idea is to use the first central difference:<br/>
 <a id="eq:first_central_diff"></a>
-$(\frac{6{q}}{6{x}})_{j,i} = \frac{q_{j,i+1}-q_{j,i-1}}{2\Delta x}$ &ensp;&ensp;&ensp;(15)<br/>
+$(\frac{\partial{q}}{\partial{x}})_{j,i} = \frac{q_{j,i+1}-q_{j,i-1}}{2\Delta x}$ &ensp;&ensp;&ensp;(15)<br/>
 
 This is unbiased and accurate to $\mathcal{O}(\Delta x^2)$ compared to a forward of backward difference such as: <br/>
 <a id="eq:forward_diff"></a>
-$(\frac{6{q}}{6{x}})_{j,i} = \frac{q_{j,i+1}-q_{j,i}}{\Delta x}$ &ensp;&ensp;&ensp;(16)<br/>
+$(\frac{\partial{q}}{\partial{x}})_{j,i} = \frac{q_{j,i+1}-q_{j,i}}{\Delta x}$ &ensp;&ensp;&ensp;(16)<br/>
 
 which is biased to the right and only accurate to $\mathcal{O}(\Delta x)$. The issue with formula \ref{eq:first_central_diff} is that it does not take into account the value at $q_{j,i}$ which can lead to incorrect interpretations if we have a spike at $q_{j,i}$ (for example, having $q_{j,i+1} = q_{j,i-1}$ and $q_{j,i+1} << q_{j,i}$).
 To solve this problem, we sample values at halfway points in the grid and then get the derivatives using:<br/>
 <a id="eq:grad_grid"></a>
-$(\frac{6{q}}{6{x}})_{j,i} = \frac{q_{j,i+1/2}-q_{j,i-1/2}}{2\Delta x}$ &ensp;&ensp;&ensp;(17)<br/>
+$(\frac{\partial{q}}{\partial{x}})_{j,i} = \frac{q_{j,i+1/2}-q_{j,i-1/2}}{2\Delta x}$ &ensp;&ensp;&ensp;(17)<br/>
 
 This is unbiased and accurate to $\mathcal{O}(\Delta x^2)$. For our staggered grid (Figure \ref{fig:staggeredGrid}), we have:<br/>
 <a id="eq:stag_values"></a>
@@ -241,9 +241,9 @@ Like in [[BSS16]](#BSS16), $f$ is approximated by an Arrhenius law $f(\theta) = 
 <a id="eq:visc_strain_rate_1"></a>
 $ \epsilon  = \nabla\vec{u} + \nabla\vec{u}^\intercal$ &ensp;&ensp;&ensp;(27)<br/>
 $ \epsilon = \begin{pmatrix}
-        \frac{6{u_x}}{6{x}} & \frac{1}{2}(\frac{6{u_x}}{6{y}}+\frac{6{u_y}}{6{x}}) & \frac{1}{2}\frac{6{u_x}}{6{z}}\\
-        \frac{1}{2}(\frac{6{u_x}}{6{y}}+\frac{6{u_y}}{6{x}}) & \frac{6{u_y}}{6{y}} & \frac{1}{2}\frac{6{u_y}}{6{z}}\\
-        \frac{1}{2}\frac{6{u_x}}{6{z}} & \frac{1}{2}\frac{6{u_y}}{6{z}} & -\frac{6{u_x}}{6{x}}-\frac{6{u_y}}{6{y}}  
+        \frac{\partial{u_x}}{\partial{x}} & \frac{1}{2}(\frac{\partial{u_x}}{\partial{y}}+\frac{\partial{u_y}}{\partial{x}}) & \frac{1}{2}\frac{\partial{u_x}}{\partial{z}}\\
+        \frac{1}{2}(\frac{\partial{u_x}}{\partial{y}}+\frac{\partial{u_y}}{\partial{x}}) & \frac{\partial{u_y}}{\partial{y}} & \frac{1}{2}\frac{\partial{u_y}}{\partial{z}}\\
+        \frac{1}{2}\frac{\partial{u_x}}{\partial{z}} & \frac{1}{2}\frac{\partial{u_y}}{\partial{z}} & -\frac{\partial{u_x}}{\partial{x}}-\frac{\partial{u_y}}{\partial{y}}  
     \end{pmatrix}\nonumber
 $
 
@@ -251,8 +251,8 @@ and as a first approximation we will consider $\mu$ constant (see the discussion
 <a id="eq:visc_strain_rate_2"></a>
 $
     \epsilon = \begin{pmatrix}
-        \frac{6{u_x}}{6{x}} & \frac{1}{2}(\frac{6{u_x}}{6{y}}+\frac{6{u_y}}{6{x}}) & \frac{1}{2}\frac{6{u_x}}{6{z}}\\
-        \frac{1}{2}(\frac{6{u_x}}{6{y}}+\frac{6{u_y}}{6{x}}) & \frac{6{u_y}}{6{y}} & \frac{1}{2}\frac{6{u_y}}{6{z}}
+        \frac{\partial{u_x}}{\partial{x}} & \frac{1}{2}(\frac{\partial{u_x}}{\partial{y}}+\frac{\partial{u_y}}{\partial{x}}) & \frac{1}{2}\frac{\partial{u_x}}{\partial{z}}\\
+        \frac{1}{2}(\frac{\partial{u_x}}{\partial{y}}+\frac{\partial{u_y}}{\partial{x}}) & \frac{\partial{u_y}}{\partial{y}} & \frac{1}{2}\frac{\partial{u_y}}{\partial{z}}
     \end{pmatrix}
 $  &ensp;&ensp;&ensp;(28)<br/>
 
@@ -260,8 +260,8 @@ Deriving equations [25](eq:visc_momentum_3), [26](eq:visc_herschel_bulkley_1) an
 <a id="eq:visc_momentum_4"></a>
 $
     f(\theta)\mu\begin{pmatrix}
-        \frac{6^2{u_x}}{6{x^2}} + \frac{1}{2}\frac{6^2{u_x}}{6{y^2}} + \frac{1}{2}\frac{6^2{u_y}}{6{x}6{y}} + \frac{1}{2}\frac{6^2{u_x}}{6{z^2}}\\
-        \frac{6^2{u_y}}{6{y^2}} + \frac{1}{2}\frac{6^2{u_y}}{6{x^2}} + \frac{1}{2}\frac{6^2{u_x}}{6{x}6{y}} + \frac{1}{2}\frac{6^2{u_y}}{6{z^2}}
+        \frac{\partial^2{u_x}}{\partial{x^2}} + \frac{1}{2}\frac{\partial^2{u_x}}{\partial{y^2}} + \frac{1}{2}\frac{\partial^2{u_y}}{\partial{x}\partial{y}} + \frac{1}{2}\frac{\partial^2{u_x}}{\partial{z^2}}\\
+        \frac{\partial^2{u_y}}{\partial{y^2}} + \frac{1}{2}\frac{\partial^2{u_y}}{\partial{x^2}} + \frac{1}{2}\frac{\partial^2{u_x}}{\partial{x}\partial{y}} + \frac{1}{2}\frac{\partial^2{u_y}}{\partial{z^2}}
     \end{pmatrix} = -\rho\vec{g}\nabla{S}
 $ &ensp;&ensp;&ensp;(29)<br/>
 
@@ -269,53 +269,53 @@ As an approximation, we also chose to remove the crossed terms and equation [29]
 <a id="eq:visc_momentum_5"></a>
 $
     f(\theta)\mu\begin{pmatrix}
-        \frac{6^2{u_x}}{6{x^2}} + \frac{1}{2}\frac{6^2{u_x}}{6{y^2}} + \frac{1}{2}\frac{6^2{u_x}}{6{z^2}}\\
-        \frac{6^2{u_y}}{6{y^2}} + \frac{1}{2}\frac{6^2{u_y}}{6{x^2}} + \frac{1}{2}\frac{6^2{u_y}}{6{z^2}}
+        \frac{\partial^2{u_x}}{\partial{x^2}} + \frac{1}{2}\frac{\partial^2{u_x}}{\partial{y^2}} + \frac{1}{2}\frac{\partial^2{u_x}}{\partial{z^2}}\\
+        \frac{\partial^2{u_y}}{\partial{y^2}} + \frac{1}{2}\frac{\partial^2{u_y}}{\partial{x^2}} + \frac{1}{2}\frac{\partial^2{u_y}}{\partial{z^2}}
     \end{pmatrix} = -\rho\vec{g}\nabla{S}
 $ &ensp;&ensp;&ensp;(30)<br/>
 
 From there, we want to integrate over the lava columns to get the averaged velocity inside the columns at each point of the terrain (see Figure [3.1](#fig:lava_column)). To do so, we begin by integrating over $z$ between an arbitrary height $z$ and the surface of the flow $h$ over that $z$ (for readability, we will only write the integral in $u_x$):<br/>
 <a id="eq:visc_integral_1"></a>
 $
-    \int_{z}^{h} \frac{6^2{u_x}}{6{x^2}} + \frac{1}{2}\frac{6^2{u_x}}{6{y^2}} + \frac{1}{2}\frac{6^2{u_x}}{6{z^2}}\,dz = \frac{1}{f(\theta)\mu}\int_{z}^{h} -\rho\vec{g}\nabla{S}\,dz\nonumber\\
-    \frac{6}{6{x}}\int_{z}^{h} \frac{6{u_x}}{6{x}}\,dz + \frac{1}{2}\frac{6}{6{y}}\int_{z}^{h} \frac{6{u_x}}{6{y}}\,dz + \frac{1}{2}\left[\frac{6{u_x}}{6{z}}\right]_z^{h} = -(h-z)\frac{\rho\vec{g}\nabla{S}}{f(\theta)\mu}
+    \int_{z}^{h} \frac{\partial^2{u_x}}{\partial{x^2}} + \frac{1}{2}\frac{\partial^2{u_x}}{\partial{y^2}} + \frac{1}{2}\frac{\partial^2{u_x}}{\partial{z^2}}\,dz = \frac{1}{f(\theta)\mu}\int_{z}^{h} -\rho\vec{g}\nabla{S}\,dz\nonumber\\
+    \frac{\partial}{\partial{x}}\int_{z}^{h} \frac{\partial{u_x}}{\partial{x}}\,dz + \frac{1}{2}\frac{\partial}{\partial{y}}\int_{z}^{h} \frac{\partial{u_x}}{\partial{y}}\,dz + \frac{1}{2}\left[\frac{\partial{u_x}}{\partial{z}}\right]_z^{h} = -(h-z)\frac{\rho\vec{g}\nabla{S}}{f(\theta)\mu}
 $ &ensp;&ensp;&ensp;(31)<br/>
 
-The velocity is null on the free surface so $\frac{6{u_x}}{6{z}}(z_h) = 0$ and equation [31](#eq:visc_integral_1) becomes:<br/>
+The velocity is null on the free surface so $\frac{\partial{u_x}}{\partial{z}}(z_h) = 0$ and equation [31](#eq:visc_integral_1) becomes:<br/>
 <a id="eq:visc_integral_2"></a>
 $
-    \frac{6}{6{x}}\int_{z}^{h} \frac{6{u_x}}{6{x}}\,dz + \frac{1}{2}\frac{6}{6{y}}\int_{z}^{h} \frac{6{u_x}}{6{y}}\,dz - \frac{1}{2}\frac{6{u_x}}{6{z}} = -(h-z)\frac{\rho\vec{g}\nabla{S}}{f(\theta)\mu}
+    \frac{\partial}{\partial{x}}\int_{z}^{h} \frac{\partial{u_x}}{\partial{x}}\,dz + \frac{1}{2}\frac{\partial}{\partial{y}}\int_{z}^{h} \frac{\partial{u_x}}{\partial{y}}\,dz - \frac{1}{2}\frac{\partial{u_x}}{\partial{z}} = -(h-z)\frac{\rho\vec{g}\nabla{S}}{f(\theta)\mu}
 $ &ensp;&ensp;&ensp;(32)<br/>
 
 We integrate again but this time between the bottom of the flow $0$ and $z$:<br/>
 <a id="eq:visc_integral_3"></a>
 $
-    \frac{6}{6{x^2}}\int_{0}^{z'}\int_{z}^{h} u_x\,dz\,dz' + \frac{1}{2}\frac{6}{6{y^2}}\int_{0}^{z'}\int_{z}^{h} u_x\,dz\,dz' - \frac{1}{2}\left[u_x\right]_{0}^{z} = -(hz'-\frac{1}{2}z'^2)\frac{\rho\vec{g}\nabla{S}}{f(\theta)\mu}
+    \frac{\partial}{\partial{x^2}}\int_{0}^{z'}\int_{z}^{h} u_x\,dz\,dz' + \frac{1}{2}\frac{\partial}{\partial{y^2}}\int_{0}^{z'}\int_{z}^{h} u_x\,dz\,dz' - \frac{1}{2}\left[u_x\right]_{0}^{z} = -(hz'-\frac{1}{2}z'^2)\frac{\rho\vec{g}\nabla{S}}{f(\theta)\mu}
 $ &ensp;&ensp;&ensp;(33)<br/>
 
 The velocity at the bottom of the flow is $0$, so equation [33](#eq:visc_integral_3) becomes:<br/>
 <a id="eq:visc_integral_4"></a>
 $
-    \frac{6}{6{x^2}}\int_{0}^{z'}\int_{z}^{h} u_x\,dz\,dz' + \frac{1}{2}\frac{6}{6{y^2}}\int_{0}^{z'}\int_{z}^{h} u_x\,dz\,dz' - \frac{1}{2}u_x = -(hz'-\frac{1}{2}z'^2)\frac{\rho\vec{g}\nabla{S}}{f(\theta)\mu}
+    \frac{\partial}{\partial{x^2}}\int_{0}^{z'}\int_{z}^{h} u_x\,dz\,dz' + \frac{1}{2}\frac{\partial}{\partial{y^2}}\int_{0}^{z'}\int_{z}^{h} u_x\,dz\,dz' - \frac{1}{2}u_x = -(hz'-\frac{1}{2}z'^2)\frac{\rho\vec{g}\nabla{S}}{f(\theta)\mu}
 $ &ensp;&ensp;&ensp;(34)<br/>
 
 Finally to get the average velocity on the column we integrate between $0$ and $h$ before dividing by $h$ (for readability, we removed the $\,dz$ inside the integrals):<br/>
 <a id="eq:visc_integral_5"></a>
 $
-    \frac{1}{h}(\int_{0}^{h}\frac{6}{6{x^2}}\int_{0}^{z'}\int_{z}^{h} u_x + \frac{1}{2}\int_{0}^{h}\frac{6}{6{y^2}}\int_{0}^{z'}\int_{z}^{h} u_x - \frac{1}{2}h\bar{u}) = \frac{-1}{h}(\frac{1}{2}h^3-\frac{1}{6}h^3)\frac{\rho\vec{g}\nabla{S}}{f(\theta)\mu}$<br/>
-$   \frac{6}{6{x^2}}\frac{1}{3}h^3\bar{u} + \frac{1}{2}\frac{6}{6{y^2}}\frac{1}{3}h^3\bar{u}- \frac{1}{2}h\bar{u} = -(\frac{1}{3}h^3\frac{\rho\vec{g}\nabla{S}}{f(\theta)\mu})
+    \frac{1}{h}(\int_{0}^{h}\frac{\partial}{\partial{x^2}}\int_{0}^{z'}\int_{z}^{h} u_x + \frac{1}{2}\int_{0}^{h}\frac{\partial}{\partial{y^2}}\int_{0}^{z'}\int_{z}^{h} u_x - \frac{1}{2}h\bar{u}) = \frac{-1}{h}(\frac{1}{2}h^3-\frac{1}{6}h^3)\frac{\rho\vec{g}\nabla{S}}{f(\theta)\mu}$<br/>
+$   \frac{\partial}{\partial{x^2}}\frac{1}{3}h^3\bar{u} + \frac{1}{2}\frac{\partial}{\partial{y^2}}\frac{1}{3}h^3\bar{u}- \frac{1}{2}h\bar{u} = -(\frac{1}{3}h^3\frac{\rho\vec{g}\nabla{S}}{f(\theta)\mu})
 $  &ensp;&ensp;&ensp;(35)<br/>
 
 Where $\bar{u}$ is the average velocity on the column. Let's now write $u' = h^3\bar{u}$. The equation now becomes:<br/>
 <a id="eq:visc_integral_6"></a>
 $
-    \frac{6}{6{x^2}}u' + \frac{1}{2}\frac{6}{6{y^2}}u' - \frac{3}{2}u'h^4 = -(h^3\frac{\rho\vec{g}\nabla{S}}{f(\theta)\mu})
+    \frac{\partial}{\partial{x^2}}u' + \frac{1}{2}\frac{\partial}{\partial{y^2}}u' - \frac{3}{2}u'h^4 = -(h^3\frac{\rho\vec{g}\nabla{S}}{f(\theta)\mu})
 $  &ensp;&ensp;&ensp;(36)<br/>
 
 The equation now looks close to one of Green's functions where the differential operator $L$ is of the form $\nabla^2u - k^2u = b$. Because the height shouldn't impact differently the velocities on the $x$ and $y$ coordinates, we will arrange the equation [36](#eq:visc_integral_6). It now matches the form of the differential operator:<br/>
 <a id="eq:visc_integral_7"></a>
 $
-    \frac{6}{6{x^2}}u' + \frac{6}{6{y^2}}u' - \frac{3}{2}\frac{u'}{h^2} = -(h^3\frac{\rho\vec{g}\nabla{S}}{f(\theta)\mu})$<br/>
+    \frac{\partial}{\partial{x^2}}u' + \frac{\partial}{\partial{y^2}}u' - \frac{3}{2}\frac{u'}{h^2} = -(h^3\frac{\rho\vec{g}\nabla{S}}{f(\theta)\mu})$<br/>
 $   \nabla^2{u'} - k^2u' = b_j $  &ensp;&ensp;&ensp;(37)<br/>
 
 With $\rho = \rho_0$ as the constant lava density (see Table [3.1](#tab:variables)), $k = \sqrt{\frac{3}{2}}h^2$ and $b = -(h_j^3\frac{\rho\vec{g}\nabla{S}}{f(\theta_j)\mu})$. The intuition behind using Green's functions is that they can be seen as smoothing kernels working the same way as an SPH one that we could apply to the particles' velocities. For the given differential operator, we know that the associated Green's function in 2D is<br/>
