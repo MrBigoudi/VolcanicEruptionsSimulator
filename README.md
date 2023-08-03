@@ -1,5 +1,5 @@
 # VolcanicEruptionsSimulator
-An [eruption simulator](https://github.com/MrBigoudi/VolcanicEruptionsSimulator) implemented in Unity.
+An [eruption simulator](https://github.com/MrBigoudi/VolcanicEruptionsSimulator) implemented in Unity. For informations about how to use this repository feel free to read the [Howto](HOWTO.md).
 
 # Abstract
 

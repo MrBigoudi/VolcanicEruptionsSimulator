@@ -93,3 +93,5 @@ media/publications
 *.lbl
 
 *.pdf
+objToHeightmap.py
+plotFunctions.py
