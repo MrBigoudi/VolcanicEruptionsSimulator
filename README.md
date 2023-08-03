@@ -89,50 +89,39 @@ The foundations of our simulation are the Smoothed Particle Hydrodynamics (SPH) 
 
 The idea behind SPH simulations is to discretize fluid volume using particles. During the simulation, each particle represents a certain amount of volume and stores physical properties. These properties are then updated throughout the simulation using the values of neighbor particles. A quantity $q_i$ at an arbitrary position $x_i$ is approximately computed with a set of known quantities $q_j$ at neighboring particle positions $x_j$ :<br/>
 <a id="eq:sph"></a>
-$q_i = \sum_j \frac{m_j}{\rho_j}q_jW_{ij}$  &ensp;&ensp;&ensp;(1)
+
+![eq](report/latexEquations/sph.png)
 
 Where $m_j$ and $\rho_j$ are respectively the mass and the density carried by the particle $j$ and $W_{ij}$ is a smoothing kernel of the form<br/>
 <a id="eq:sph_kernel"></a>
-$W_{ij} = W(x_i - x_j, l)$ &ensp;&ensp;&ensp;(2)
+
+![eq](report/latexEquations/sph_kernel.png)
 
 $l$ being the kernel's radius or smoothing length. The mass stays constant during the simulation and for our model, we set it to $m = (\frac{2}{3}l)^3$ as proposed in [[IOS*14]](#IOS*14).
-One of the advantages of the SPH model resides in the ease of how to derivate quantities. Thanks to equation [1](#eq:sph), we do not need to use finite differences or a grid to compute the derivatives of fluid quantities. Instead, we can directly obtain the spatial derivatives of a quantity $q_i$ using the following equations:<br/>
+One of the advantages of the SPH model resides in the ease of how to derivate quantities. Thanks to equation [3.1](#eq:sph), we do not need to use finite differences or a grid to compute the derivatives of fluid quantities. Instead, we can directly obtain the spatial derivatives of a quantity $q_i$ using the following equations:<br/>
 <a id="eq:sph_derivatives"></a>
-$\nabla{q_i} = \sum_j \frac{m_j}{\rho_j}q_j\nabla{W_{ij}}$ &ensp;&ensp;&ensp;(3)<br/>
-$\nabla\cdot{q_i} = \sum_j \frac{m_j}{\rho_j}q_j\cdot\nabla{W_{ij}}$ &ensp;&ensp;&ensp;(4)<br/>
-$\nabla^2{q_i} = \sum_j \frac{m_j}{\rho_j}q_j\nabla^2{W_{ij}}$ &ensp;&ensp;&ensp;(5)<br/>
+
+![eq](report/latexEquations/sph_derivatives.png)
 
 
-With that, we can easily get the gradient (equation [3](#eq:sph_derivatives)), the divergence (equation [4](#eq:sph_derivatives)) and the laplacian (equation [5](#eq:sph_derivatives)) of a quantity $q_i$. An important part of the simulation then resides in the smoothing kernels. For our simulation, from the three 2D kernels presented in [[SBC*11]](#SBC*11):<br/>
+With that, we can easily get the gradient (equation [3.3](#eq:sph_derivatives)), the divergence (equation [3.4](#eq:sph_derivatives)) and the laplacian (equation [3.5](#eq:sph_derivatives)) of a quantity $q_i$. An important part of the simulation then resides in the smoothing kernels. For our simulation, from the three 2D kernels presented in [[SBC*11]](#SBC*11):<br/>
 <a id="eq:sph_kernels"></a>
-$W_{\text{poly6}}(r,l) = \frac{4}{\pi l^8} \begin{cases}
-                                                (l^2-r^2)^3 \text{  if } 0 \leq r \leq l\\
-                                                0               \text{  otherwise}
-                                            \end{cases}$ &ensp;&ensp;&ensp;(6)<br/>
-$W_{\text{spiky}}(r,l) = \frac{10}{\pi l^5} \begin{cases}
-                                                (l-r)^3 \text{  if } 0 \leq r \leq l\\
-                                                0               \text{  otherwise}
-                                            \end{cases}$ &ensp;&ensp;&ensp;(7)<br/>
-$W_{\text{visc}}(r,l) = \frac{10}{9\pi l^5} \begin{cases}
-                                                -4r^3 + 9r^2l -5l^3 + 6l^3(\ln{l}-\ln{r}) \text{  if } 0 < r \leq l\\
-                                                0               \text{  otherwise}
-                                            \end{cases}$ &ensp;&ensp;&ensp;(8)<br/>
 
-we used the poly6 kernel (equation [6](#eq:sph_kernels)) because of its smoother distribution when $r$ tends to $0$.
-For 2D SPH, the volume $V_i = \frac{m_i}{\rho_0}$ stays constant during the simulation and, as presented in [[LH10]](#LH10), the volume in a 2D simulation takes the role of the mass in a 3D simulation, and the height in 2D can be seen as the density in 3D. The equations [1](#eq:sph), [3](#eq:sph_derivatives), [4](#eq:sph_derivatives) and [5](#eq:sph_derivatives) then become:<br/>
+![eq](report/latexEquations/sph_kernels.png)
+
+we used the poly6 kernel (equation [3.6](#eq:sph_kernels)) because of its smoother distribution when $r$ tends to $0$.
+For 2D SPH, the volume $V_i = \frac{m_i}{\rho_0}$ stays constant during the simulation and, as presented in [[LH10]](#LH10), the volume in a 2D simulation takes the role of the mass in a 3D simulation, and the height in 2D can be seen as the density in 3D. The equations [3.1](#eq:sph), [3.3](#eq:sph_derivatives), [3.4](#eq:sph_derivatives) and [3.5](#eq:sph_derivatives) then become:<br/>
 <a id="eq:sph_2d"></a>
-$q_i = \sum_j \frac{V_j}{h_j}q_jW_{ij}$ &ensp;&ensp;&ensp;(9)<br/>
-$\nabla{q_i} = \sum_j \frac{V_j}{h_j}q_j\nabla{W_{ij}}$ &ensp;&ensp;&ensp;(10)<br/>
-$\nabla\cdot{q_i} = \sum_j \frac{V_j}{h_j}q_j\cdot\nabla{W_{ij}}$ &ensp;&ensp;&ensp;(11)<br/>
-$\nabla^2{q_i} = \sum_j \frac{V_j}{h_j}q_j\nabla^2{W_{ij}}$ &ensp;&ensp;&ensp;(12)<br/>
+
+![eq](report/latexEquations/sph_2d.png)
 
 <a id="swe"></a>
 ### 3.1.2 Shallow Water Equations
 
 The shallow water equations are derived from the Navier-Stokes equations and use a 2D height field to describe the evolution of the surface of a liquid. They represent the conservation of volume and momentum and can be written as:<br/>
 <a id="eq:swe"></a>
-$\frac{Du}{Dt} = -\vec{g}\nabla{S} + \vec{F}_{ext}$ &ensp;&ensp;&ensp;(13)<br/>
-$\frac{Dh}{Dt} = -h\nabla\cdot u$ &ensp;&ensp;&ensp;(14)<br/>
+
+![eq](report/latexEquations/swe.png)
 
 Where $u$ is the 2D horizontal water velocity, $g$ is the gravity and $h$ is the height of liquid above the ground. $S = h + H$ is the surface at a given position, with $H$ being the height of the terrain underneath the fluid at that position (see Figure [3.1](#fig:lava_column)).
 <a id="fig:lava_column"></a>
@@ -143,7 +132,7 @@ Where $u$ is the 2D horizontal water velocity, $g$ is the gravity and $h$ is the
     Figure 3.1: A column of lava
 </p>
 
-In our simulation, instead of using equation [14](#eq:swe) to update the height stored for each particle, we directly use the SPH equations [9](#eq:sph_2d) to update the heights as any other physical quantity. In a similar way, the gradient of the surface $\nabla{S}$ is decomposed into its two components $\nabla{S} = \nabla{h} + \nabla{H}$; the height gradient $\nabla{h}$ is computed using the SPH formula [10](#eq:sph_2d) while we get the terrain height gradient using a staggered grid (see Section [3.2.2](#staggered)).
+In our simulation, instead of using equation [3.14](#eq:swe) to update the height stored for each particle, we directly use the SPH equations [3.9](#eq:sph_2d) to update the heights as any other physical quantity. In a similar way, the gradient of the surface $\nabla{S}$ is decomposed into its two components $\nabla{S} = \nabla{h} + \nabla{H}$; the height gradient $\nabla{h}$ is computed using the SPH formula [3.10](#eq:sph_2d) while we get the terrain height gradient using a staggered grid (see Section [3.2.2](#staggered)).
 
 <a id="grids"></a>
 ## 3.2 Grids
@@ -165,26 +154,27 @@ Another advantage of using a 2D SPHSWE method is the efficiency in terms of the 
 <a id="staggered"></a>
 ### 3.2.2 Staggered grid
 
-The other important grid of our simulation is the staggered grid or Marker-and-Cell (MAC) grid [[HW65]](#HW65). The idea of such a grid is to store variables at different locations. We then use the values inside of it and an accurate bilinear central difference (Equation [22](#eq:bilinear)) to sample these values for every particle. For example, by storing the terrain heights at discrete positions which are the center of our grid cells, we can sample the z coordinate of a particle knowing its position in the 2D plane. In our grid (Figure [3.2b](#fig:staggeres_grid)) we store the terrain heights at the center of every cell, the terrain half heights between cells and the terrain height gradients at every corner. Because the gradient values are not defined at every cell, we put a $0$ when they are not to ease the calculations for the interpolations.
+The other important grid of our simulation is the staggered grid or Marker-and-Cell (MAC) grid [[HW65]](#HW65). The idea of such a grid is to store variables at different locations. We then use the values inside of it and an accurate bilinear central difference (Equation [3.22](#eq:bilinear)) to sample these values for every particle. For example, by storing the terrain heights at discrete positions which are the center of our grid cells, we can sample the z coordinate of a particle knowing its position in the 2D plane. In our grid (Figure [3.2b](#fig:staggeres_grid)) we store the terrain heights at the center of every cell, the terrain half heights between cells and the terrain height gradients at every corner. Because the gradient values are not defined at every cell, we put a $0$ when they are not to ease the calculations for the interpolations.
 Let $q$ be a quantity, to estimate its derivative $\frac{\partial{q}}{\partial{x}}$ at a grid point $j,i$ without any bias, the natural idea is to use the first central difference:<br/>
 <a id="eq:first_central_diff"></a>
-$(\frac{\partial{q}}{\partial{x}})_{j,i} = \frac{q_{j,i+1}-q_{j,i-1}}{2\Delta x}$ &ensp;&ensp;&ensp;(15)<br/>
+
+![eq](report/latexEquations/first_central_diff.png)
 
 This is unbiased and accurate to $\mathcal{O}(\Delta x^2)$ compared to a forward of backward difference such as: <br/>
 <a id="eq:forward_diff"></a>
-$(\frac{\partial{q}}{\partial{x}})_{j,i} = \frac{q_{j,i+1}-q_{j,i}}{\Delta x}$ &ensp;&ensp;&ensp;(16)<br/>
+
+![eq](report/latexEquations/forward_diff.png)
 
 which is biased to the right and only accurate to $\mathcal{O}(\Delta x)$. The issue with formula \ref{eq:first_central_diff} is that it does not take into account the value at $q_{j,i}$ which can lead to incorrect interpretations if we have a spike at $q_{j,i}$ (for example, having $q_{j,i+1} = q_{j,i-1}$ and $q_{j,i+1} << q_{j,i}$).
 To solve this problem, we sample values at halfway points in the grid and then get the derivatives using:<br/>
 <a id="eq:grad_grid"></a>
-$(\frac{\partial{q}}{\partial{x}})_{j,i} = \frac{q_{j,i+1/2}-q_{j,i-1/2}}{2\Delta x}$ &ensp;&ensp;&ensp;(17)<br/>
+
+![eq](report/latexEquations/grad_grid.png)
 
 This is unbiased and accurate to $\mathcal{O}(\Delta x^2)$. For our staggered grid (Figure \ref{fig:staggeredGrid}), we have:<br/>
 <a id="eq:stag_values"></a>
-$H_{j, i}  \rightarrow  \hspace{5mm}\text{Fetched from the terrain heightmap}$ &ensp;&ensp;&ensp;(18)<br/>
-$H_{j, i+1/2}  \rightarrow  \hspace{5mm}\text{Bilinear interpolation of the surrounding heights}$ &ensp;&ensp;&ensp;(19)<br/>
-$H_{j+1/2, i}  \rightarrow  \hspace{5mm}\text{Bilinear interpolation of the surrounding heights}$ &ensp;&ensp;&ensp;(20)<br/>
-$\nabla H_{j+1/2, i+1/2}  =  \hspace{5mm}(\frac{H_{j, i+1/2}-H_{j, i-1/2}}{\Delta x}, \frac{H_{j+1/2, i}-H_{j-1/2, i}}{\Delta y})$ &ensp;&ensp;&ensp;(21)<br/>
+
+![eq](report/latexEquations/stag_values.png)
 
 <a id="fig:staggered_grid"></a>
 <p align="center">
@@ -196,18 +186,8 @@ $\nabla H_{j+1/2, i+1/2}  =  \hspace{5mm}(\frac{H_{j, i+1/2}-H_{j, i-1/2}}{\Delt
 
 The staggered grid is built once at the beginning of the simulation. Then, when we want to get a value at a given point $p = (x,y,z)$ like a particle's position, we bilinearly interpolate the values surrounding it (see Figure [3.3](#fig:bilinear)):<br/>
 <a id="eq:bilinear"></a>
-$f(p) = \frac{1}{(x_2-x_1)(y_2-y_1)}
-    \begin{pmatrix}
-        x_2-x & x-x_1
-    \end{pmatrix} 
-    \begin{pmatrix}
-        f(w_{11}) & f(w_{12})\\
-        f(w_{21}) & f(w_{22})
-    \end{pmatrix}
-    \begin{pmatrix}
-        y_2-y\\
-        y-y_1
-    \end{pmatrix}$ &ensp;&ensp;&ensp;(22)<br/>
+
+![eq](report/latexEquations/bilinear.png)
 
 <a id="fig:bilinear"></a>
 <p align="center">
@@ -222,114 +202,95 @@ $f(p) = \frac{1}{(x_2-x_1)(y_2-y_1)}
 
 To add viscous force to our model, we start with the momentum conservation law:<br/>
 <a id="eq:visc_momentum_1"></a>
-$\frac{d\vec{u}}{dt} + (\vec{u}\cdot\nabla)\vec{u} = \frac{\nabla\cdot\sigma}{\rho} + \vec{g}$ &ensp;&ensp;&ensp;(23)<br/>
+
+![eq](report/latexEquations/visc_momentum_1.png)
 
 With $\vec{u}$ the position, $\rho$ the density, $\vec{g}$ the gravity and $\sigma = -p\cdot I + \tau$ is the Cauchy stress tensor where $p$ is the pressure, $I$ the identity tensor and $\tau$ the stress tensor. By decomposing the Cauchy stress tensor and using the linear distribution of the divergence operator, we get:<br/>
 <a id="eq:visc_momentum_2"></a>
-$\frac{d\vec{u}}{dt} + (\vec{u}\cdot\nabla)\vec{u} = -\frac{\nabla\cdot \text{pI}}{\rho} + \frac{\nabla\cdot\tau}{\rho} + \vec{g}$ &ensp;&ensp;&ensp;(24)<br/>
 
-Knowing our model is 2D we can further simplify the equation. From Stokes, we know that the left side of the equation becomes $\vec{0}$. Moreover, based on the Blatter model from glaciology (Blatter 1995 [[Bla95]](#Bla95) and Jouvet 2016 [[Jou16]](#Jou16)), we can eliminate the vertical component of the velocity which leads to the elimination of the pressure term and the addition of the surface's gradient $\nabla{S}$ (see Figure [3.1](#fig:lava_column)) on the right-hand side of the equation. Then, multiplying by the density, equation [24](#eq:visc_momentum_2) becomes:<br/>
+![eq](report/latexEquations/visc_momentum_2.png)
+
+Knowing our model is 2D we can further simplify the equation. From Stokes, we know that the left side of the equation becomes $\vec{0}$. Moreover, based on the Blatter model from glaciology (Blatter 1995 [[Bla95]](#Bla95) and Jouvet 2016 [[Jou16]](#Jou16)), we can eliminate the vertical component of the velocity which leads to the elimination of the pressure term and the addition of the surface's gradient $\nabla{S}$ (see Figure [3.1](#fig:lava_column)) on the right-hand side of the equation. Then, multiplying by the density, equation [3.24](#eq:visc_momentum_2) becomes:<br/>
 <a id="eq:visc_momentum_3"></a>
-$\vec{0} = \nabla\cdot\tau + \rho\vec{g}\nabla{S}$ &ensp;&ensp;&ensp;(25)<br/>
-This reminds us of the Shallow Water Equation [13](#eq:swe).
+
+![eq](report/latexEquations/visc_momentum_3.png)
+
+This reminds us of the Shallow Water Equation [3.13](#eq:swe).
 
 We use a constitutive Herschel-Bulkley equation simplified from [[BSS16]](#BSS16) to express the stress tensor in terms of the viscosity $\mu$, the strain rate tensor $\epsilon$ and a function of the temperature $\theta$:<br/>
 <a id="eq:visc_herschel_bulkley_1"></a>
-$\tau = f(\theta)\mu\epsilon$ &ensp;&ensp;&ensp;(26)<br/>
+
+![eq](report/latexEquations/visc_herschel_bulkley_1.png)
 
 Like in [[BSS16]](#BSS16), $f$ is approximated by an Arrhenius law $f(\theta) = K_ee^{\alpha(\theta_e-\theta)}$ where $\theta_e$ is the initial lava temperature, $K_e$ is the fluid viscosity at $\theta_e$ temperature and $\alpha = 810^{-3}\text{K}^{-1}$ is the constant used by Bernabeu et al. (for a complete list of variables and values used for the simulation, you can refer to the Table [3.1](#tab:variables)). The strain rate tensor is the same as in [[CJP*23]](#CJP*23):<br/>
 <a id="eq:visc_strain_rate_1"></a>
-$ \epsilon  = \nabla\vec{u} + \nabla\vec{u}^\intercal$ &ensp;&ensp;&ensp;(27)<br/>
-$ \epsilon = \begin{pmatrix}
-        \frac{\partial{u_x}}{\partial{x}} & \frac{1}{2}(\frac{\partial{u_x}}{\partial{y}}+\frac{\partial{u_y}}{\partial{x}}) & \frac{1}{2}\frac{\partial{u_x}}{\partial{z}}\\
-        \frac{1}{2}(\frac{\partial{u_x}}{\partial{y}}+\frac{\partial{u_y}}{\partial{x}}) & \frac{\partial{u_y}}{\partial{y}} & \frac{1}{2}\frac{\partial{u_y}}{\partial{z}}\\
-        \frac{1}{2}\frac{\partial{u_x}}{\partial{z}} & \frac{1}{2}\frac{\partial{u_y}}{\partial{z}} & -\frac{\partial{u_x}}{\partial{x}}-\frac{\partial{u_y}}{\partial{y}}  
-    \end{pmatrix}\nonumber
-$
 
-and as a first approximation we will consider $\mu$ constant (see the discussion [4.2](#future) for more details). Because our model is in 2D, we simplify the strain rate tensor keeping only its 2D components and equation [27](#eq:visc_strain_rate_1) becomes:<br/>
+![eq](report/latexEquations/visc_strain_rate_1.png)
+
+and as a first approximation we will consider $\mu$ constant (see the discussion [4.2](#future) for more details). Because our model is in 2D, we simplify the strain rate tensor keeping only its 2D components and equation [3.27](#eq:visc_strain_rate_1) becomes:<br/>
 <a id="eq:visc_strain_rate_2"></a>
-$
-    \epsilon = \begin{pmatrix}
-        \frac{\partial{u_x}}{\partial{x}} & \frac{1}{2}(\frac{\partial{u_x}}{\partial{y}}+\frac{\partial{u_y}}{\partial{x}}) & \frac{1}{2}\frac{\partial{u_x}}{\partial{z}}\\
-        \frac{1}{2}(\frac{\partial{u_x}}{\partial{y}}+\frac{\partial{u_y}}{\partial{x}}) & \frac{\partial{u_y}}{\partial{y}} & \frac{1}{2}\frac{\partial{u_y}}{\partial{z}}
-    \end{pmatrix}
-$  &ensp;&ensp;&ensp;(28)<br/>
 
-Deriving equations [25](eq:visc_momentum_3), [26](eq:visc_herschel_bulkley_1) and [28](eq:visc_strain_rate_2) while once again using the linear distribution of the divergence operator we get:<br/>
+![eq](report/latexEquations/visc_strain_rate_2.png)
+
+Deriving equations [3.25](eq:visc_momentum_3), [3.26](eq:visc_herschel_bulkley_1) and [3.28](eq:visc_strain_rate_2) while once again using the linear distribution of the divergence operator we get:<br/>
 <a id="eq:visc_momentum_4"></a>
-$
-    f(\theta)\mu\begin{pmatrix}
-        \frac{\partial^2{u_x}}{\partial{x^2}} + \frac{1}{2}\frac{\partial^2{u_x}}{\partial{y^2}} + \frac{1}{2}\frac{\partial^2{u_y}}{\partial{x}\partial{y}} + \frac{1}{2}\frac{\partial^2{u_x}}{\partial{z^2}}\\
-        \frac{\partial^2{u_y}}{\partial{y^2}} + \frac{1}{2}\frac{\partial^2{u_y}}{\partial{x^2}} + \frac{1}{2}\frac{\partial^2{u_x}}{\partial{x}\partial{y}} + \frac{1}{2}\frac{\partial^2{u_y}}{\partial{z^2}}
-    \end{pmatrix} = -\rho\vec{g}\nabla{S}
-$ &ensp;&ensp;&ensp;(29)<br/>
 
-As an approximation, we also chose to remove the crossed terms and equation [29](eq:visc_momentum_4) becomes:<br/>
+![eq](report/latexEquations/visc_momentum_4.png)
+
+As an approximation, we also chose to remove the crossed terms and equation [3.29](eq:visc_momentum_4) becomes:<br/>
 <a id="eq:visc_momentum_5"></a>
-$
-    f(\theta)\mu\begin{pmatrix}
-        \frac{\partial^2{u_x}}{\partial{x^2}} + \frac{1}{2}\frac{\partial^2{u_x}}{\partial{y^2}} + \frac{1}{2}\frac{\partial^2{u_x}}{\partial{z^2}}\\
-        \frac{\partial^2{u_y}}{\partial{y^2}} + \frac{1}{2}\frac{\partial^2{u_y}}{\partial{x^2}} + \frac{1}{2}\frac{\partial^2{u_y}}{\partial{z^2}}
-    \end{pmatrix} = -\rho\vec{g}\nabla{S}
-$ &ensp;&ensp;&ensp;(30)<br/>
+
+![eq](report/latexEquations/visc_momentum_5.png)
 
 From there, we want to integrate over the lava columns to get the averaged velocity inside the columns at each point of the terrain (see Figure [3.1](#fig:lava_column)). To do so, we begin by integrating over $z$ between an arbitrary height $z$ and the surface of the flow $h$ over that $z$ (for readability, we will only write the integral in $u_x$):<br/>
 <a id="eq:visc_integral_1"></a>
-$
-    \int_{z}^{h} \frac{\partial^2{u_x}}{\partial{x^2}} + \frac{1}{2}\frac{\partial^2{u_x}}{\partial{y^2}} + \frac{1}{2}\frac{\partial^2{u_x}}{\partial{z^2}}\,dz = \frac{1}{f(\theta)\mu}\int_{z}^{h} -\rho\vec{g}\nabla{S}\,dz\nonumber\\
-    \frac{\partial}{\partial{x}}\int_{z}^{h} \frac{\partial{u_x}}{\partial{x}}\,dz + \frac{1}{2}\frac{\partial}{\partial{y}}\int_{z}^{h} \frac{\partial{u_x}}{\partial{y}}\,dz + \frac{1}{2}\left[\frac{\partial{u_x}}{\partial{z}}\right]_z^{h} = -(h-z)\frac{\rho\vec{g}\nabla{S}}{f(\theta)\mu}
-$ &ensp;&ensp;&ensp;(31)<br/>
 
-The velocity is null on the free surface so $\frac{\partial{u_x}}{\partial{z}}(z_h) = 0$ and equation [31](#eq:visc_integral_1) becomes:<br/>
+![eq](report/latexEquations/visc_integral_1.png)
+
+The velocity is null on the free surface so $\frac{\partial{u_x}}{\partial{z}}(z_h) = 0$ and equation [3.31](#eq:visc_integral_1) becomes:<br/>
 <a id="eq:visc_integral_2"></a>
-$
-    \frac{\partial}{\partial{x}}\int_{z}^{h} \frac{\partial{u_x}}{\partial{x}}\,dz + \frac{1}{2}\frac{\partial}{\partial{y}}\int_{z}^{h} \frac{\partial{u_x}}{\partial{y}}\,dz - \frac{1}{2}\frac{\partial{u_x}}{\partial{z}} = -(h-z)\frac{\rho\vec{g}\nabla{S}}{f(\theta)\mu}
-$ &ensp;&ensp;&ensp;(32)<br/>
+
+![eq](report/latexEquations/visc_integral_2.png)
 
 We integrate again but this time between the bottom of the flow $0$ and $z$:<br/>
 <a id="eq:visc_integral_3"></a>
-$
-    \frac{\partial}{\partial{x^2}}\int_{0}^{z'}\int_{z}^{h} u_x\,dz\,dz' + \frac{1}{2}\frac{\partial}{\partial{y^2}}\int_{0}^{z'}\int_{z}^{h} u_x\,dz\,dz' - \frac{1}{2}\left[u_x\right]_{0}^{z} = -(hz'-\frac{1}{2}z'^2)\frac{\rho\vec{g}\nabla{S}}{f(\theta)\mu}
-$ &ensp;&ensp;&ensp;(33)<br/>
 
-The velocity at the bottom of the flow is $0$, so equation [33](#eq:visc_integral_3) becomes:<br/>
+![eq](report/latexEquations/visc_integral_3.png)
+
+The velocity at the bottom of the flow is $0$, so equation [3.33](#eq:visc_integral_3) becomes:<br/>
 <a id="eq:visc_integral_4"></a>
-$
-    \frac{\partial}{\partial{x^2}}\int_{0}^{z'}\int_{z}^{h} u_x\,dz\,dz' + \frac{1}{2}\frac{\partial}{\partial{y^2}}\int_{0}^{z'}\int_{z}^{h} u_x\,dz\,dz' - \frac{1}{2}u_x = -(hz'-\frac{1}{2}z'^2)\frac{\rho\vec{g}\nabla{S}}{f(\theta)\mu}
-$ &ensp;&ensp;&ensp;(34)<br/>
+
+![eq](report/latexEquations/visc_integral_4.png)
 
 Finally to get the average velocity on the column we integrate between $0$ and $h$ before dividing by $h$ (for readability, we removed the $\,dz$ inside the integrals):<br/>
 <a id="eq:visc_integral_5"></a>
-$
-    \frac{1}{h}(\int_{0}^{h}\frac{\partial}{\partial{x^2}}\int_{0}^{z'}\int_{z}^{h} u_x + \frac{1}{2}\int_{0}^{h}\frac{\partial}{\partial{y^2}}\int_{0}^{z'}\int_{z}^{h} u_x - \frac{1}{2}h\bar{u}) = \frac{-1}{h}(\frac{1}{2}h^3-\frac{1}{6}h^3)\frac{\rho\vec{g}\nabla{S}}{f(\theta)\mu}$<br/>
-$   \frac{\partial}{\partial{x^2}}\frac{1}{3}h^3\bar{u} + \frac{1}{2}\frac{\partial}{\partial{y^2}}\frac{1}{3}h^3\bar{u}- \frac{1}{2}h\bar{u} = -(\frac{1}{3}h^3\frac{\rho\vec{g}\nabla{S}}{f(\theta)\mu})
-$  &ensp;&ensp;&ensp;(35)<br/>
+
+![eq](report/latexEquations/visc_integral_5.png)
 
 Where $\bar{u}$ is the average velocity on the column. Let's now write $u' = h^3\bar{u}$. The equation now becomes:<br/>
 <a id="eq:visc_integral_6"></a>
-$
-    \frac{\partial}{\partial{x^2}}u' + \frac{1}{2}\frac{\partial}{\partial{y^2}}u' - \frac{3}{2}u'h^4 = -(h^3\frac{\rho\vec{g}\nabla{S}}{f(\theta)\mu})
-$  &ensp;&ensp;&ensp;(36)<br/>
 
-The equation now looks close to one of Green's functions where the differential operator $L$ is of the form $\nabla^2u - k^2u = b$. Because the height shouldn't impact differently the velocities on the $x$ and $y$ coordinates, we will arrange the equation [36](#eq:visc_integral_6). It now matches the form of the differential operator:<br/>
+![eq](report/latexEquations/visc_integral_6.png)
+
+The equation now looks close to one of Green's functions where the differential operator $L$ is of the form $\nabla^2u - k^2u = b$. Because the height shouldn't impact differently the velocities on the $x$ and $y$ coordinates, we will arrange the equation [3.36](#eq:visc_integral_6). It now matches the form of the differential operator:<br/>
 <a id="eq:visc_integral_7"></a>
-$
-    \frac{\partial}{\partial{x^2}}u' + \frac{\partial}{\partial{y^2}}u' - \frac{3}{2}\frac{u'}{h^2} = -(h^3\frac{\rho\vec{g}\nabla{S}}{f(\theta)\mu})$<br/>
-$   \nabla^2{u'} - k^2u' = b_j $  &ensp;&ensp;&ensp;(37)<br/>
+
+![eq](report/latexEquations/visc_integral_7.png)
 
 With $\rho = \rho_0$ as the constant lava density (see Table [3.1](#tab:variables)), $k = \sqrt{\frac{3}{2}}h^2$ and $b = -(h_j^3\frac{\rho\vec{g}\nabla{S}}{f(\theta_j)\mu})$. The intuition behind using Green's functions is that they can be seen as smoothing kernels working the same way as an SPH one that we could apply to the particles' velocities. For the given differential operator, we know that the associated Green's function in 2D is<br/>
 <a id="eq:green_function"></a>
-$G(u) = -\frac{1}{2\pi}K_0(kr)$  &ensp;&ensp;&ensp;(38)<br/>
+
+![eq](report/latexEquations/green_function.png)
 
 Where $r = \sqrt{u_x^2 + u_y^2 + u_z^2}$ and<br/>
 <a id="eq:modified_bessel"></a>
-$ K_0 = \int_{0}^{+\infty} \frac{\cos{(xt)}}{\sqrt{t^2+1}}\,dt $  &ensp;&ensp;&ensp;(39)<br/>
+
+![eq](report/latexEquations/modified_bessel.png)
 
 is a modified Bessel function. To update particles' velocities we therefore only need to use the following formula:<br/>
 <a id="eq:sph_green"></a>
-$ \bar{u_i} = h_i^3\frac{\sum_jG(u_j)*b_j}{\sum_jG(u_j)} $<br/>
-$ \bar{u_i} = h_i^3\frac{\sum_jK_0(kr)*b_j}{\sum_jK_0(kr)}$  &ensp;&ensp;&ensp;(40)<br/>
+
+![eq](report/latexEquations/sph_green.png)
 
 <a id="fig:graph_bessel"></a>
 <p align="center">
@@ -372,34 +333,25 @@ The graph of the modified Bessel function is presented in Figure [3.4a](#fig:gra
     Figure 3.5c: Wvisc
 </p>
 
-However, none of these kernels are close enough to the Bessel function. To fix this issue, we have designed a new smoothing kernel. To design such a kernel we begin by simplifying the modified Bessel function [39](#eq:modified_bessel) in its series expansion at x=0:<br/>
+However, none of these kernels are close enough to the Bessel function. To fix this issue, we have designed a new smoothing kernel. To design such a kernel we begin by simplifying the modified Bessel function [3.39](#eq:modified_bessel) in its series expansion at x=0:<br/>
 <a id="eq:modified_bessel_series"></a>
-$ K_0 \approx (-\log{(x)} - \gamma + \log{(2)}) + \frac{1}{4}x^2(-\log{(x)} - \gamma + 1 + \log{(2)}) $ &ensp;&ensp;&ensp;(41)<br/>
+
+![eq](report/latexEquations/modified_bessel_series.png)
 
 Where $\gamma \approx 0.577216$ is the Euler’s constant. Then we need to create a kernel $W(r,l)$ such that:<br/>
 <a id="eq:new_kernel"></a>
-$ W_{\text{new}}(r,l) = \frac{1}{l^2}k\begin{cases}
-                                                K_0(r)& \text{  if } 0 < r \leq l\\
-                                                0     & \text{  otherwise}
-                                            \end{cases} $ &ensp;&ensp;&ensp;(42)<br/>
 
-The $\frac{1}{l^2}$ is necessary because it is a 2D kernel (see [[Mon05]](#Mon05)) and $k$ is a normalizing constant because we want to use normalized smoothing kernels (see [[MCG03]](#MCG03)). To find the normalizing constant we integrate the Bessel function [42](#eq:modified_bessel) and we get<br/>
+![eq](report/latexEquations/new_kernel.png)
+
+The $\frac{1}{l^2}$ is necessary because it is a 2D kernel (see [[Mon05]](#Mon05)) and $k$ is a normalizing constant because we want to use normalized smoothing kernels (see [[MCG03]](#MCG03)). To find the normalizing constant we integrate the Bessel function [3.42](#eq:modified_bessel) and we get<br/>
 <a id="eq:normalizing_cst"></a>
-$ \frac{1}{k} = \int_{0}^{+\infty} K_0(x)\,dx = \frac{\pi}{2} $ &ensp;&ensp;&ensp;(43)<br/>
+
+![eq](report/latexEquations/normalizing_cst.png)
 
 The new kernel \ref{eq:new_kernel} is then:<br/>
 <a id="eq:new_kernel_final"></a>
-$
-W_{\text{new}}(r,l) = \frac{2}{\pi l^2}\begin{cases}
-                                                K_0(r)& \text{if } 0 < r \leq l\\
-                                                0     & \text{otherwise}
-                                            \end{cases}
-                                            $<br/>
-$ W_{\text{new}}(r,l) = \frac{2}{\pi l^2}\begin{cases}
-                                                ((-\log{(r)} - \gamma + \log{(2)}) + \frac{1}{4}r^2(-\log{(r)} - \gamma + 1 + \log{(2)}))& \text{if } 0 < r \leq l\\
-                                                0     & \text{otherwise}
-                                            \end{cases}
-$ &ensp;&ensp;&ensp;(44)<br/>
+
+![eq](report/latexEquations/new_kernel_final.png)
 
 We can see in Figure [3.4b](#fig:graph_new_kernel) that its graph is now much closer to the Bessel function (Figure [3.4a](#fig:graph_bessel)) than the previous kernels. To avoid any issue when $r = 0$, we used the approximation $K_0(0) \approx K_0(1e^{-3})$.
 
