@@ -8,7 +8,6 @@ using UnityEditor;
 
 /**
  * An enumeration representing the type of volcano to use for the simulation
- TODO: change camera's position and particle generator's positions as well depending on the volcano
 */
 public enum Volcano {
     StHelen,

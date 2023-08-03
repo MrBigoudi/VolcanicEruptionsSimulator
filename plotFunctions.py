@@ -1,5 +1,4 @@
-import matplotlib.pyplot as plt 
-import numpy as np 
+import matplotlib.pyplot as plt
 import math
     
 xdata = [i/100.0 for i in range(0, 201, 1)] 
